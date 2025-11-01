@@ -1,18 +1,25 @@
 /**
  * ============================================
- * UNIVERSITYSCREEN - REACT NATIVE VERSION
+ * UNIVERSITYPAGE - REACT NATIVE VERSION
  * ============================================
- *
+ * 
  * University Campus screen with:
  * - Campus map background (image)
  * - Fantasy crystal effects (animated)
  * - Slide-up menu with 6 buildings
  * - Building selection modal
  * - LibraryPage integration (Könyvtár)
- *
- * NAVIGATION:
- * - Library épületre kattintva → navigation.navigate('Library')
- * - Vissza gomb → navigation.goBack()
+ * 
+ * HASZNÁLAT:
+ * cp exports/UniversityPage.rn.tsx src/components/UniversityPage.tsx
+ * 
+ * FÜGGŐSÉGEK:
+ * npm install react-native-linear-gradient
+ * npm install lucide-react-native
+ * 
+ * MEGJEGYZÉS:
+ * - Campus map image: Helyezd el az assets mappában
+ * - LibraryPage: Szükséges a külső LibraryPage komponens
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -27,7 +34,7 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import {
   ArrowLeft,
   ChevronUp,
@@ -41,14 +48,8 @@ import {
   X,
 } from 'lucide-react-native';
 
-// ============================================
-// TYPES
-// ============================================
-
-interface UniversityScreenProps {
-  navigation: any;
-  route: any;
-}
+// Import your LibraryPage component
+// import { LibraryPage } from './LibraryPage';
 
 // ============================================
 // CONSTANTS
@@ -86,7 +87,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 interface Building {
   id: string;
   name: string;
-  icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+  icon: React.ComponentType<{ size?: number; color?: string }>;
   colors: string[];
   number: number;
 }
@@ -137,16 +138,33 @@ const BUILDINGS: Building[] = [
 ];
 
 // ============================================
+// TYPES
+// ============================================
+
+interface UniversityPageProps {
+  onBack: () => void;
+  onOpenBookView: (bookTitle: string) => void;
+  coins: number;
+  onCoinsChange: (newCoins: number) => void;
+}
+
+// ============================================
 // COMPONENT
 // ============================================
 
-export default function UniversityScreen({ navigation }: UniversityScreenProps) {
+export function UniversityPage({
+  onBack,
+  onOpenBookView,
+  coins,
+  onCoinsChange,
+}: UniversityPageProps) {
   // ============================================
   // STATE
   // ============================================
 
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
 
   // ============================================
   // ANIMATIONS
@@ -204,10 +222,8 @@ export default function UniversityScreen({ navigation }: UniversityScreenProps) 
     setSelectedBuilding(buildingId);
     setMenuOpen(false);
 
-    // NAVIGATION: Library épület megnyitása
     if (buildingId === 'library') {
-      navigation.navigate('Library');
-      setSelectedBuilding(null); // Reset selection
+      setShowLibrary(true);
     }
   };
 
@@ -215,9 +231,37 @@ export default function UniversityScreen({ navigation }: UniversityScreenProps) 
     setSelectedBuilding(null);
   };
 
+  const handleCloseLibrary = () => {
+    setShowLibrary(false);
+    setSelectedBuilding(null);
+  };
+
   // ============================================
   // RENDER
   // ============================================
+
+  // LibraryPage overlay (if enabled)
+  if (showLibrary) {
+    return (
+      <View style={styles.libraryOverlay}>
+        {/* 
+        <LibraryPage
+          onBack={handleCloseLibrary}
+          onOpenBookView={onOpenBookView}
+          coins={coins}
+          onCoinsChange={onCoinsChange}
+        />
+        */}
+        {/* Placeholder for LibraryPage */}
+        <View style={styles.libraryPlaceholder}>
+          <Text style={styles.libraryPlaceholderText}>LibraryPage Here</Text>
+          <TouchableOpacity onPress={handleCloseLibrary} style={styles.closeLibraryButton}>
+            <Text style={styles.closeLibraryText}>Close Library</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -225,7 +269,7 @@ export default function UniversityScreen({ navigation }: UniversityScreenProps) 
       {/* HEADER - Back button */}
       {/* ============================================ */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={styles.backButton}>
+        <TouchableOpacity onPress={onBack} activeOpacity={0.7} style={styles.backButton}>
           <ArrowLeft size={SIZES.iconLG} color={COLORS.white} />
           <Text style={styles.backButtonText}>Vissza</Text>
         </TouchableOpacity>
@@ -239,7 +283,7 @@ export default function UniversityScreen({ navigation }: UniversityScreenProps) 
         <View style={styles.backgroundContainer}>
           {/* Campus Map Image */}
           <Image
-            source={require('../../assets/images/campus-map.png')}
+            source={require('../assets/campus_map.png')} // Replace with your image path
             style={styles.campusImage}
             resizeMode="cover"
           />
@@ -382,7 +426,7 @@ export default function UniversityScreen({ navigation }: UniversityScreenProps) 
                   style={{ flex: 1, minWidth: '48%' }}
                 >
                   <LinearGradient
-                    colors={building.colors as [string, string]}
+                    colors={building.colors}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={[
@@ -434,7 +478,7 @@ export default function UniversityScreen({ navigation }: UniversityScreenProps) 
 
                     return (
                       <LinearGradient
-                        colors={building.colors as [string, string]}
+                        colors={building.colors}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.modalIconContainer}
@@ -809,5 +853,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+
+  // ===== LIBRARY OVERLAY =====
+  libraryOverlay: {
+    flex: 1,
+  },
+  libraryPlaceholder: {
+    flex: 1,
+    backgroundColor: '#1F2937',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  libraryPlaceholderText: {
+    color: COLORS.white,
+    fontSize: SIZES.fontXL,
+    marginBottom: SPACING.base,
+  },
+  closeLibraryButton: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderRadius: SIZES.radiusLG,
+  },
+  closeLibraryText: {
+    color: COLORS.white,
+    fontSize: SIZES.fontBase,
+    fontWeight: '600',
   },
 });

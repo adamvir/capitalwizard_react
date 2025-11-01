@@ -29,17 +29,14 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 
-// Import alkomponensek
-import { TopBar } from '../components/ui/TopBar';
-import { SideMenu } from '../components/ui/SideMenu';
-import { EventCards } from '../components/ui/EventCards';
-import { TipBar } from '../components/ui/TipBar';
-import { CharacterLineup } from '../components/ui/CharacterLineup';
-import { PlayerStatusBar } from '../components/ui/PlayerStatusBar';
-import { ProgressAnimation } from '../components/animations/ProgressAnimation';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BackgroundDecoration } from '../components/ui/BackgroundDecoration';
-import { useIsFocused } from '@react-navigation/native';
+// Import alkomponensek (ezeket is konvertálni kell RN-re!)
+import { TopBar } from '../components/TopBar';
+import { SideMenu } from '../components/SideMenu';
+import { EventCards } from '../components/EventCards';
+import { TipBar } from '../components/TipBar';
+import { CharacterLineup } from '../components/CharacterLineup';
+import { PlayerStatusBar } from '../components/PlayerStatusBar';
+import { ProgressAnimation } from '../components/ProgressAnimation';
 
 // ============================================
 // CONSTANTS (styleConstants.ts equivalent)
@@ -100,7 +97,7 @@ interface MainScreenProps {
 // MAIN COMPONENT
 // ============================================
 
-export default function MainScreen({
+export function MainScreen({
   coins,
   gems,
   playerLevel,
@@ -127,26 +124,12 @@ export default function MainScreen({
   onJumpToLesson,
   getTotalXpForNextLevel,
 }: MainScreenProps) {
-  // Check if this screen is focused (needed for Arena modal)
-  const isFocused = useIsFocused();
-
   // ============================================
   // RENDER
   // ============================================
 
   return (
-    <View style={styles.container}>
-      {/* Background gradient */}
-      <LinearGradient
-        colors={['#0f172a', 'rgba(88, 28, 135, 0.4)', '#0f172a']}
-        style={styles.background}
-      >
-        {/* Background decoration */}
-        <BackgroundDecoration />
-
-        {/* Only show UI elements when screen is focused */}
-        {isFocused && (
-          <View style={styles.content}>
+    <>
       {/* ============================================ */}
       {/* TOP SECTION - TopBar */}
       {/* ============================================ */}
@@ -222,10 +205,7 @@ export default function MainScreen({
         currentGameType={currentGameType}
         isFirstRound={isFirstRound}
       />
-          </View>
-        )}
-      </LinearGradient>
-    </View>
+    </>
   );
 }
 
@@ -234,20 +214,6 @@ export default function MainScreen({
 // ============================================
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  background: {
-    flex: 1,
-    position: 'relative',
-    overflow: 'visible',
-  },
-  content: {
-    flex: 1,
-    position: 'relative',
-    zIndex: 1,
-    overflow: 'visible',
-  },
   gameWorldContainer: {
     flex: 1,
     position: 'relative',

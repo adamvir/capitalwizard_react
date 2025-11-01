@@ -6,7 +6,7 @@
 export type RootStackParamList = {
   Welcome: undefined;
   Home: undefined;
-  University: { coins: number; onCoinsChange: (coins: number) => void };
+  University: undefined;
   Library: undefined;
   Arena: { coins: number; subscriptionTier: 'free' | 'pro' | 'master'; onCoinsChange: (coins: number) => void };
   Profile: { playerLevel: number; coins: number; gems: number; subscriptionTier: 'free' | 'pro' | 'master' };

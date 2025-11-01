@@ -2,26 +2,27 @@
  * ============================================
  * TIPBAR - REACT NATIVE VERSION
  * ============================================
- *
+ * 
  * Displays rotating financial tips with marquee animation
  * - Random tip selection
  * - Auto-rotation every 20s
  * - Lightbulb icon
  * - Gradient background
- * - Marquee text animation (Animated API)
- *
+ * - Marquee text animation
+ * 
  * HASZNÁLAT:
  * cp exports/TipBar.rn.tsx src/components/TipBar.tsx
- *
+ * 
  * FÜGGŐSÉGEK:
- * npm install expo-linear-gradient
- * npm install lucide-react-native
+ * npm install react-native-linear-gradient
+ * npm install react-native-marquee
+ * cd ios && pod install && cd ..
  */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Lightbulb } from 'lucide-react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { Lightbulb } from 'lucide-react-native'; // vagy react-native-vector-icons
 
 // ============================================
 // CONSTANTS
@@ -48,7 +49,7 @@ const SIZES = {
 };
 
 // ============================================
-// TIPS DATA (35 pénzügyi tanács)
+// TIPS DATA (40 pénzügyi tanács)
 // ============================================
 
 const TIPS = [
@@ -121,11 +122,11 @@ export function TipBar() {
   }, [currentTip]);
 
   const startMarqueeAnimation = () => {
-    // Animate from 0 to -screenWidth slowly for smooth marquee
+    // Animate from 0 to -screenWidth over 20 seconds
     Animated.loop(
       Animated.timing(scrollX, {
-        toValue: -screenWidth * 1.5, // Scroll 1.5x screen width
-        duration: 30000, // 30 seconds (slower)
+        toValue: -screenWidth * 2, // Scroll 2x screen width
+        duration: 20000, // 20 seconds
         useNativeDriver: true,
       })
     ).start();
@@ -152,7 +153,6 @@ export function TipBar() {
             {/* Tip text with marquee animation */}
             <View style={styles.textContainer}>
               <Animated.Text
-                numberOfLines={1}
                 style={[
                   styles.text,
                   {

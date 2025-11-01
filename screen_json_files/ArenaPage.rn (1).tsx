@@ -32,7 +32,7 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import Slider from '@react-native-community/slider';
 import Animated, {
   useSharedValue,
@@ -63,15 +63,16 @@ import {
 // TYPES & INTERFACES
 // ============================================
 
-// React Navigation types
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../navigation/types';
-
-type ArenaScreenProps = NativeStackScreenProps<RootStackParamList, 'Arena'>;
-
 interface ArenaPageProps {
-  navigation: ArenaScreenProps['navigation'];
-  route: ArenaScreenProps['route'];
+  onClose: () => void;
+  coins: number;
+  onCoinsChange: (newCoins: number) => void;
+  subscriptionTier?: 'free' | 'pro' | 'master';
+  onLimitReached?: () => void;
+  onXpGain?: (xpAmount: number) => void;
+  onNavigateToLibrary?: () => void;
+  onStageAdvance?: () => void;
+  onStreakUpdate?: (newStreak: number, isFirstToday: boolean) => void;
 }
 
 interface RentedBook {
@@ -196,9 +197,17 @@ const AnimatedSwordsIcon: React.FC = () => {
 // MAIN COMPONENT
 // ============================================
 
-export default function ArenaScreen({ navigation, route }: ArenaPageProps) {
-  // Extract props from route params
-  const { coins, onCoinsChange, subscriptionTier = 'free' } = route.params;
+export function ArenaPage({
+  onClose,
+  coins,
+  onCoinsChange,
+  subscriptionTier = 'free',
+  onLimitReached,
+  onXpGain,
+  onNavigateToLibrary,
+  onStageAdvance,
+  onStreakUpdate,
+}: ArenaPageProps) {
   // ============================================
   // STATE
   // ============================================
@@ -358,7 +367,7 @@ export default function ArenaScreen({ navigation, route }: ArenaPageProps) {
     const canStart = await canPlay();
 
     if (!canStart) {
-      // onLimitReached?.();  // Optional callback - not used for now
+      onLimitReached?.();
       return;
     }
 
@@ -452,16 +461,16 @@ export default function ArenaScreen({ navigation, route }: ArenaPageProps) {
     let coinsChange = 0;
     if (isWin) {
       coinsChange = betAmount * 2;
-      // onXpGain?.(50);  // Optional callbacks - not used for now
-      // onStreakUpdate?.(1, true);
-      // onStageAdvance?.();
+      onXpGain?.(50);
+      onStreakUpdate?.(1, true);
+      onStageAdvance?.();
     } else if (isDraw) {
       coinsChange = betAmount;
-      // onXpGain?.(25);
-      // onStreakUpdate?.(1, true);
+      onXpGain?.(25);
+      onStreakUpdate?.(1, true);
     } else {
       coinsChange = 0;
-      // onXpGain?.(10);
+      onXpGain?.(10);
     }
 
     onCoinsChange(coins - betAmount + coinsChange);
@@ -532,7 +541,7 @@ export default function ArenaScreen({ navigation, route }: ArenaPageProps) {
     >
       <View style={styles.headerContent}>
         <View style={styles.headerLeft}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Pressable onPress={onClose} style={styles.backButton}>
             <ChevronLeft size={SIZES.iconBase} color={COLORS.white} />
           </Pressable>
 
@@ -716,7 +725,7 @@ export default function ArenaScreen({ navigation, route }: ArenaPageProps) {
               Kölcsönözz könyveket a Könyvtárban, hogy kérdéseket kaphass!
             </Text>
             <Pressable
-              onPress={() => navigation.navigate('Library')}
+              onPress={onNavigateToLibrary}
               style={styles.libraryButton}
             >
               <Text style={styles.libraryButtonText}>Könyvtár megnyitása</Text>
@@ -923,7 +932,7 @@ export default function ArenaScreen({ navigation, route }: ArenaPageProps) {
               <Text style={styles.newGameButtonText}>Új játék</Text>
             </Pressable>
 
-            <Pressable onPress={() => navigation.goBack()} style={styles.exitButton}>
+            <Pressable onPress={onClose} style={styles.exitButton}>
               <X size={16} color={COLORS.white} />
               <Text style={styles.exitButtonText}>Kilépés</Text>
             </Pressable>

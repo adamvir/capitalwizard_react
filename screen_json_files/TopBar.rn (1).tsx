@@ -30,7 +30,7 @@ import {
   AppState,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import { Coins, Gem } from 'lucide-react-native';
 
 // ============================================
@@ -478,19 +478,18 @@ function ConnectionLine({
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
-    minHeight: 140, // Changed from fixed height to minHeight for flexibility
-    paddingTop: 48, // Increased from 12 to 48 to clear iPhone notch/Dynamic Island
-    paddingBottom: SPACING.base,
+    height: 90, // Fixed height to prevent clipping (avatar:56 + padding:34)
+    paddingHorizontal: SPACING.base,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.sm,
     zIndex: 100,
-    overflow: 'visible', // Prevent clipping of player info box
-    width: '100%', // Ensure full width
   },
 
   // ===== PLAYER INFO (Left) =====
   playerInfoContainer: {
     position: 'absolute',
-    left: 16, // Increased from 8 to 16 to prevent clipping
-    top: 60, // Increased from 48 to 60 to ensure full visibility
+    left: 8,
+    top: 14,
     zIndex: 100,
   },
   playerCard: {
@@ -501,14 +500,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(71, 85, 105, 0.5)',
     padding: SPACING.sm,
     gap: 10,
-    minWidth: 220, // Ensure card doesn't get clipped (avatar:56 + gap:10 + info:140 + padding:16 + gap:10)
-    // Shadow (iOS) - reduced to prevent clipping
+    // Shadow (iOS)
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: 25,
     // Shadow (Android)
-    elevation: 4,
+    elevation: 8,
   },
 
   // Avatar
@@ -562,8 +560,9 @@ const styles = StyleSheet.create({
 
   // Info section
   infoSection: {
+    flex: 1,
     gap: 6,
-    width: 140, // Changed from flex: 1 to fixed width to prevent clipping
+    minWidth: 140,
   },
   levelRow: {
     flexDirection: 'row',
@@ -650,7 +649,7 @@ const styles = StyleSheet.create({
   stageProgressContainer: {
     position: 'absolute',
     right: 8,
-    top: 60, // Increased from 48 to 60 to align with playerInfoContainer
+    top: 14,
     zIndex: 40,
   },
   stageCard: {
