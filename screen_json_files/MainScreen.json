@@ -1,0 +1,297 @@
+{
+  "screenName": "MainScreen",
+  "screenType": "main",
+  "description": "Főképernyő - Játék főmenü az összes fő UI elemmel",
+  "file": "/components/MainScreen.tsx",
+  "dependencies": {
+    "components": [
+      "TopBar",
+      "SideMenu",
+      "EventCards",
+      "TipBar",
+      "CharacterLineup",
+      "PlayerStatusBar",
+      "ProgressAnimation"
+    ],
+    "utils": [
+      "styleConstants"
+    ]
+  },
+  "props": {
+    "playerStats": {
+      "coins": {
+        "type": "number",
+        "description": "Játékos aranyai",
+        "example": 1000
+      },
+      "gems": {
+        "type": "number",
+        "description": "Játékos gyémántjai",
+        "example": 50
+      },
+      "playerLevel": {
+        "type": "number",
+        "description": "Játékos szintje (0-100)",
+        "example": 5
+      },
+      "totalXp": {
+        "type": "number",
+        "description": "Összegyűjtött XP",
+        "example": 2500
+      },
+      "progressPosition": {
+        "type": "number",
+        "description": "Haladási pozíció (0-1)",
+        "example": 0.3
+      },
+      "currentLesson": {
+        "type": "number",
+        "description": "Jelenlegi lecke száma",
+        "example": 3
+      },
+      "currentStageInSection": {
+        "type": "number",
+        "description": "Szakasz belüli lépés (1-6)",
+        "example": 2
+      },
+      "playerName": {
+        "type": "string",
+        "description": "Játékos neve",
+        "example": "Vendég"
+      },
+      "subscriptionTier": {
+        "type": "'free' | 'pro' | 'master'",
+        "description": "Előfizetési szint",
+        "example": "free"
+      },
+      "currentStreak": {
+        "type": "number",
+        "description": "Jelenlegi napi sorozat",
+        "example": 7
+      }
+    },
+    "lessonState": {
+      "currentBookLessonIndex": {
+        "type": "number",
+        "description": "Könyv lecke index",
+        "example": 0
+      },
+      "currentGameType": {
+        "type": "'reading' | 'matching' | 'quiz'",
+        "description": "Jelenlegi játék típus",
+        "example": "reading"
+      },
+      "isFirstRound": {
+        "type": "boolean",
+        "description": "Első kör-e",
+        "example": true
+      }
+    },
+    "navigationCallbacks": {
+      "onAvatarClick": {
+        "type": "() => void",
+        "description": "Avatar kattintás - Avatár választó megnyitása"
+      },
+      "onLessonsClick": {
+        "type": "() => void",
+        "description": "Leckék gomb - Lecke választó megnyitása"
+      },
+      "onShopClick": {
+        "type": "() => void",
+        "description": "Bolt gomb - Bolt megnyitása"
+      },
+      "onArenaClick": {
+        "type": "() => void",
+        "description": "Aréna gomb - Aréna megnyitása"
+      },
+      "onUniversityClick": {
+        "type": "() => void",
+        "description": "Egyetem gomb - Egyetem oldal megnyitása"
+      },
+      "onProfileClick": {
+        "type": "() => void",
+        "description": "Profil gomb - Profil megnyitása"
+      },
+      "onSubscriptionClick": {
+        "type": "() => void",
+        "description": "Előfizetés gomb - Előfizetés oldal megnyitása"
+      },
+      "onManagerClick": {
+        "type": "() => void",
+        "description": "Diák gomb - Diák oldal megnyitása"
+      },
+      "onStreakClick": {
+        "type": "() => void",
+        "description": "Streak kattintás - Streak részletek megnyitása"
+      },
+      "onProgressClick": {
+        "type": "() => void",
+        "description": "Továbbhaladás gomb - Következő lecke indítása"
+      },
+      "onJumpToLesson": {
+        "type": "(lesson: number) => void",
+        "description": "Lecke választás - Ugrás adott leckére"
+      }
+    },
+    "utilFunctions": {
+      "getTotalXpForNextLevel": {
+        "type": "(level: number) => number",
+        "description": "Következő szinthez szükséges XP számítás",
+        "example": "getTotalXpForNextLevel(6) => 3600"
+      }
+    }
+  },
+  "layout": {
+    "structure": [
+      {
+        "order": 1,
+        "component": "TopBar",
+        "position": "top",
+        "description": "Felső menüsáv - arany, gyémánt, szint, progress",
+        "props": [
+          "coins",
+          "gems",
+          "progressPosition",
+          "playerLevel",
+          "currentLesson",
+          "onAvatarClick",
+          "currentStageInSection"
+        ]
+      },
+      {
+        "order": 2,
+        "component": "GameWorldContainer",
+        "position": "middle",
+        "description": "Középső tartalom terület",
+        "children": [
+          {
+            "component": "SideMenu",
+            "position": "left",
+            "description": "Bal oldali menü - Bolt, Leckék",
+            "props": [
+              "onLessonsClick",
+              "onShopClick"
+            ]
+          },
+          {
+            "component": "EventCards",
+            "position": "center",
+            "description": "Középső esemény kártyák",
+            "props": [
+              "onArenaClick",
+              "subscriptionTier"
+            ]
+          }
+        ]
+      },
+      {
+        "order": 3,
+        "component": "TipBar",
+        "position": "middle-bottom",
+        "description": "Rózsaszín tipp sáv",
+        "props": []
+      },
+      {
+        "order": 4,
+        "component": "CharacterLineup",
+        "position": "bottom",
+        "description": "Alsó navigációs menü - 5 gomb",
+        "props": [
+          "onJumpToLesson",
+          "onUniversityClick",
+          "onProfileClick",
+          "onSubscriptionClick",
+          "onManagerClick"
+        ]
+      },
+      {
+        "order": 5,
+        "component": "PlayerStatusBar",
+        "position": "bottom-left",
+        "description": "Bal alsó sarok - státusz",
+        "props": [
+          "playerName",
+          "subscriptionTier",
+          "streak",
+          "totalXp",
+          "totalXpForNextLevel",
+          "playerLevel",
+          "onStreakClick"
+        ]
+      },
+      {
+        "order": 6,
+        "component": "ProgressAnimation",
+        "position": "bottom-right",
+        "description": "Jobb alsó sarok - Továbbhaladás gomb",
+        "props": [
+          "onClick",
+          "currentBookLessonIndex",
+          "currentGameType",
+          "isFirstRound"
+        ]
+      }
+    ]
+  },
+  "styling": {
+    "gameWorldContainer": {
+      "flex": 1,
+      "position": "relative",
+      "paddingBottom": "SPACING.xl"
+    }
+  },
+  "navigation": {
+    "canNavigateTo": [
+      "lessons",
+      "shop",
+      "arena",
+      "university",
+      "profile",
+      "subscription",
+      "manager",
+      "streak",
+      "avatar",
+      "lesson"
+    ],
+    "navigatedFrom": [
+      "welcome",
+      "lesson",
+      "arena",
+      "university",
+      "profile",
+      "subscription",
+      "manager",
+      "streak",
+      "shop",
+      "avatar"
+    ]
+  },
+  "dataUsage": {
+    "usesLocalStorage": false,
+    "usesGameConfig": false,
+    "usesStreakManager": true,
+    "usesDataFiles": false
+  },
+  "reactNativeConversion": {
+    "difficulty": "medium",
+    "estimatedHours": 2,
+    "changes": [
+      "div -> View",
+      "inline styles already compatible",
+      "No web-specific features",
+      "All components already have RN versions"
+    ],
+    "dependencies": [
+      "react-native",
+      "All child components must be converted first"
+    ]
+  },
+  "metadata": {
+    "linesOfCode": 140,
+    "created": "2025-01-01",
+    "lastModified": "2025-01-01",
+    "version": "1.0.0",
+    "author": "Figma Make AI",
+    "status": "stable"
+  }
+}
