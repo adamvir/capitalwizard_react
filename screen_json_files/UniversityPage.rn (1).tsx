@@ -80,6 +80,11 @@ const SIZES = {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+// Slide-up menu dimensions
+const TAB_HEIGHT = 56;
+const MENU_CONTENT_HEIGHT = 420; // ScrollView (400) + padding (20)
+const PANEL_HEIGHT = TAB_HEIGHT + MENU_CONTENT_HEIGHT;
+
 // ============================================
 // BUILDING CONFIGURATION
 // ============================================
@@ -176,7 +181,8 @@ export function UniversityPage({
   const crystal3Opacity = useRef(new Animated.Value(0.3)).current;
 
   // Slide-up menu animation
-  const slideUpAnim = useRef(new Animated.Value(SCREEN_HEIGHT - 56)).current;
+  // Start with only tab visible (panel is pushed down)
+  const slideUpAnim = useRef(new Animated.Value(PANEL_HEIGHT - TAB_HEIGHT)).current;
 
   useEffect(() => {
     // Crystal pulse animations
@@ -207,10 +213,13 @@ export function UniversityPage({
 
   useEffect(() => {
     // Slide-up menu animation
-    Animated.timing(slideUpAnim, {
-      toValue: menuOpen ? 0 : SCREEN_HEIGHT - 56,
-      duration: 500,
-      useNativeDriver: false,
+    // menuOpen = true: translateY = 0 (full panel visible)
+    // menuOpen = false: translateY = PANEL_HEIGHT - TAB_HEIGHT (only tab visible)
+    Animated.spring(slideUpAnim, {
+      toValue: menuOpen ? 0 : PANEL_HEIGHT - TAB_HEIGHT,
+      friction: 10,
+      tension: 50,
+      useNativeDriver: true, // Better performance!
     }).start();
   }, [menuOpen]);
 
@@ -707,6 +716,7 @@ const styles = StyleSheet.create({
   menuContent: {
     borderTopWidth: 1,
     borderColor: 'rgba(168, 85, 247, 0.3)',
+    height: MENU_CONTENT_HEIGHT, // Fixed height for consistent animation
     // Shadow
     shadowColor: '#9333EA',
     shadowOffset: { width: 0, height: 8 },
@@ -715,7 +725,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   buildingsScrollView: {
-    maxHeight: 400,
+    flex: 1,
   },
   buildingsGrid: {
     flexDirection: 'row',

@@ -12,6 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { COLORS } from './src/utils/styleConstants';
+import { CoinsProvider } from './src/contexts/CoinsContext';
 
 // Custom Paper theme
 const theme = {
@@ -33,11 +34,13 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <PaperProvider theme={theme}>
-          <NavigationContainer>
-            <AppNavigator />
-          </NavigationContainer>
-          <StatusBar style="auto" />
-          <Toast />
+          <CoinsProvider>
+            <NavigationContainer>
+              <AppNavigator />
+            </NavigationContainer>
+            <StatusBar style="auto" />
+            <Toast />
+          </CoinsProvider>
         </PaperProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

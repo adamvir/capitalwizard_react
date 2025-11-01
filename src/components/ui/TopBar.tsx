@@ -32,6 +32,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Coins, Gem } from 'lucide-react-native';
+import { useCoins } from '../../contexts/CoinsContext';
 
 // ============================================
 // CONSTANTS
@@ -103,8 +104,8 @@ type DifficultyType = 'easy' | 'medium' | 'hard';
 // ============================================
 
 export function TopBar({
-  coins = 680,
-  gems = 0,
+  coins: coinsProp,
+  gems: gemsProp,
   progressPosition = 3,
   playerLevel = 2,
   currentLesson = 7,
@@ -112,7 +113,17 @@ export function TopBar({
   currentStageInSection = 1,
 }: TopBarProps) {
   // ============================================
-  // STATE
+  // GLOBAL STATE (CoinsContext)
+  // ============================================
+
+  const { coins: coinsFromContext, gems: gemsFromContext } = useCoins();
+
+  // Use prop if provided, otherwise use context
+  const coins = coinsProp !== undefined ? coinsProp : coinsFromContext;
+  const gems = gemsProp !== undefined ? gemsProp : gemsFromContext;
+
+  // ============================================
+  // LOCAL STATE
   // ============================================
 
   const [currentAvatar, setCurrentAvatar] = useState<string | null>(null);

@@ -10,6 +10,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import MainScreen from './MainScreen';
 import { COLORS } from '../utils/styleConstants';
 import { RootStackParamList } from '../navigation/types';
+import { useCoins } from '../contexts/CoinsContext';
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -18,9 +19,8 @@ interface HomeScreenProps {
 }
 
 // Default initial state
+// NOTE: coins and gems are now managed by CoinsContext
 const DEFAULT_STATE = {
-  coins: 1000,
-  gems: 0,
   playerLevel: 1,
   totalXp: 0,
   progressPosition: 0,
@@ -35,9 +35,10 @@ const DEFAULT_STATE = {
 };
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
+  // Global state (CoinsContext)
+  const { coins, gems, setCoins, setGems } = useCoins();
+
   // Game state
-  const [coins, setCoins] = useState(DEFAULT_STATE.coins);
-  const [gems, setGems] = useState(DEFAULT_STATE.gems);
   const [playerLevel, setPlayerLevel] = useState(DEFAULT_STATE.playerLevel);
   const [totalXp, setTotalXp] = useState(DEFAULT_STATE.totalXp);
   const [progressPosition, setProgressPosition] = useState(DEFAULT_STATE.progressPosition);
@@ -60,8 +61,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       const saved = await AsyncStorage.getItem('game_state');
       if (saved) {
         const state = JSON.parse(saved);
-        setCoins(state.coins || DEFAULT_STATE.coins);
-        setGems(state.gems || DEFAULT_STATE.gems);
+        // NOTE: coins and gems are now managed by CoinsContext
         setPlayerLevel(state.playerLevel || DEFAULT_STATE.playerLevel);
         setTotalXp(state.totalXp || DEFAULT_STATE.totalXp);
         setProgressPosition(state.progressPosition || DEFAULT_STATE.progressPosition);
@@ -82,8 +82,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const saveGameState = async () => {
     try {
       const state = {
-        coins,
-        gems,
+        // NOTE: coins and gems are now managed by CoinsContext (separate AsyncStorage)
         playerLevel,
         totalXp,
         progressPosition,
@@ -105,7 +104,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   // Save state whenever it changes
   useEffect(() => {
     saveGameState();
-  }, [coins, gems, playerLevel, totalXp, progressPosition, currentLesson, currentStageInSection,
+  }, [playerLevel, totalXp, progressPosition, currentLesson, currentStageInSection,
       playerName, subscriptionTier, currentStreak, currentBookLessonIndex, currentGameType, isFirstRound]);
 
   // Navigation handlers
@@ -137,10 +136,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   };
 
   const handleUniversityClick = () => {
-    navigation.navigate('University', {
-      coins,
-      onCoinsChange: setCoins,
-    });
+    navigation.navigate('University');
   };
 
   const handleProfileClick = () => {

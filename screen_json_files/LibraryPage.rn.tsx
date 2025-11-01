@@ -1,8 +1,8 @@
 /**
  * ============================================
- * LIBRARYSCREEN - REACT NATIVE VERSION
+ * LIBRARYPAGE - REACT NATIVE VERSION
  * ============================================
- *
+ * 
  * Library bookshelf screen with:
  * - 6 wooden bookshelves with ~30 books
  * - Book selection modal
@@ -10,15 +10,20 @@
  * - Rental panel (sidebar with rented books)
  * - Success modal (rental confirmation)
  * - Book return functionality (with refund)
- *
- * NAVIGATION:
- * - Back button → navigation.goBack()
- * - Read book → navigation.navigate('BookView', { bookTitle })
- *
- * DEPENDENCIES:
- * npm install expo-linear-gradient
+ * 
+ * HASZNÁLAT:
+ * cp exports/LibraryPage.rn.tsx src/components/LibraryPage.tsx
+ * 
+ * FÜGGŐSÉGEK:
+ * npm install react-native-linear-gradient
  * npm install lucide-react-native
  * npm install @react-native-async-storage/async-storage
+ * 
+ * MEGJEGYZÉS:
+ * - AsyncStorage használata (localStorage helyett)
+ * - Toast: Custom implementation vagy react-native-toast-message
+ * - Animations: React Native Animated API
+ * - Dropdown menu: Custom modal selector
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -31,46 +36,24 @@ import {
   Modal,
   Animated,
   Dimensions,
+  TextInput,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ArrowLeft,
   BookOpen,
   Filter,
+  SortAsc,
+  Search,
+  Grid3x3,
+  List,
   BookMarked,
   Clock,
   Coins,
   Calendar,
   X,
 } from 'lucide-react-native';
-import { useCoins } from '../contexts/CoinsContext';
-
-// ============================================
-// TYPES
-// ============================================
-
-interface LibraryScreenProps {
-  navigation: any;
-  route?: any;
-}
-
-interface Book {
-  title: string;
-  colors: string[]; // Gradient colors
-  width: number;
-  borderColor: string;
-  textColor: string;
-  hasContent?: boolean;
-}
-
-interface RentedBook {
-  title: string;
-  rentedUntil: number; // timestamp
-  daysRented: number;
-  colors: string[];
-  textColor: string;
-}
 
 // ============================================
 // CONSTANTS
@@ -121,7 +104,35 @@ const SIZES = {
   radiusFull: 9999,
 };
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// ============================================
+// TYPES
+// ============================================
+
+interface LibraryPageProps {
+  onBack: () => void;
+  onOpenBookView: (bookTitle: string) => void;
+  coins: number;
+  onCoinsChange: (newCoins: number) => void;
+}
+
+interface Book {
+  title: string;
+  colors: string[]; // Gradient colors
+  width: number;
+  borderColor: string;
+  textColor: string;
+  hasContent?: boolean;
+}
+
+interface RentedBook {
+  title: string;
+  rentedUntil: number; // timestamp
+  daysRented: number;
+  colors: string[];
+  textColor: string;
+}
 
 // ============================================
 // HELPER FUNCTIONS
@@ -131,13 +142,13 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const calculateRentalPrice = (days: number): number => {
   if (days === 1) return 50;
   if (days === 30) return 1000;
-
+  
   // Progressive discount
   const basePrice = 50;
   const maxDiscount = 0.33;
   const discountFactor = (days - 1) / 29;
   const pricePerDay = basePrice * (1 - (maxDiscount * discountFactor));
-
+  
   return Math.round(pricePerDay * days);
 };
 
@@ -201,15 +212,14 @@ const SHELVES: Book[][] = [
 // COMPONENT
 // ============================================
 
-export default function LibraryScreen({ navigation }: LibraryScreenProps) {
+export function LibraryPage({
+  onBack,
+  onOpenBookView,
+  coins,
+  onCoinsChange,
+}: LibraryPageProps) {
   // ============================================
-  // GLOBAL STATE (CoinsContext)
-  // ============================================
-
-  const { coins, setCoins } = useCoins();
-
-  // ============================================
-  // LOCAL STATE
+  // STATE
   // ============================================
 
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
@@ -282,15 +292,16 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
 
   const handleRentBook = () => {
     if (!bookToRent) return;
-
+    
     const price = calculateRentalPrice(rentalDays);
-
+    
     if (coins < price) {
       // TOAST: Nincs elég aranyad!
+      // In production, use react-native-toast-message or custom toast
       console.log('ERROR: Nincs elég aranyad a kölcsönzéshez!');
       return;
     }
-
+    
     // Check if book is already rented
     const alreadyRented = rentedBooks.find(b => b.title === bookToRent.title);
     if (alreadyRented) {
@@ -298,10 +309,10 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
       console.log('ERROR: Ez a könyv már ki van kölcsönözve!');
       return;
     }
-
+    
     // Deduct coins
-    setCoins(coins - price);
-
+    onCoinsChange(coins - price);
+    
     // Add to rented books
     const newRental: RentedBook = {
       title: bookToRent.title,
@@ -310,9 +321,9 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
       colors: bookToRent.colors,
       textColor: bookToRent.textColor,
     };
-
+    
     saveRentedBooks([...rentedBooks, newRental]);
-
+    
     // Close rental modal and show success modal
     setSuccessBookTitle(bookToRent.title);
     setBookToRent(null);
@@ -322,24 +333,24 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
   const handleReturnBook = (bookTitle: string) => {
     const book = rentedBooks.find(b => b.title === bookTitle);
     if (!book) return;
-
+    
     // Calculate refund
     const remainingTime = book.rentedUntil - Date.now();
     const remainingDays = Math.max(0, Math.floor(remainingTime / (24 * 60 * 60 * 1000)));
-
+    
     if (remainingDays > 0) {
       const daysElapsed = book.daysRented - remainingDays;
       const priceForElapsedDays = calculateRentalPrice(daysElapsed);
       const originalPrice = calculateRentalPrice(book.daysRented);
       const refund = originalPrice - priceForElapsedDays;
-      setCoins(coins + refund);
+      onCoinsChange(coins + refund);
       // TOAST: Visszaadva! {refund} arany visszatérítés
       console.log(`SUCCESS: Visszaadva! ${refund} arany visszatérítés`);
     } else {
       // TOAST: Könyv visszaadva!
       console.log('SUCCESS: Könyv visszaadva!');
     }
-
+    
     const updatedBooks = rentedBooks.filter(b => b.title !== bookTitle);
     saveRentedBooks(updatedBooks);
   };
@@ -353,10 +364,6 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
     return Math.max(0, Math.ceil(remaining / (24 * 60 * 60 * 1000)));
   };
 
-  const handleOpenBookView = (bookTitle: string) => {
-    navigation.navigate('BookView', { bookTitle });
-  };
-
   // ============================================
   // RENDER HELPERS
   // ============================================
@@ -368,7 +375,12 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
     return (
       <TouchableOpacity
         key={`${shelfIndex}-${bookIndex}`}
-        onPress={() => setSelectedBook(book)}
+        onPress={() => {
+          setSelectedBook(book);
+          if (book.hasContent && isRented) {
+            onOpenBookView(book.title);
+          }
+        }}
         activeOpacity={0.8}
         style={{ width: book.width, marginHorizontal: 2 }}
       >
@@ -384,7 +396,7 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
 
         {/* Book spine */}
         <LinearGradient
-          colors={book.colors as [string, string]}
+          colors={book.colors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[
@@ -417,7 +429,7 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
 
         {/* Book bottom edge */}
         <LinearGradient
-          colors={[book.colors[0], book.colors[1]] as [string, string]}
+          colors={[book.colors[0], book.colors[1]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[
@@ -452,6 +464,9 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
         style={styles.backgroundOverlay}
       />
 
+      {/* Wood grain texture */}
+      <View style={styles.woodGrainTexture} />
+
       {/* ============================================ */}
       {/* HEADER */}
       {/* ============================================ */}
@@ -459,7 +474,7 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
         <View style={styles.headerRow}>
           {/* Left side: Back button + Title */}
           <View style={styles.headerLeft}>
-            <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={styles.backButton}>
+            <TouchableOpacity onPress={onBack} activeOpacity={0.7} style={styles.backButton}>
               <ArrowLeft size={SIZES.iconBase} color="#FEF3C7" />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
@@ -523,6 +538,10 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
             </ScrollView>
           </View>
         ))}
+
+        {/* Decorative elements */}
+        <View style={styles.decorBox1} />
+        <View style={styles.decorBox2} />
       </ScrollView>
 
       {/* ============================================ */}
@@ -541,7 +560,7 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
                 style={styles.bookDetailsCard}
               >
                 <LinearGradient
-                  colors={selectedBook.colors as [string, string]}
+                  colors={selectedBook.colors}
                   style={styles.bookDetailsHeader}
                 >
                   <BookOpen size={48} color={selectedBook.textColor} />
@@ -583,7 +602,7 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
                     <TouchableOpacity
                       onPress={() => {
                         setSelectedBook(null);
-                        handleOpenBookView(selectedBook.title);
+                        onOpenBookView(selectedBook.title);
                       }}
                       activeOpacity={0.8}
                     >
@@ -637,7 +656,7 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
 
                 {/* Book title */}
                 <LinearGradient
-                  colors={bookToRent.colors as [string, string]}
+                  colors={bookToRent.colors}
                   style={styles.rentalBookHeader}
                 >
                   <Text style={[styles.rentalBookTitle, { color: bookToRent.textColor }]}>
@@ -650,8 +669,10 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
                   <Text style={styles.daysLabel}>
                     <Calendar size={SIZES.iconSM} color="#78350F" /> Kölcsönzési időszak
                   </Text>
+                  {/* Slider placeholder - use @react-native-community/slider */}
                   <View style={styles.daysSliderContainer}>
                     <Text style={styles.daysSliderText}>{rentalDays} nap</Text>
+                    {/* In production, use Slider component */}
                   </View>
                   <View style={styles.daysRange}>
                     <Text style={styles.daysRangeText}>1 nap</Text>
@@ -719,8 +740,8 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
                     activeOpacity={0.8}
                   >
                     <LinearGradient
-                      colors={coins < calculateRentalPrice(rentalDays)
-                        ? ['#9CA3AF', '#6B7280']
+                      colors={coins < calculateRentalPrice(rentalDays) 
+                        ? ['#9CA3AF', '#6B7280'] 
                         : ['#059669', '#047857']}
                       style={[
                         styles.rentButton,
@@ -814,7 +835,7 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
                     <View key={index} style={styles.rentedBookCard}>
                       {/* Book header */}
                       <LinearGradient
-                        colors={book.colors as [string, string]}
+                        colors={book.colors}
                         style={styles.rentedBookHeader}
                       >
                         <View style={styles.rentedBookHeaderContent}>
@@ -870,7 +891,7 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
                         <TouchableOpacity
                           onPress={() => {
                             setShowRentalPanel(false);
-                            handleOpenBookView(book.title);
+                            onOpenBookView(book.title);
                           }}
                           activeOpacity={0.8}
                           style={styles.rentedReadButtonWrapper}
@@ -1030,6 +1051,17 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
+  woodGrainTexture: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.3,
+    backgroundColor: 'transparent',
+    // In web: repeating-linear-gradient
+    // In RN: Could use pattern image or SVG
+  },
 
   // ===== HEADER =====
   header: {
@@ -1058,6 +1090,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'rgba(120, 53, 15, 0.5)',
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -1092,6 +1125,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'rgba(120, 53, 15, 0.5)',
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -1125,6 +1159,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'rgba(120, 53, 15, 0.5)',
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -1156,6 +1191,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     height: 12,
     borderRadius: SIZES.radiusSM,
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -1183,6 +1219,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radiusSM,
     borderLeftWidth: 2,
     borderRightWidth: 2,
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
@@ -1200,6 +1237,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 14,
     transform: [{ rotate: '180deg' }],
+    // In RN, vertical text needs transform or custom layout
   },
   bookTexture: {
     position: 'absolute',
@@ -1241,6 +1279,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -1251,6 +1290,40 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 10,
     fontWeight: '600',
+  },
+
+  // Decorative Elements
+  decorBox1: {
+    position: 'absolute',
+    top: 0,
+    right: 16,
+    width: 64,
+    height: 80,
+    backgroundColor: 'rgba(180, 83, 9, 0.2)',
+    borderBottomLeftRadius: SIZES.radiusLG,
+    borderBottomRightRadius: SIZES.radiusLG,
+    // Shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  decorBox2: {
+    position: 'absolute',
+    top: 128,
+    left: 8,
+    width: 48,
+    height: 64,
+    backgroundColor: 'rgba(146, 64, 14, 0.3)',
+    borderBottomLeftRadius: SIZES.radiusLG,
+    borderBottomRightRadius: SIZES.radiusLG,
+    // Shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
   },
 
   // ===== MODALS =====
@@ -1270,6 +1343,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 4,
     borderColor: '#78350F',
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.5,
@@ -1281,6 +1355,7 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     marginBottom: SPACING.base,
     alignItems: 'center',
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -1309,6 +1384,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     paddingVertical: SPACING.md,
     borderRadius: SIZES.radiusLG,
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -1341,6 +1417,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 4,
     borderColor: '#78350F',
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.5,
@@ -1446,6 +1523,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radiusLG,
     padding: SPACING.base,
     marginBottom: SPACING.lg,
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -1516,6 +1594,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     paddingVertical: SPACING.md,
     borderRadius: SIZES.radiusLG,
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -1562,15 +1641,17 @@ const styles = StyleSheet.create({
     zIndex: 50,
     borderLeftWidth: 4,
     borderLeftColor: '#78350F',
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: -10, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 40,
     elevation: 20,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FEF3C7', // LinearGradient inside
   },
   panelHeader: {
     padding: SPACING.base,
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -1634,6 +1715,7 @@ const styles = StyleSheet.create({
     padding: SPACING.base,
     borderWidth: 2,
     borderColor: '#FCD34D',
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -1763,6 +1845,7 @@ const styles = StyleSheet.create({
     borderColor: '#D97706',
     position: 'relative',
     overflow: 'hidden',
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.5,
@@ -1773,10 +1856,12 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
+    marginHorizontal: 'auto',
     marginBottom: SPACING.base,
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.5,
@@ -1799,6 +1884,8 @@ const styles = StyleSheet.create({
   successBookName: {
     fontSize: SIZES.fontLG,
     fontWeight: '700',
+    display: 'block',
+    marginBottom: 4,
   },
   successSubtext: {
     fontSize: SIZES.fontSM,
@@ -1820,6 +1907,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 48,
     paddingVertical: SPACING.md,
     borderRadius: SIZES.radiusLG,
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

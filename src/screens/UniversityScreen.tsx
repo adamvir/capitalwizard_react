@@ -79,6 +79,11 @@ const SIZES = {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+// Slide-up menu dimensions
+const TAB_HEIGHT = 70; // Increased for better visibility
+const MENU_CONTENT_HEIGHT = 280; // 3 rows of buildings + padding + gaps
+const PANEL_HEIGHT = TAB_HEIGHT + MENU_CONTENT_HEIGHT;
+
 // ============================================
 // BUILDING CONFIGURATION
 // ============================================
@@ -158,7 +163,8 @@ export default function UniversityScreen({ navigation }: UniversityScreenProps) 
   const crystal3Opacity = useRef(new Animated.Value(0.3)).current;
 
   // Slide-up menu animation
-  const slideUpAnim = useRef(new Animated.Value(SCREEN_HEIGHT - 56)).current;
+  // Start with only tab visible (panel is pushed down)
+  const slideUpAnim = useRef(new Animated.Value(PANEL_HEIGHT - TAB_HEIGHT)).current;
 
   useEffect(() => {
     // Crystal pulse animations
@@ -189,10 +195,13 @@ export default function UniversityScreen({ navigation }: UniversityScreenProps) 
 
   useEffect(() => {
     // Slide-up menu animation
-    Animated.timing(slideUpAnim, {
-      toValue: menuOpen ? 0 : SCREEN_HEIGHT - 56,
-      duration: 500,
-      useNativeDriver: false,
+    // menuOpen = true: translateY = 0 (full panel visible)
+    // menuOpen = false: translateY = PANEL_HEIGHT - TAB_HEIGHT (only tab visible)
+    Animated.spring(slideUpAnim, {
+      toValue: menuOpen ? 0 : PANEL_HEIGHT - TAB_HEIGHT,
+      friction: 10,
+      tension: 50,
+      useNativeDriver: true, // Better performance!
     }).start();
   }, [menuOpen]);
 
@@ -348,7 +357,7 @@ export default function UniversityScreen({ navigation }: UniversityScreenProps) 
                 style={styles.tabButton}
               >
                 <View style={styles.tabContent}>
-                  <Map size={SIZES.iconBase} color={COLORS.white} />
+                  <Map size={24} color={COLORS.white} />
                   <Text style={styles.tabText}>Épületek Térképe</Text>
                 </View>
                 <Animated.View
@@ -356,7 +365,7 @@ export default function UniversityScreen({ navigation }: UniversityScreenProps) 
                     transform: [{ rotate: menuOpen ? '180deg' : '0deg' }],
                   }}
                 >
-                  <ChevronUp size={SIZES.iconBase} color={COLORS.white} />
+                  <ChevronUp size={24} color={COLORS.white} />
                 </Animated.View>
               </LinearGradient>
             </TouchableOpacity>
@@ -375,12 +384,12 @@ export default function UniversityScreen({ navigation }: UniversityScreenProps) 
               showsVerticalScrollIndicator={false}
             >
               {BUILDINGS.map((building) => (
-                <TouchableOpacity
-                  key={building.id}
-                  onPress={() => handleBuildingClick(building.id)}
-                  activeOpacity={0.8}
-                  style={{ flex: 1, minWidth: '48%' }}
-                >
+                <View key={building.id} style={styles.buildingWrapper}>
+                  <TouchableOpacity
+                    onPress={() => handleBuildingClick(building.id)}
+                    activeOpacity={0.8}
+                    style={{ width: '100%' }}
+                  >
                   <LinearGradient
                     colors={building.colors as [string, string]}
                     start={{ x: 0, y: 0 }}
@@ -406,6 +415,7 @@ export default function UniversityScreen({ navigation }: UniversityScreenProps) 
                     <Text style={styles.buildingName}>{building.name}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
+                </View>
               ))}
             </ScrollView>
           </LinearGradient>
@@ -495,7 +505,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 30,
     paddingHorizontal: SPACING.base,
-    paddingTop: SPACING.sm,
+    paddingTop: 50, // Safe area padding for iPhone notch/camera
     paddingBottom: SPACING.base,
   },
   backButton: {
@@ -637,7 +647,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: SPACING.base,
-    paddingVertical: 12,
+    paddingVertical: 18, // Increased for better visibility
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -655,7 +665,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     color: COLORS.white,
-    fontSize: SIZES.fontBase,
+    fontSize: 16, // Increased for better visibility
     fontWeight: '600',
   },
 
@@ -663,6 +673,7 @@ const styles = StyleSheet.create({
   menuContent: {
     borderTopWidth: 1,
     borderColor: 'rgba(168, 85, 247, 0.3)',
+    height: MENU_CONTENT_HEIGHT, // Fixed height for consistent animation
     // Shadow
     shadowColor: '#9333EA',
     shadowOffset: { width: 0, height: 8 },
@@ -676,8 +687,13 @@ const styles = StyleSheet.create({
   buildingsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: SPACING.sm,
+    justifyContent: 'space-between',
     padding: SPACING.base,
+    gap: SPACING.sm,
+  },
+  buildingWrapper: {
+    width: '48%', // 2 columns (48% + 48% + gap = ~100%)
+    marginBottom: SPACING.sm,
   },
 
   // Building button
