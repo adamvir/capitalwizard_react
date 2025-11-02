@@ -109,9 +109,9 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
       onLessonComplete();
     }
 
-    // Navigate back to lessons screen after a short delay
+    // Navigate back to home screen after a short delay
     setTimeout(() => {
-      navigation.goBack();
+      navigation.navigate('Home');
     }, 2000);
   };
 

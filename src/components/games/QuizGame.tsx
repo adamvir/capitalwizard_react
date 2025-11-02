@@ -99,35 +99,17 @@ interface QuizGameProps {
   onBackToHome?: () => void;
   onWin?: () => void;
   lessonNumber?: number;
-  lessonData?: Lesson;
+  quizData?: Array<{
+    question: string;
+    options: string[];
+    correctAnswer: number;
+  }>;
 }
 
 interface Question {
   question: string;
   answers: string[];
   correctAnswer: number; // 0-based index
-}
-
-interface Lesson {
-  id: string;
-  pageNumber: number;
-  reading: {
-    title: string;
-    content: string;
-    questions: Array<{
-      question: string;
-      answer: string;
-      keywords: string[];
-    }>;
-  };
-  matching: {
-    pairs: Array<{ term: string; definition: string }>;
-  };
-  quiz: Array<{
-    question: string;
-    options: string[];
-    correctAnswer: number;
-  }>;
 }
 
 // ============================================
@@ -138,7 +120,7 @@ export function QuizGame({
   onBackToHome,
   onWin,
   lessonNumber = 1,
-  lessonData,
+  quizData,
 }: QuizGameProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [correctAnswers, setCorrectAnswers] = useState(0);
@@ -149,7 +131,8 @@ export function QuizGame({
 
   console.log('❓ QuizGame mounted/updated:', {
     lessonNumber,
-    hasLessonData: !!lessonData,
+    hasQuizData: !!quizData,
+    quizDataLength: quizData?.length,
   });
 
   // ============================================
@@ -157,8 +140,8 @@ export function QuizGame({
   // ============================================
 
   useEffect(() => {
-    if (lessonData) {
-      const allQuestions: Question[] = lessonData.quiz.map((q) => ({
+    if (quizData && quizData.length > 0) {
+      const allQuestions: Question[] = quizData.map((q) => ({
         question: q.question,
         answers: q.options,
         correctAnswer: q.correctAnswer,
@@ -167,9 +150,15 @@ export function QuizGame({
       // Use ALL questions from the lesson (shuffle for variety)
       const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
 
+      console.log('✅ QuizGame questions initialized:', {
+        total: shuffled.length,
+      });
+
       setSelectedQuestions(shuffled);
+    } else {
+      console.warn('⚠️ QuizGame: No quiz data provided!');
     }
-  }, [lessonData]);
+  }, [quizData]);
 
   const currentQuestion = selectedQuestions[currentQuestionIndex];
 

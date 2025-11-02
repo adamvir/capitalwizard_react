@@ -1,13 +1,14 @@
 /**
- * StreakScreen - REACT NATIVE VERSION
- *
+ * StreakPage - REACT NATIVE VERSION
+ * 
  * Széria (streak) részletek oldal:
  * - Jelenlegi és leghosszabb széria statisztikák
  * - Széria védelem vásárlás
  * - 30 napos naptár grid (teljesítve/kihagyva)
- *
+ * 
  * DEPENDENCIES:
- * lucide-react-native, expo-linear-gradient
+ * npm install lucide-react-native
+ * npm install react-native-linear-gradient
  */
 
 import React from 'react';
@@ -20,7 +21,7 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import {
   ArrowLeft,
   Flame,
@@ -98,16 +99,13 @@ const FONT_WEIGHT = {
 // TYPES
 // ============================================
 
-interface StreakScreenProps {
-  navigation: any;
-  route: {
-    params: {
-      currentStreak: number;
-      longestStreak: number;
-      streakFreezes: number;
-      gold: number;
-    };
-  };
+interface StreakPageProps {
+  onBack: () => void;
+  currentStreak: number;
+  longestStreak: number;
+  streakFreezes: number;
+  onPurchaseStreakFreeze: () => void;
+  gold: number;
 }
 
 interface DayData {
@@ -117,23 +115,24 @@ interface DayData {
 }
 
 // ============================================
-// GAME CONFIG
+// GAME CONFIG (Mock)
 // ============================================
 
+// TODO: Import from actual gameConfig if available
 const STREAK_FREEZE_GOLD_COST = 500;
 
 // ============================================
 // COMPONENT
 // ============================================
 
-export default function StreakScreen({ navigation, route }: StreakScreenProps) {
-  const {
-    currentStreak = 7,
-    longestStreak = 15,
-    streakFreezes = 0,
-    gold = 1000,
-  } = route?.params || {};
-
+export function StreakPage({
+  onBack,
+  currentStreak,
+  longestStreak,
+  streakFreezes,
+  onPurchaseStreakFreeze,
+  gold,
+}: StreakPageProps) {
   // ============================================
   // CALENDAR GENERATION
   // ============================================
@@ -167,10 +166,6 @@ export default function StreakScreen({ navigation, route }: StreakScreenProps) {
   // HANDLERS
   // ============================================
 
-  const handleBack = () => {
-    navigation.goBack();
-  };
-
   const handlePurchaseStreakFreeze = () => {
     if (!canAffordStreakFreeze) {
       Alert.alert(
@@ -186,13 +181,7 @@ export default function StreakScreen({ navigation, route }: StreakScreenProps) {
       `Biztosan vásárolsz 1 széria pontot ${STREAK_FREEZE_GOLD_COST} aranyért?`,
       [
         { text: 'Mégse', style: 'cancel' },
-        {
-          text: 'Vásárlás',
-          onPress: () => {
-            // TODO: Implement purchase logic
-            Alert.alert('Sikeres vásárlás!', 'Vásároltál 1 széria pontot!');
-          },
-        },
+        { text: 'Vásárlás', onPress: onPurchaseStreakFreeze },
       ]
     );
   };
@@ -264,7 +253,7 @@ export default function StreakScreen({ navigation, route }: StreakScreenProps) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={handleBack}
+          onPress={onBack}
           style={styles.backButton}
           activeOpacity={0.7}
         >
@@ -398,7 +387,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 48,
     marginBottom: SPACING.base,
   },
   backButton: {

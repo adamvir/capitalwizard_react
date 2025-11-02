@@ -1,3 +1,15 @@
+/**
+ * SubscriptionScreen - REACT NATIVE VERSION
+ *
+ * Előfizetés képernyő - 3 tier (Free, Pro, Master)
+ * - Pricing cards (Free/Pro/Master)
+ * - Monthly/Yearly billing toggle
+ * - Feature lists per tier
+ * - Popular badge (Pro)
+ * - Current subscription indicator
+ * - Benefits section
+ */
+
 import React, { useState } from 'react';
 import {
   View,
@@ -5,147 +17,242 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Dimensions,
+  StatusBar,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+  ChevronLeft,
+  Crown,
+  Zap,
+  BookOpen,
+  TrendingUp,
+  Shield,
+  Sparkles,
+  Check,
+  Star,
+  Flame,
+  Trophy,
+  Target,
+  Users,
+  Download,
+  Infinity,
+} from 'lucide-react-native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/types';
 
-import { COLORS, SPACING, SIZES } from '../utils/styleConstants';
+// ============================================
+// CONSTANTS
+// ============================================
 
-// NAVIGATION: Navigáció típusa
-type NavigationProp = NativeStackNavigationProp<any>;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const COLORS = {
+  white: '#FFFFFF',
+  slate900: '#0F172A',
+  slate800: '#1E293B',
+  slate700: '#334155',
+  slate600: '#475569',
+  slate500: '#64748B',
+  slate400: '#94A3B8',
+  slate300: '#CBD5E1',
+  purple900: '#581C87',
+  purple800: '#6B21A8',
+  purple700: '#7E22CE',
+  purple600: '#9333EA',
+  purple500: '#A855F7',
+  purple400: '#C084FC',
+  purple200: '#E9D5FF',
+  purple100: '#D8B4FE',
+  pink500: '#EC4899',
+  blue700: '#1D4ED8',
+  blue600: '#2563EB',
+  blue500: '#3B82F6',
+  blue400: '#60A5FA',
+  blue300: '#93C5FD',
+  cyan600: '#06B6D4',
+  yellow500: '#EAB308',
+  yellow400: '#FBBF24',
+  orange600: '#EA580C',
+  orange400: '#FB923C',
+  red600: '#EF4444',
+  green600: '#16A34A',
+  green500: '#059669',
+  green400: '#4ADE80',
+  green300: '#86EFAC',
+  yellow300: '#FDE047',
+};
+
+const SPACING = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  base: 16,
+  lg: 20,
+  xl: 24,
+};
+
+const SIZES = {
+  fontXS: 10,
+  fontSM: 12,
+  fontBase: 14,
+  fontLG: 18,
+  fontXL: 20,
+  font2XL: 24,
+  font4XL: 36,
+  borderThin: 1,
+  borderMedium: 2,
+  radiusSM: 8,
+  radiusLG: 12,
+  radiusXL: 16,
+  radius2XL: 20,
+  radiusFull: 9999,
+  iconSM: 16,
+  iconBase: 18,
+  iconLG: 24,
+};
+
+const FONT_WEIGHT = {
+  normal: '400' as const,
+  medium: '500' as const,
+  semibold: '600' as const,
+  bold: '700' as const,
+};
+
+// ============================================
+// TYPES
+// ============================================
+
+type SubscriptionScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Subscription'>;
+type SubscriptionScreenRouteProp = RouteProp<RootStackParamList, 'Subscription'>;
+
+interface SubscriptionScreenProps {
+  navigation: SubscriptionScreenNavigationProp;
+  route: SubscriptionScreenRouteProp;
+}
 
 type BillingPeriod = 'monthly' | 'yearly';
 
+interface Feature {
+  icon: any;
+  text: string;
+  highlight?: boolean;
+}
+
 interface Plan {
-  id: string;
+  id: 'free' | 'pro' | 'ultimate';
   name: string;
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-  color: string;
-  gradientFrom: string;
-  gradientTo: string;
-  borderColor: string;
+  subtitle: string;
+  icon: any;
   price: {
     monthly: number;
     yearly: number;
   };
   popular?: boolean;
-  features: {
-    icon: keyof typeof MaterialCommunityIcons.glyphMap;
-    text: string;
-    highlight?: boolean;
-  }[];
+  features: Feature[];
   badge?: string;
+  gradientColors: string[];
+  borderColor: string;
 }
 
-interface SubscriptionScreenProps {
-  route?: {
-    params?: {
-      subscriptionTier?: 'free' | 'pro' | 'master';
-      onSubscriptionChange?: (tier: 'free' | 'pro' | 'master') => void;
-    };
-  };
-}
+// ============================================
+// PLAN DATA
+// ============================================
 
 const plans: Plan[] = [
   {
     id: 'free',
     name: 'Alapszint',
-    icon: 'book-open-variant',
-    color: 'slate',
-    gradientFrom: 'from-slate-600',
-    gradientTo: 'to-slate-700',
-    borderColor: 'border-slate-500/50',
+    subtitle: 'Kezdőknek',
+    icon: BookOpen,
     price: {
       monthly: 0,
       yearly: 0,
     },
     features: [
-      { icon: 'book-open-variant', text: '3 lecke naponta' },
-      { icon: 'trophy', text: '5 küzdőtéri játék naponta' },
-      { icon: 'star', text: 'Alapvető könyvtár hozzáférés' },
-      { icon: 'trending-up', text: 'Napi sorozat követés' },
-      { icon: 'target', text: 'Alapvető statisztikák' },
+      { icon: BookOpen, text: '3 lecke naponta' },
+      { icon: Trophy, text: '5 küzdőtéri játék naponta' },
+      { icon: Star, text: 'Alapvető könyvtár hozzáférés' },
+      { icon: TrendingUp, text: 'Napi sorozat követés' },
+      { icon: Target, text: 'Alapvető statisztikák' },
     ],
     badge: 'Ingyenes',
+    gradientColors: [COLORS.slate600, COLORS.slate700],
+    borderColor: COLORS.slate500,
   },
   {
     id: 'pro',
     name: 'Professzionális',
-    icon: 'flash',
-    color: 'purple',
-    gradientFrom: 'from-purple-600',
-    gradientTo: 'to-pink-600',
-    borderColor: 'border-purple-400/50',
+    subtitle: 'Legtöbbeknek',
+    icon: Zap,
     price: {
       monthly: 4990,
       yearly: 49990,
     },
     popular: true,
     features: [
-      { icon: 'infinity', text: 'Korlátlan leckék', highlight: true },
-      { icon: 'infinity', text: 'Korlátlan küzdőtér játékok', highlight: true },
-      { icon: 'book-open-variant', text: 'Teljes könyvtár (15 könyv)' },
-      { icon: 'download', text: 'Offline mód' },
-      { icon: 'trending-up', text: 'Részletes statisztikák' },
-      { icon: 'fire', text: '2x gyorsabb XP gyűjtés' },
-      { icon: 'crown', text: 'Exkluzív jelvények' },
+      { icon: Infinity, text: 'Korlátlan leckék', highlight: true },
+      { icon: Infinity, text: 'Korlátlan küzdőtér játékok', highlight: true },
+      { icon: BookOpen, text: 'Teljes könyvtár (15 könyv)' },
+      { icon: Download, text: 'Offline mód' },
+      { icon: TrendingUp, text: 'Részletes statisztikák' },
+      { icon: Flame, text: '2x gyorsabb XP gyűjtés' },
+      { icon: Crown, text: 'Exkluzív jelvények' },
     ],
     badge: 'Legtöbb választás',
+    gradientColors: [COLORS.purple600, COLORS.pink500],
+    borderColor: COLORS.purple400,
   },
   {
     id: 'ultimate',
     name: 'Mester',
-    icon: 'crown',
-    color: 'yellow',
-    gradientFrom: 'from-yellow-500',
-    gradientTo: 'to-orange-600',
-    borderColor: 'border-yellow-400/50',
+    subtitle: 'Elkötelezetteknek',
+    icon: Crown,
     price: {
       monthly: 9990,
       yearly: 99990,
     },
     features: [
-      { icon: 'shimmer', text: 'Minden Pro funkció', highlight: true },
-      { icon: 'account-group', text: '1-1 mentori támogatás' },
-      { icon: 'target', text: 'Személyre szabott tanulási terv' },
-      { icon: 'trophy', text: 'Exkluzív kihívások' },
-      { icon: 'star', text: 'Korai hozzáférés új funkciókhoz' },
-      { icon: 'shield', text: 'Prioritás támogatás' },
-      { icon: 'crown', text: 'Arany mester jelvény' },
-      { icon: 'fire', text: '3x gyorsabb XP gyűjtés' },
+      { icon: Sparkles, text: 'Minden Pro funkció', highlight: true },
+      { icon: Users, text: '1-1 mentori támogatás' },
+      { icon: Target, text: 'Személyre szabott tanulási terv' },
+      { icon: Trophy, text: 'Exkluzív kihívások' },
+      { icon: Star, text: 'Korai hozzáférés új funkciókhoz' },
+      { icon: Shield, text: 'Prioritás támogatás' },
+      { icon: Crown, text: 'Arany mester jelvény' },
+      { icon: Flame, text: '3x gyorsabb XP gyűjtés' },
     ],
     badge: 'Legjobb érték',
+    gradientColors: [COLORS.yellow500, COLORS.orange600],
+    borderColor: COLORS.yellow400,
   },
 ];
 
-const planGradients: Record<string, string[]> = {
-  free: ['#475569', '#334155'],
-  pro: ['#9333EA', '#EC4899'],
-  ultimate: ['#EAB308', '#EA580C'],
-};
+// ============================================
+// COMPONENT
+// ============================================
 
-export default function SubscriptionScreen({ route }: SubscriptionScreenProps) {
-  const navigation = useNavigation<NavigationProp>();
-  const subscriptionTier = route?.params?.subscriptionTier ?? 'free';
-  const onSubscriptionChange = route?.params?.onSubscriptionChange;
-
+export default function SubscriptionScreen({ navigation, route }: SubscriptionScreenProps) {
+  const subscriptionTier = route.params?.subscriptionTier || 'free';
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('yearly');
 
-  const handleSelectPlan = (planId: string) => {
-    if (planId === 'free') {
-      onSubscriptionChange?.('free');
-    } else if (planId === 'pro') {
-      onSubscriptionChange?.('pro');
-    } else if (planId === 'ultimate') {
-      onSubscriptionChange?.('master');
-    }
-    // NAVIGATION: Navigate back after selection
+  // ============================================
+  // HELPERS
+  // ============================================
+
+  const handleBack = () => {
     navigation.goBack();
   };
 
-  const isCurrentPlan = (planId: string) => {
+  const handleSelectPlan = (planId: 'free' | 'pro' | 'ultimate') => {
+    // In real app, this would trigger in-app purchase flow
+    // For now, we just navigate back
+    console.log('Selected plan:', planId);
+    navigation.goBack();
+  };
+
+  const isCurrentPlan = (planId: 'free' | 'pro' | 'ultimate') => {
     if (planId === 'ultimate') {
       return subscriptionTier === 'master';
     }
@@ -169,259 +276,330 @@ export default function SubscriptionScreen({ route }: SubscriptionScreenProps) {
   const getSavings = (plan: Plan) => {
     if (plan.price.yearly === 0) return 0;
     const yearlyMonthly = plan.price.yearly / 12;
-    const savings = ((plan.price.monthly - yearlyMonthly) / plan.price.monthly) * 100;
+    const savings =
+      ((plan.price.monthly - yearlyMonthly) / plan.price.monthly) * 100;
     return Math.round(savings);
   };
 
+  const toggleBilling = () => {
+    setBillingPeriod(billingPeriod === 'monthly' ? 'yearly' : 'monthly');
+  };
+
+  // ============================================
+  // RENDER
+  // ============================================
+
   return (
-    <View style={styles.container}>
-      {/* Crystal Background Decorations - React Native doesn't support blur well, skipping */}
-
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <MaterialCommunityIcons name="chevron-left" size={24} color={COLORS.white} />
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <View style={styles.headerTitleRow}>
-              <MaterialCommunityIcons name="crown" size={24} color="#FBBF24" />
-              <Text style={styles.headerTitle}>Előfizetési Csomagok</Text>
-            </View>
-            <Text style={styles.headerSubtitle}>Válaszd a számodra megfelelő csomagot</Text>
-          </View>
-          {subscriptionTier !== 'free' && (
-            <Animated.View
-              entering={FadeIn}
-              style={[
-                styles.currentTierBadge,
-                { backgroundColor: subscriptionTier === 'master' ? '#9333EA' : '#2563EB' }
-              ]}
-            >
-              <Text style={styles.currentTierText}>
-                {subscriptionTier === 'master' ? 'Master előfizető' : 'Pro előfizető'}
-              </Text>
-            </Animated.View>
-          )}
-        </View>
-      </View>
-
-      {/* Content */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+    <View style={styles.outerContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#0F172A" translucent={false} />
+      <LinearGradient
+        colors={[COLORS.slate900, `${COLORS.purple900}33`, COLORS.slate900]}
+        style={styles.container}
       >
-        {/* Hero Section */}
-        <Animated.View entering={FadeIn} style={styles.heroContainer}>
-          <MaterialCommunityIcons name="crown" size={64} color="#FBBF24" />
-          <Text style={styles.heroTitle}>Fejleszd tudásod prémiummal</Text>
-          <Text style={styles.heroSubtitle}>Korlátlan hozzáférés, egyéni tanulási út, és több!</Text>
-        </Animated.View>
+        {/* Top Spacer for iPhone notch */}
+        <View style={styles.topSpacer} />
 
-        {/* Billing Toggle */}
-        <Animated.View entering={FadeIn.delay(100)} style={styles.billingToggleContainer}>
-          <Text style={[styles.billingLabel, billingPeriod === 'monthly' && styles.billingLabelActive]}>
-            Havi
-          </Text>
-          <TouchableOpacity
-            onPress={() => setBillingPeriod(billingPeriod === 'monthly' ? 'yearly' : 'monthly')}
-            style={styles.toggleButton}
-            activeOpacity={0.7}
-          >
-            <Animated.View
-              style={[
-                styles.toggleThumb,
-                { left: billingPeriod === 'yearly' ? 28 : 2 }
-              ]}
-            />
-          </TouchableOpacity>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={[styles.billingLabel, billingPeriod === 'yearly' && styles.billingLabelActive]}>
-              Éves
-            </Text>
-            {billingPeriod === 'yearly' && (
-              <Animated.View entering={FadeIn} style={styles.savingsBadge}>
-                <Text style={styles.savingsText}>-17%</Text>
-              </Animated.View>
+        {/* Header */}
+        <LinearGradient
+          colors={[`${COLORS.slate900}f2`, `${COLORS.purple900}cc`]}
+          style={styles.header}
+        >
+          <View style={styles.headerContent}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <ChevronLeft size={SIZES.iconBase} color={COLORS.white} />
+            </TouchableOpacity>
+
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerTitleRow}>
+                <Crown size={SIZES.iconBase} color={COLORS.yellow400} />
+                <Text style={styles.headerTitle}>Előfizetési Csomagok</Text>
+              </View>
+              <Text style={styles.headerSubtitle}>
+                Válaszd a számodra megfelelő csomagot
+              </Text>
+            </View>
+
+            {subscriptionTier !== 'free' && (
+              <LinearGradient
+                colors={
+                  subscriptionTier === 'master'
+                    ? [COLORS.purple600, COLORS.pink500]
+                    : [COLORS.blue600, COLORS.cyan600]
+                }
+                style={styles.currentTierBadge}
+              >
+                <Text style={styles.currentTierText}>
+                  {subscriptionTier === 'master'
+                    ? 'Master előfizető'
+                    : 'Pro előfizető'}
+                </Text>
+              </LinearGradient>
             )}
           </View>
-        </Animated.View>
+        </LinearGradient>
 
-        {/* Pricing Cards */}
-        <View style={styles.cardsContainer}>
-          {plans.map((plan, index) => (
-            <Animated.View
-              key={plan.id}
-              entering={FadeInUp.delay(200 + index * 100)}
-              style={styles.cardWrapper}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Hero Section */}
+          <View style={styles.heroContainer}>
+            <Crown
+              size={64}
+              color={COLORS.yellow400}
+              style={styles.heroIcon}
+            />
+            <Text style={styles.heroTitle}>Fejleszd tudásod prémiummal</Text>
+            <Text style={styles.heroSubtitle}>
+              Korlátlan hozzáférés, egyéni tanulási út, és több!
+            </Text>
+          </View>
+
+          {/* Billing Toggle */}
+          <View style={styles.billingToggleContainer}>
+            <Text
+              style={[
+                styles.billingLabel,
+                billingPeriod === 'monthly' && styles.billingLabelActive,
+              ]}
             >
-              {/* Popular Badge */}
-              {plan.popular && (
-                <View style={styles.popularBadgeContainer}>
-                  <View style={styles.popularBadge}>
-                    <View style={styles.popularBadgeContent}>
-                      <MaterialCommunityIcons name="star" size={12} color="#FDE047" />
-                      <Text style={styles.popularBadgeText}>{plan.badge}</Text>
-                      <MaterialCommunityIcons name="star" size={12} color="#FDE047" />
-                    </View>
-                  </View>
-                </View>
-              )}
+              Havi
+            </Text>
 
-              {plan.badge && !plan.popular && (
-                <View style={styles.regularBadgeContainer}>
-                  <View style={styles.regularBadge}>
-                    <Text style={styles.regularBadgeText}>{plan.badge}</Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Card */}
+            <TouchableOpacity
+              style={styles.toggleButton}
+              onPress={toggleBilling}
+              activeOpacity={0.7}
+            >
               <View
                 style={[
-                  styles.card,
-                  plan.popular && styles.cardPopular,
+                  styles.toggleThumb,
+                  billingPeriod === 'yearly' && styles.toggleThumbActive,
+                ]}
+              />
+            </TouchableOpacity>
+
+            <View style={styles.yearlyLabelContainer}>
+              <Text
+                style={[
+                  styles.billingLabel,
+                  billingPeriod === 'yearly' && styles.billingLabelActive,
                 ]}
               >
-                {/* Header */}
-                <View style={styles.cardHeader}>
-                  <View style={styles.cardHeaderLeft}>
-                    <View style={[styles.cardIcon, { backgroundColor: planGradients[plan.id][0] }]}>
-                      <MaterialCommunityIcons name={plan.icon} size={24} color={COLORS.white} />
+                Éves
+              </Text>
+              {billingPeriod === 'yearly' && (
+                <LinearGradient
+                  colors={[COLORS.green600, COLORS.green500]}
+                  style={styles.savingsBadge}
+                >
+                  <Text style={styles.savingsText}>-17%</Text>
+                </LinearGradient>
+              )}
+            </View>
+          </View>
+
+          {/* Pricing Cards */}
+          <View style={styles.cardsContainer}>
+            {plans.map((plan, index) => (
+              <View key={plan.id} style={styles.cardWrapper}>
+                {/* Popular Badge */}
+                {plan.popular && (
+                  <View style={styles.popularBadgeContainer}>
+                    <LinearGradient
+                      colors={[COLORS.purple600, COLORS.pink500]}
+                      style={styles.popularBadge}
+                    >
+                      <Star size={12} color={COLORS.yellow300} fill={COLORS.yellow300} />
+                      <Text style={styles.popularBadgeText}>{plan.badge}</Text>
+                      <Star size={12} color={COLORS.yellow300} fill={COLORS.yellow300} />
+                    </LinearGradient>
+                  </View>
+                )}
+
+                {/* Regular Badge */}
+                {plan.badge && !plan.popular && (
+                  <View style={styles.regularBadgeContainer}>
+                    <View style={styles.regularBadge}>
+                      <Text style={styles.regularBadgeText}>{plan.badge}</Text>
                     </View>
+                  </View>
+                )}
+
+                {/* Card */}
+                <LinearGradient
+                  colors={[`${COLORS.slate800}cc`, `${COLORS.slate900}99`]}
+                  style={[
+                    styles.card,
+                    {
+                      borderColor: plan.popular
+                        ? `${COLORS.purple500}cc`
+                        : `${plan.borderColor}80`,
+                    },
+                  ]}
+                >
+                  {/* Card Header */}
+                  <View style={styles.cardHeader}>
+                    <LinearGradient
+                      colors={plan.gradientColors}
+                      style={styles.cardIconContainer}
+                    >
+                      <plan.icon size={SIZES.iconLG} color={COLORS.white} />
+                    </LinearGradient>
                     <View style={styles.cardTitleContainer}>
                       <Text style={styles.cardTitle}>{plan.name}</Text>
-                      <Text style={styles.cardSubtitle}>
-                        {plan.id === 'free' ? 'Kezdőknek' : plan.id === 'pro' ? 'Legtöbbeknek' : 'Elkötelezetteknek'}
-                      </Text>
+                      <Text style={styles.cardSubtitle}>{plan.subtitle}</Text>
                     </View>
                   </View>
-                </View>
 
-                {/* Price */}
-                <View style={styles.priceContainer}>
-                  <View style={styles.priceRow}>
-                    <Text style={[styles.priceAmount, { color: planGradients[plan.id][0] }]}>
-                      {getMonthlyPrice(plan)}
-                    </Text>
-                    {plan.price.monthly > 0 && (
-                      <Text style={styles.pricePeriod}>/hó</Text>
+                  {/* Price */}
+                  <View style={styles.priceContainer}>
+                    <View style={styles.priceRow}>
+                      <Text style={styles.priceAmount}>
+                        {getMonthlyPrice(plan)}
+                      </Text>
+                      {plan.price.monthly > 0 && (
+                        <Text style={styles.pricePeriod}>/hó</Text>
+                      )}
+                    </View>
+                    {billingPeriod === 'yearly' && plan.price.yearly > 0 && (
+                      <View style={styles.yearlyPriceInfo}>
+                        <Text style={styles.yearlyPriceText}>
+                          {formatPrice(plan.price.yearly)} évente
+                        </Text>
+                        <Text style={styles.savingsText2}>
+                          Spórolj {getSavings(plan)}%-ot évente!
+                        </Text>
+                      </View>
                     )}
                   </View>
-                  {billingPeriod === 'yearly' && plan.price.yearly > 0 && (
-                    <View style={styles.yearlyPriceInfo}>
-                      <Text style={styles.yearlyPriceText}>
-                        {formatPrice(plan.price.yearly)} évente
-                      </Text>
-                      <Text style={styles.savingsText2}>
-                        Spórolj {getSavings(plan)}%-ot évente!
-                      </Text>
-                    </View>
-                  )}
-                </View>
 
-                {/* Features */}
-                <View style={styles.featuresContainer}>
-                  {plan.features.map((feature, idx) => (
-                    <View key={idx} style={styles.featureRow}>
-                      <View style={[
-                        styles.featureIcon,
-                        feature.highlight && { backgroundColor: planGradients[plan.id][0] }
-                      ]}>
-                        <MaterialCommunityIcons
-                          name="check"
-                          size={12}
-                          color={feature.highlight ? COLORS.white : '#94A3B8'}
-                        />
+                  {/* Features */}
+                  <View style={styles.featuresContainer}>
+                    {plan.features.map((feature, idx) => (
+                      <View key={idx} style={styles.featureRow}>
+                        <LinearGradient
+                          colors={
+                            feature.highlight
+                              ? plan.gradientColors
+                              : [COLORS.slate700, COLORS.slate700]
+                          }
+                          style={styles.featureIconContainer}
+                        >
+                          <Check
+                            size={12}
+                            color={feature.highlight ? COLORS.white : COLORS.slate400}
+                          />
+                        </LinearGradient>
+                        <Text
+                          style={[
+                            styles.featureText,
+                            feature.highlight && styles.featureTextHighlight,
+                          ]}
+                        >
+                          {feature.text}
+                        </Text>
                       </View>
-                      <Text style={[
-                        styles.featureText,
-                        feature.highlight && styles.featureTextHighlight
-                      ]}>
-                        {feature.text}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
+                    ))}
+                  </View>
 
-                {/* CTA Button */}
-                <TouchableOpacity
-                  onPress={() => handleSelectPlan(plan.id)}
-                  style={[
-                    styles.ctaButton,
-                    isCurrentPlan(plan.id) && styles.ctaButtonCurrent,
-                    !isCurrentPlan(plan.id) && { backgroundColor: planGradients[plan.id][0] },
-                  ]}
-                  activeOpacity={isCurrentPlan(plan.id) ? 1 : 0.7}
-                  disabled={isCurrentPlan(plan.id)}
-                >
-                  <Text style={styles.ctaButtonText}>
-                    {isCurrentPlan(plan.id) ? 'Jelenlegi csomag' : 'Váltás erre a csomagra'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </Animated.View>
-          ))}
-        </View>
-
-        {/* Benefits Section */}
-        <Animated.View
-          entering={FadeInUp.delay(600)}
-          style={styles.benefitsContainer}
-        >
-          <View style={styles.benefitsHeader}>
-            <MaterialCommunityIcons name="shimmer" size={24} color="#C084FC" />
-            <Text style={styles.benefitsTitle}>Miért érdemes prémiumra váltani?</Text>
-          </View>
-          <View style={styles.benefitsGrid}>
-            {[
-              { icon: 'book-open-variant', text: 'Teljes könyvtár' },
-              { icon: 'infinity', text: 'Korlátlan tanulás' },
-              { icon: 'trending-up', text: 'Gyorsabb fejlődés' },
-              { icon: 'shield', text: 'Prioritás támogatás' },
-            ].map((benefit, idx) => (
-              <View key={idx} style={styles.benefitItem}>
-                <MaterialCommunityIcons name={benefit.icon as any} size={16} color="#C084FC" />
-                <Text style={styles.benefitText}>{benefit.text}</Text>
+                  {/* CTA Button */}
+                  <TouchableOpacity
+                    onPress={() => handleSelectPlan(plan.id)}
+                    disabled={isCurrentPlan(plan.id)}
+                    activeOpacity={0.7}
+                    style={{ marginTop: SPACING.lg }}
+                  >
+                    {isCurrentPlan(plan.id) ? (
+                      <View style={styles.ctaButtonCurrent}>
+                        <Text style={styles.ctaButtonTextCurrent}>
+                          Jelenlegi csomag
+                        </Text>
+                      </View>
+                    ) : (
+                      <LinearGradient
+                        colors={plan.gradientColors}
+                        style={styles.ctaButton}
+                      >
+                        <Text style={styles.ctaButtonText}>
+                          Váltás erre a csomagra
+                        </Text>
+                      </LinearGradient>
+                    )}
+                  </TouchableOpacity>
+                </LinearGradient>
               </View>
             ))}
           </View>
-        </Animated.View>
 
-        {/* Trust Section */}
-        <Animated.View
-          entering={FadeIn.delay(800)}
-          style={styles.trustContainer}
-        >
-          <View style={styles.trustRow}>
-            <MaterialCommunityIcons name="shield" size={16} color="#94A3B8" />
-            <Text style={styles.trustRowText}>Biztonságos fizetés • Bármikor lemondható</Text>
+          {/* Benefits Section */}
+          <LinearGradient
+            colors={[`${COLORS.slate800}99`, `${COLORS.purple900}4d`]}
+            style={styles.benefitsContainer}
+          >
+            <View style={styles.benefitsHeader}>
+              <Sparkles size={SIZES.iconBase} color={COLORS.purple400} />
+              <Text style={styles.benefitsTitle}>
+                Miért érdemes prémiumra váltani?
+              </Text>
+            </View>
+            <View style={styles.benefitsGrid}>
+              {[
+                { icon: BookOpen, text: 'Teljes könyvtár' },
+                { icon: Infinity, text: 'Korlátlan tanulás' },
+                { icon: TrendingUp, text: 'Gyorsabb fejlődés' },
+                { icon: Shield, text: 'Prioritás támogatás' },
+              ].map((benefit, idx) => (
+                <View key={idx} style={styles.benefitItem}>
+                  <benefit.icon size={SIZES.iconSM} color={COLORS.purple400} />
+                  <Text style={styles.benefitText}>{benefit.text}</Text>
+                </View>
+              ))}
+            </View>
+          </LinearGradient>
+
+          {/* Trust Section */}
+          <View style={styles.trustContainer}>
+            <View style={styles.trustRow}>
+              <Shield size={SIZES.iconSM} color={COLORS.slate400} />
+              <Text style={styles.trustRowText}>
+                Biztonságos fizetés • Bármikor lemondható
+              </Text>
+            </View>
+            <Text style={styles.trustText}>
+              Több mint 10,000 tanuló fejleszti pénzügyi tudását a platformunkon
+            </Text>
           </View>
-          <Text style={styles.trustText}>
-            Több mint 10,000 tanuló fejleszti pénzügyi tudását a platformunkon
-          </Text>
-        </Animated.View>
-      </ScrollView>
+        </ScrollView>
+      </LinearGradient>
     </View>
   );
 }
 
+// ============================================
+// STYLES
+// ============================================
+
 const styles = StyleSheet.create({
+  outerContainer: {
+    flex: 1,
+    backgroundColor: COLORS.slate900,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+  },
+  topSpacer: {
+    height: 0,
   },
 
   // Header
   header: {
-    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(168, 85, 247, 0.3)',
-    padding: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.md,
+    borderBottomWidth: SIZES.borderThin,
+    borderBottomColor: `${COLORS.purple500}4d`,
   },
   headerContent: {
     flexDirection: 'row',
@@ -431,12 +609,12 @@ const styles = StyleSheet.create({
   backButton: {
     width: 36,
     height: 36,
-    backgroundColor: '#1E293B',
+    backgroundColor: `${COLORS.slate800}e6`,
     borderRadius: SIZES.radiusLG,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(71, 85, 105, 0.5)',
+    borderWidth: SIZES.borderThin,
+    borderColor: `${COLORS.slate600}80`,
   },
   headerTitleContainer: {
     flex: 1,
@@ -447,55 +625,58 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   headerTitle: {
-    color: COLORS.white,
     fontSize: SIZES.fontLG,
-    fontWeight: 'bold',
+    color: COLORS.white,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   headerSubtitle: {
-    color: '#D8B4FE',
+    color: COLORS.purple200,
     fontSize: SIZES.fontXS,
   },
   currentTierBadge: {
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: SIZES.radiusLG,
-    borderWidth: 1,
-    borderColor: 'rgba(192, 132, 252, 0.5)',
+    borderWidth: SIZES.borderThin,
+    borderColor: `${COLORS.purple400}80`,
   },
   currentTierText: {
     color: COLORS.white,
     fontSize: SIZES.fontXS,
+    fontWeight: FONT_WEIGHT.semibold,
   },
 
-  // Content
-  content: {
+  // ScrollView
+  scrollView: {
     flex: 1,
   },
-  contentContainer: {
+  scrollContent: {
     padding: SPACING.base,
     paddingBottom: 96,
   },
 
-  // Hero section
+  // Hero Section
   heroContainer: {
     alignItems: 'center',
     marginBottom: SPACING.lg,
   },
+  heroIcon: {
+    marginBottom: SPACING.md,
+  },
   heroTitle: {
-    color: COLORS.white,
     fontSize: SIZES.font2XL,
-    marginBottom: SPACING.sm,
-    marginTop: SPACING.md,
+    color: COLORS.yellow400,
+    fontWeight: FONT_WEIGHT.bold,
     textAlign: 'center',
-    fontWeight: 'bold',
+    marginBottom: SPACING.sm,
   },
   heroSubtitle: {
-    color: '#CBD5E1',
+    color: COLORS.slate300,
     fontSize: SIZES.fontSM,
     textAlign: 'center',
   },
 
-  // Billing toggle
+  // Billing Toggle
   billingToggleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -505,77 +686,84 @@ const styles = StyleSheet.create({
   },
   billingLabel: {
     fontSize: SIZES.fontSM,
-    color: '#94A3B8',
+    color: COLORS.slate400,
   },
   billingLabelActive: {
     color: COLORS.white,
   },
   toggleButton: {
+    position: 'relative',
     width: 56,
     height: 28,
-    backgroundColor: '#334155',
+    backgroundColor: COLORS.slate700,
     borderRadius: SIZES.radiusFull,
-    borderWidth: 1,
-    borderColor: '#475569',
+    borderWidth: SIZES.borderThin,
+    borderColor: COLORS.slate600,
     justifyContent: 'center',
   },
   toggleThumb: {
     position: 'absolute',
-    top: 4,
+    left: 4,
     width: 20,
     height: 20,
-    backgroundColor: '#A855F7',
-    borderRadius: 10,
+    backgroundColor: COLORS.purple500,
+    borderRadius: SIZES.radiusFull,
+  },
+  toggleThumbActive: {
+    left: 32,
+  },
+  yearlyLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   savingsBadge: {
-    backgroundColor: '#16A34A',
     paddingHorizontal: SPACING.sm,
     paddingVertical: 2,
     borderRadius: SIZES.radiusFull,
-    borderWidth: 1,
-    borderColor: 'rgba(74, 222, 128, 0.5)',
+    borderWidth: SIZES.borderThin,
+    borderColor: `${COLORS.green400}80`,
   },
   savingsText: {
     color: COLORS.white,
     fontSize: SIZES.fontXS,
+    fontWeight: FONT_WEIGHT.semibold,
   },
 
-  // Pricing cards
+  // Pricing Cards
   cardsContainer: {
     gap: SPACING.base,
   },
   cardWrapper: {
     position: 'relative',
+    marginBottom: SPACING.base,
   },
 
-  // Popular badge
+  // Popular Badge
   popularBadgeContainer: {
     position: 'absolute',
     top: -12,
-    left: 0,
-    right: 0,
+    left: '50%',
+    transform: [{ translateX: -80 }],
     zIndex: 10,
-    alignItems: 'center',
   },
   popularBadge: {
-    backgroundColor: '#9333EA',
-    paddingHorizontal: SPACING.base,
-    paddingVertical: SPACING.xs,
-    borderRadius: SIZES.radiusFull,
-    borderWidth: 2,
-    borderColor: '#C084FC',
-  },
-  popularBadgeContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.xs,
+    paddingHorizontal: SPACING.base,
+    paddingVertical: SPACING.xs,
+    borderRadius: SIZES.radiusFull,
+    borderWidth: SIZES.borderMedium,
+    borderColor: COLORS.purple400,
   },
   popularBadgeText: {
     color: COLORS.white,
     fontSize: SIZES.fontXS,
+    fontWeight: FONT_WEIGHT.semibold,
   },
 
-  // Regular badge
+  // Regular Badge
   regularBadgeContainer: {
     position: 'absolute',
     top: -8,
@@ -583,57 +771,47 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   regularBadge: {
-    backgroundColor: '#334155',
+    backgroundColor: COLORS.slate800,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
     borderRadius: SIZES.radiusFull,
-    borderWidth: 1,
-    borderColor: '#475569',
+    borderWidth: SIZES.borderThin,
+    borderColor: COLORS.slate600,
   },
   regularBadgeText: {
-    color: '#CBD5E1',
+    color: COLORS.slate300,
     fontSize: SIZES.fontXS,
   },
 
   // Card
   card: {
-    backgroundColor: 'rgba(30, 41, 59, 0.8)',
     borderRadius: SIZES.radius2XL,
     padding: SPACING.lg,
-    borderWidth: 2,
-    borderColor: 'rgba(71, 85, 105, 0.5)',
+    borderWidth: SIZES.borderMedium,
   },
-  cardPopular: {
-    borderColor: 'rgba(168, 85, 247, 0.8)',
-  },
-
-  // Card header
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.base,
-  },
-  cardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
+    marginBottom: SPACING.base,
   },
-  cardIcon: {
+  cardIconContainer: {
     width: 48,
     height: 48,
     borderRadius: SIZES.radiusXL,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardTitleContainer: {},
+  cardTitleContainer: {
+    flex: 1,
+  },
   cardTitle: {
-    color: COLORS.white,
     fontSize: SIZES.fontLG,
-    fontWeight: 'bold',
+    color: COLORS.white,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   cardSubtitle: {
-    color: '#94A3B8',
+    color: COLORS.slate400,
     fontSize: SIZES.fontXS,
   },
 
@@ -648,45 +826,44 @@ const styles = StyleSheet.create({
   },
   priceAmount: {
     fontSize: SIZES.font4XL,
-    fontWeight: 'bold',
+    color: COLORS.white,
+    fontWeight: FONT_WEIGHT.bold,
   },
   pricePeriod: {
-    color: '#94A3B8',
+    color: COLORS.slate400,
     fontSize: SIZES.fontSM,
   },
   yearlyPriceInfo: {
     marginTop: SPACING.xs,
   },
   yearlyPriceText: {
-    color: '#94A3B8',
+    color: COLORS.slate400,
     fontSize: SIZES.fontXS,
   },
   savingsText2: {
-    color: '#4ADE80',
+    color: COLORS.green400,
     fontSize: SIZES.fontXS,
   },
 
   // Features
   featuresContainer: {
     gap: 10,
-    marginBottom: SPACING.lg,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
   },
-  featureIcon: {
+  featureIconContainer: {
     width: 20,
     height: 20,
-    borderRadius: 10,
-    backgroundColor: '#334155',
+    borderRadius: SIZES.radiusFull,
     alignItems: 'center',
     justifyContent: 'center',
   },
   featureText: {
     fontSize: SIZES.fontSM,
-    color: '#CBD5E1',
+    color: COLORS.slate300,
     flex: 1,
   },
   featureTextHighlight: {
@@ -695,32 +872,38 @@ const styles = StyleSheet.create({
 
   // CTA Button
   ctaButton: {
-    width: '100%',
     paddingVertical: SPACING.md,
     borderRadius: SIZES.radiusXL,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  ctaButtonCurrent: {
-    backgroundColor: 'rgba(51, 65, 85, 0.5)',
-    borderColor: '#475569',
   },
   ctaButtonText: {
     fontSize: SIZES.fontSM,
     color: COLORS.white,
-    textAlign: 'center',
+    fontWeight: FONT_WEIGHT.semibold,
+  },
+  ctaButtonCurrent: {
+    paddingVertical: SPACING.md,
+    borderRadius: SIZES.radiusXL,
+    backgroundColor: `${COLORS.slate700}80`,
+    borderWidth: SIZES.borderMedium,
+    borderColor: COLORS.slate600,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaButtonTextCurrent: {
+    fontSize: SIZES.fontSM,
+    color: COLORS.slate300,
+    fontWeight: FONT_WEIGHT.semibold,
   },
 
-  // Benefits section
+  // Benefits Section
   benefitsContainer: {
     marginTop: 32,
-    backgroundColor: 'rgba(30, 41, 59, 0.6)',
     borderRadius: SIZES.radiusXL,
     padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(168, 85, 247, 0.3)',
+    borderWidth: SIZES.borderThin,
+    borderColor: `${COLORS.purple500}4d`,
   },
   benefitsHeader: {
     flexDirection: 'row',
@@ -729,9 +912,9 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.base,
   },
   benefitsTitle: {
-    color: COLORS.white,
     fontSize: SIZES.fontLG,
-    fontWeight: 'bold',
+    color: COLORS.white,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   benefitsGrid: {
     flexDirection: 'row',
@@ -739,23 +922,23 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   benefitItem: {
+    width: '47%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    backgroundColor: `${COLORS.slate900}66`,
     borderRadius: SIZES.radiusLG,
     padding: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(51, 65, 85, 0.5)',
-    width: '47%',
+    borderWidth: SIZES.borderThin,
+    borderColor: `${COLORS.slate700}80`,
   },
   benefitText: {
-    color: '#CBD5E1',
+    color: COLORS.slate300,
     fontSize: SIZES.fontXS,
     flex: 1,
   },
 
-  // Trust section
+  // Trust Section
   trustContainer: {
     marginTop: SPACING.lg,
     alignItems: 'center',
@@ -767,11 +950,11 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   trustRowText: {
-    color: '#94A3B8',
+    color: COLORS.slate400,
     fontSize: SIZES.fontXS,
   },
   trustText: {
-    color: '#64748B',
+    color: COLORS.slate500,
     fontSize: SIZES.fontXS,
     textAlign: 'center',
   },

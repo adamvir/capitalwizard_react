@@ -1,6 +1,6 @@
 /**
  * LevelUpCelebration - REACT NATIVE VERSION (MOTI)
- *
+ * 
  * Szint növekedés animációs képernyő
  * - Full-screen overlay
  * - Trophy icon + orbiting stars
@@ -8,9 +8,12 @@
  * - Sparkles
  * - Confetti effect
  * - Continue button
- *
+ * 
  * DEPENDENCIES:
- * moti, lucide-react-native, expo-linear-gradient, react-native-reanimated
+ * npm install moti
+ * npm install lucide-react-native
+ * npm install react-native-linear-gradient
+ * npm install react-native-reanimated (Moti dependency)
  */
 
 import React from 'react';
@@ -22,7 +25,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { MotiView } from 'moti';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import {
   Trophy,
   Star,
@@ -55,7 +58,7 @@ const COLORS = {
   yellow200: '#FEF08A',
   blue600: '#3B82F6',
   cyan500: '#22D3EE',
-  green600: '#16A34A',
+  green600: '#10B981',
   green700: '#059669',
   green800: '#047857',
 };
