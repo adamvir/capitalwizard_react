@@ -19,8 +19,10 @@ import {
   StyleSheet,
   Dimensions,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ChevronLeft,
   Crown,
@@ -235,6 +237,7 @@ const plans: Plan[] = [
 
 export default function SubscriptionScreen({ navigation, route }: SubscriptionScreenProps) {
   const subscriptionTier = route.params?.subscriptionTier || 'free';
+  const onSubscriptionChange = route.params?.onSubscriptionChange;
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('yearly');
 
   // ============================================
@@ -245,11 +248,37 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
     navigation.goBack();
   };
 
-  const handleSelectPlan = (planId: 'free' | 'pro' | 'ultimate') => {
-    // In real app, this would trigger in-app purchase flow
-    // For now, we just navigate back
-    console.log('Selected plan:', planId);
-    navigation.goBack();
+  const handleSelectPlan = async (planId: 'free' | 'pro' | 'ultimate') => {
+    try {
+      // Map plan IDs to tier names used in AsyncStorage
+      const tierMap: Record<'free' | 'pro' | 'ultimate', 'free' | 'pro' | 'master'> = {
+        free: 'free',
+        pro: 'pro',
+        ultimate: 'master'
+      };
+      const newTier = tierMap[planId];
+
+      // Save to AsyncStorage
+      await AsyncStorage.setItem('subscriptionTier', newTier);
+
+      // Update parent component via callback
+      if (onSubscriptionChange) {
+        onSubscriptionChange(newTier);
+      }
+
+      // Get plan name for confirmation
+      const plan = plans.find(p => p.id === planId);
+
+      // Show success message
+      Alert.alert(
+        '✅ Sikeres',
+        `Előfizetésed frissítve: ${plan?.name || planId}`,
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
+    } catch (error) {
+      console.error('Error saving subscription:', error);
+      Alert.alert('❌ Hiba', 'Nem sikerült frissíteni az előfizetést.');
+    }
   };
 
   const isCurrentPlan = (planId: 'free' | 'pro' | 'ultimate') => {

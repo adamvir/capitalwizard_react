@@ -28,6 +28,7 @@
 
 import React from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 
 // Import alkomponensek
 import { TopBar } from '../components/ui/TopBar';
@@ -108,6 +109,7 @@ interface MainScreenProps {
   playerName: string;
   subscriptionTier: 'free' | 'pro' | 'master';
   currentStreak: number;
+  playerAvatar?: string | null;
 
   // Lesson state
   currentBookLessonIndex: number;
@@ -132,6 +134,7 @@ interface MainScreenProps {
 
   // Video background
   hasVideoBackground?: boolean;
+  videoUrl?: string;
 }
 
 // ============================================
@@ -149,6 +152,7 @@ export default function MainScreen({
   playerName,
   subscriptionTier,
   currentStreak,
+  playerAvatar,
   currentBookLessonIndex,
   currentGameType,
   isFirstRound,
@@ -165,6 +169,7 @@ export default function MainScreen({
   onJumpToLesson,
   getTotalXpForNextLevel,
   hasVideoBackground = false,
+  videoUrl,
 }: MainScreenProps) {
   // ===== COMPUTED VALUES =====
   const totalXpForNextLevel = getTotalXpForNextLevel(playerLevel + 1);
@@ -184,6 +189,20 @@ export default function MainScreen({
 
   return (
     <View style={[styles.container, { backgroundColor: containerBackgroundColor }]}>
+      {/* Videó háttér - Leghátsó réteg (Z-index 0) */}
+      {videoUrl && (
+        <View style={styles.videoContainer}>
+          <Video
+            source={{ uri: videoUrl }}
+            style={styles.video}
+            resizeMode={ResizeMode.COVER}
+            shouldPlay
+            isLooping
+            isMuted
+          />
+        </View>
+      )}
+
       {/* Háttér fantasy kristálybarlang téma overlay-el */}
       <View style={[styles.backgroundOverlay, { opacity: overlayOpacity, zIndex: overlayZIndex }]}>
         {/* Gradiens háttér - Radial és linear kombináció (approximation) */}
@@ -261,6 +280,7 @@ export default function MainScreen({
           currentLesson={currentLesson}
           onAvatarClick={onAvatarClick}
           currentStageInSection={currentStageInSection}
+          playerAvatar={playerAvatar}
         />
 
         {/* Középső szekció - Játék világ (SideMenu + EventCards) */}
@@ -315,6 +335,24 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     overflow: 'hidden',
+  },
+
+  // Videó konténer - Leghátsó réteg (Z-index 0)
+  videoContainer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 0,
+    overflow: 'hidden',
+  },
+
+  // Videó elem - teljes láthatóság
+  video: {
+    width: '100%',
+    height: '100%',
+    opacity: 1.0,
   },
 
   // Háttér overlay - Fantasy kristálybarlang téma

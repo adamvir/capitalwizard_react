@@ -339,16 +339,20 @@ const styles = StyleSheet.create({
   noBookTitle: {
     fontSize: SIZES.fontLG,
     color: COLORS.white,
-    opacity: 0.9,
+    opacity: 1.0,
     marginBottom: SPACING.sm,
     textAlign: 'center',
     letterSpacing: 0.5,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   noBookMainText: {
     fontSize: SIZES.font2XL,
     color: '#FCD34D',
     fontWeight: '700',
-    textShadowColor: 'rgba(253, 224, 71, 0.6)',
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
     letterSpacing: 0.5,
@@ -356,10 +360,14 @@ const styles = StyleSheet.create({
   noBookSubtitle: {
     fontSize: SIZES.fontMD,
     color: COLORS.white,
-    opacity: 0.8,
+    opacity: 1.0,
     marginTop: SPACING.sm,
     textAlign: 'center',
     letterSpacing: 0.3,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
 
   // Has book view
@@ -396,9 +404,13 @@ const styles = StyleSheet.create({
   topLabel: {
     fontSize: SIZES.fontSM,
     color: COLORS.white,
-    opacity: 0.85,
+    opacity: 1.0,
     marginBottom: SPACING.sm,
     letterSpacing: 0.5,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   lessonNumber: {
     marginBottom: SPACING.sm,
@@ -407,7 +419,7 @@ const styles = StyleSheet.create({
     fontSize: SIZES.font4XL,
     color: '#FDE68A',
     fontWeight: '700',
-    textShadowColor: 'rgba(216, 180, 254, 0.8)',
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
     letterSpacing: 1,
@@ -415,8 +427,12 @@ const styles = StyleSheet.create({
   bottomLabel: {
     fontSize: SIZES.fontSM,
     color: COLORS.white,
-    opacity: 0.85,
+    opacity: 1.0,
     letterSpacing: 0.5,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
 
   // Progress bar

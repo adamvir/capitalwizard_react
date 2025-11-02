@@ -51,7 +51,7 @@ import {
   Platform,
   Share,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ArrowLeft,
@@ -78,14 +78,14 @@ import {
   Gem,
   CheckCircle2,
 } from 'lucide-react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../navigation/types';
 
 // ============================================
 // TYPES & INTERFACES
 // ============================================
 
-type ManagerScreenProps = NativeStackScreenProps<RootStackParamList, 'Manager'>;
+interface ManagerPageProps {
+  onBack: () => void;
+}
 
 interface GameConfig {
   // Starting values
@@ -319,7 +319,7 @@ const COLORS = {
 // MAIN COMPONENT
 // ============================================
 
-export default function ManagerScreen({ navigation }: ManagerScreenProps) {
+const ManagerPage: React.FC<ManagerPageProps> = ({ onBack }) => {
   // ============================================
   // STATE
   // ============================================
@@ -449,7 +449,7 @@ export default function ManagerScreen({ navigation }: ManagerScreenProps) {
       style={styles.header}
     >
       <View style={styles.headerContent}>
-        <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+        <Pressable onPress={onBack} style={styles.backButton}>
           <ArrowLeft size={SIZES.iconLG} color={COLORS.white} />
         </Pressable>
 
@@ -1444,3 +1444,5 @@ const styles = StyleSheet.create({
     fontSize: SIZES.fontSM,
   },
 });
+
+export default ManagerPage;

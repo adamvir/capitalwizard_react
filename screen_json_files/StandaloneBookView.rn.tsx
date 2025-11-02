@@ -2,9 +2,9 @@
  * ============================================
  * STANDALONE BOOK VIEW - REACT NATIVE VERSION 1.0.0
  * ============================================
- *
+ * 
  * Általános digitális könyv viewer glossary/szótár típusú adatokhoz.
- *
+ * 
  * FUNKCIÓK:
  * ✅ Lapozható könyv formátum
  * ✅ Cover page (elegáns címlap)
@@ -18,9 +18,10 @@
  * ✅ Export JSON funkció
  * ✅ 3D book spine effect (könyv gerinc)
  * ✅ Customizable colors (coverColor, accentColor)
- *
+ * 
  * HASZNÁLAT:
- *
+ * cp exports/StandaloneBookView.rn.tsx src/components/StandaloneBookView.tsx
+ * 
  * <StandaloneBookView
  *   data={glossaryData}
  *   title="Tőkepiaci"
@@ -30,7 +31,7 @@
  *   coverColor="#1E293B"
  *   accentColor="#FBBF24"
  * />
- *
+ * 
  * DATA FORMÁTUM:
  * [{
  *   id: string,
@@ -38,6 +39,11 @@
  *   definition: string,
  *   category: string
  * }]
+ * 
+ * FÜGGŐSÉGEK:
+ * npm install lucide-react-native
+ * npm install react-native-linear-gradient
+ * npm install @react-native-async-storage/async-storage
  */
 
 import React, { useState, useEffect } from 'react';
@@ -51,7 +57,7 @@ import {
   Share,
   Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import {
   ChevronLeft,
   ChevronRight,
@@ -101,7 +107,6 @@ const SPACING = {
   lg: 20,
   xl: 24,
   xxl: 32,
-  xxxl: 48,
 };
 
 const SIZES = {
@@ -146,7 +151,7 @@ const COLORS = {
 
 const groupTermsByLetter = (terms: BookViewTerm[]): { [key: string]: BookViewTerm[] } => {
   const grouped: { [key: string]: BookViewTerm[] } = {};
-
+  
   terms.forEach(term => {
     const firstLetter = term.term.charAt(0).toUpperCase();
     if (!grouped[firstLetter]) {
@@ -154,7 +159,7 @@ const groupTermsByLetter = (terms: BookViewTerm[]): { [key: string]: BookViewTer
     }
     grouped[firstLetter].push(term);
   });
-
+  
   return grouped;
 };
 
@@ -171,10 +176,10 @@ const generatePages = (
   year: number
 ): Page[] => {
   const pages: Page[] = [];
-
+  
   // 1. Cover page
   pages.push({ type: 'cover', content: { title, subtitle, year } });
-
+  
   // 2. Intro page
   const uniqueCategories = getUniqueCategories(data);
   pages.push({
@@ -185,7 +190,7 @@ const generatePages = (
       categories: uniqueCategories,
     },
   });
-
+  
   // 3. TOC page
   const groupedByLetter = groupTermsByLetter(data);
   const letters = Object.keys(groupedByLetter).sort();
@@ -194,7 +199,7 @@ const generatePages = (
     count: groupedByLetter[letter].length,
   }));
   pages.push({ type: 'toc', tocSection: tocSections });
-
+  
   // 4. Letter title + content pages
   letters.forEach(letter => {
     // Letter title page
@@ -203,7 +208,7 @@ const generatePages = (
       letter,
       content: { count: groupedByLetter[letter].length },
     });
-
+    
     // Content pages (3 terms per page)
     const termsForLetter = groupedByLetter[letter];
     for (let i = 0; i < termsForLetter.length; i += 3) {
@@ -213,10 +218,10 @@ const generatePages = (
       });
     }
   });
-
+  
   // 5. Back page
   pages.push({ type: 'back', content: { title, subtitle, year } });
-
+  
   return pages;
 };
 
@@ -266,7 +271,7 @@ const StandaloneBookView: React.FC<StandaloneBookViewProps> = ({
   const exportData = async () => {
     try {
       const json = JSON.stringify(data, null, 2);
-
+      
       if (Platform.OS === 'ios' || Platform.OS === 'android') {
         await Share.share({
           message: json,
@@ -296,7 +301,7 @@ const StandaloneBookView: React.FC<StandaloneBookViewProps> = ({
 
   const renderCoverPage = () => {
     const { title: t, subtitle: s, year: y } = currentPage.content;
-
+    
     return (
       <LinearGradient
         colors={[coverColor, '#334155']}
@@ -308,16 +313,16 @@ const StandaloneBookView: React.FC<StandaloneBookViewProps> = ({
               SZÓTÁR / GLOSSARY
             </Text>
           </View>
-
+          
           <Text style={styles.coverTitle1}>{t}</Text>
           <Text style={styles.coverTitle2}>{s}</Text>
-
+          
           <View style={[styles.coverDivider, { backgroundColor: accentColor }]} />
-
+          
           <Text style={styles.coverStats}>{data.length} kifejezés</Text>
           <Text style={styles.coverSubtitle}>Átfogó fogalomtár</Text>
         </View>
-
+        
         <View style={styles.coverFooter}>
           <Text style={styles.coverFooterText}>Budapest, {y}</Text>
         </View>
@@ -327,7 +332,7 @@ const StandaloneBookView: React.FC<StandaloneBookViewProps> = ({
 
   const renderIntroPage = () => {
     const { termCount, categoryCount, categories } = currentPage.content;
-
+    
     return (
       <View style={styles.introPage}>
         <View style={styles.introContent}>
@@ -335,20 +340,20 @@ const StandaloneBookView: React.FC<StandaloneBookViewProps> = ({
             <Text style={styles.introTitle}>Bevezetés</Text>
             <Text style={styles.introSubtitle}>Általános információk</Text>
           </View>
-
+          
           <View style={styles.introBody}>
             <Text style={styles.introText}>
               Ez a szótár {termCount} szakmai kifejezést tartalmaz {categoryCount} különböző
               kategóriában. A tartalom betűrendben van rendszerezve a könnyebb
               kereshetőség érdekében.
             </Text>
-
+            
             <Text style={styles.introText}>
               Minden kifejezés tartalmazza a definíciót és a kategória besorolást,
               segítve ezzel a szakmai terminológia elsajátítását.
             </Text>
           </View>
-
+          
           <View style={styles.introStats}>
             <View style={styles.introStatItem}>
               <Text style={styles.introStatLabel}>KIFEJEZÉSEK</Text>
@@ -359,7 +364,7 @@ const StandaloneBookView: React.FC<StandaloneBookViewProps> = ({
               <Text style={styles.introStatValue}>{categoryCount}</Text>
             </View>
           </View>
-
+          
           <View style={styles.introCategories}>
             <Text style={styles.introCategoriesTitle}>KATEGÓRIÁK</Text>
             <View style={styles.introCategoriesList}>
@@ -369,7 +374,7 @@ const StandaloneBookView: React.FC<StandaloneBookViewProps> = ({
             </View>
           </View>
         </View>
-
+        
         <Text style={styles.introFooter}>
           Kérjük, használja felelősséggel ezt a szakmai anyagot.
         </Text>
@@ -379,11 +384,11 @@ const StandaloneBookView: React.FC<StandaloneBookViewProps> = ({
 
   const renderTOCPage = () => {
     const { tocSection } = currentPage;
-
+    
     return (
       <View style={styles.tocPage}>
         <Text style={styles.tocTitle}>Tartalomjegyzék</Text>
-
+        
         <ScrollView contentContainerStyle={styles.tocGrid}>
           {tocSection?.map((section, idx) => (
             <Pressable
@@ -402,7 +407,7 @@ const StandaloneBookView: React.FC<StandaloneBookViewProps> = ({
 
   const renderLetterTitlePage = () => {
     const { letter, content } = currentPage;
-
+    
     return (
       <LinearGradient
         colors={['#F1F5F9', '#FFFFFF']}
@@ -418,7 +423,7 @@ const StandaloneBookView: React.FC<StandaloneBookViewProps> = ({
 
   const renderContentPage = () => {
     const { terms } = currentPage;
-
+    
     return (
       <ScrollView style={styles.contentPage} contentContainerStyle={styles.contentList}>
         {terms?.map((term) => (
@@ -438,7 +443,7 @@ const StandaloneBookView: React.FC<StandaloneBookViewProps> = ({
 
   const renderBackPage = () => {
     const { title: t, subtitle: s, year: y } = currentPage.content;
-
+    
     return (
       <LinearGradient
         colors={['#334155', coverColor]}
@@ -446,18 +451,18 @@ const StandaloneBookView: React.FC<StandaloneBookViewProps> = ({
       >
         <View style={styles.backContent}>
           <BookMarked size={64} color={accentColor} />
-
+          
           <Text style={styles.backTitle}>{t} {s}</Text>
-
+          
           <View style={[styles.backDivider, { backgroundColor: accentColor }]} />
-
+          
           <Text style={styles.backSubtitle}>
             {data.length} szakmai kifejezés
           </Text>
           <Text style={styles.backSubtitle}>
             Köszönjük, hogy használta ezt a szótárat!
           </Text>
-
+          
           <Text style={styles.backFooter}>© {y}</Text>
         </View>
       </LinearGradient>
@@ -486,7 +491,7 @@ const StandaloneBookView: React.FC<StandaloneBookViewProps> = ({
             </Text>
           </View>
         </View>
-
+        
         <Pressable onPress={exportData} style={styles.exportButton}>
           <Download size={14} color={COLORS.slate700} />
           <Text style={styles.exportButtonText}>Export</Text>

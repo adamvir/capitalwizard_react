@@ -3,10 +3,11 @@
 // Főoldal wrapper - kezeli a state-t és átadja a MainScreen-nek
 // ============================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { useFocusEffect } from '@react-navigation/native';
 import MainScreen from './MainScreen';
 import { COLORS } from '../utils/styleConstants';
 import { RootStackParamList } from '../navigation/types';
@@ -52,11 +53,27 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [currentBookLessonIndex, setCurrentBookLessonIndex] = useState(DEFAULT_STATE.currentBookLessonIndex);
   const [currentGameType, setCurrentGameType] = useState(DEFAULT_STATE.currentGameType);
   const [isFirstRound, setIsFirstRound] = useState(DEFAULT_STATE.isFirstRound);
+  const [playerAvatar, setPlayerAvatar] = useState<string | null>(null);
 
   // Load game state on mount
   useEffect(() => {
     loadGameState();
   }, []);
+
+  // Load avatar when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const loadAvatar = async () => {
+        try {
+          const saved = await AsyncStorage.getItem('player_avatar');
+          setPlayerAvatar(saved || null);
+        } catch (error) {
+          console.error('Error loading avatar:', error);
+        }
+      };
+      loadAvatar();
+    }, [])
+  );
 
   const loadGameState = async () => {
     try {
@@ -359,6 +376,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         currentBookLessonIndex={currentBookLessonIndex}
         currentGameType={currentGameType}
         isFirstRound={isFirstRound}
+        playerAvatar={playerAvatar}
         onAvatarClick={handleAvatarClick}
         onLessonsClick={handleLessonsClick}
         onShopClick={handleShopClick}
@@ -371,6 +389,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         onProgressClick={handleProgressClick}
         onJumpToLesson={handleJumpToLesson}
         getTotalXpForNextLevel={getTotalXpForNextLevel}
+        hasVideoBackground={true}
+        videoUrl="https://videocdn.pollo.ai/web-cdn/pollo/production/cmh0vhqz20dozt1traxsl49z5/ori/1762020106914-f7200d01-c5e8-410e-a954-516bca08a854.mp4"
       />
     </View>
   );

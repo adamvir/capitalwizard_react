@@ -40,7 +40,7 @@ import {
   Animated,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   X,
@@ -58,10 +58,6 @@ import {
   XCircle,
   Clock,
 } from 'lucide-react-native';
-import Slider from '@react-native-community/slider';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RouteProp } from '@react-navigation/native';
-import { RootStackParamList } from '../navigation/types';
 
 // Import questions data (you'll need to create these RN-compatible files)
 // For now, we'll use placeholder data
@@ -69,14 +65,6 @@ import { RootStackParamList } from '../navigation/types';
 // ============================================
 // TYPES
 // ============================================
-
-type ArenaScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Arena'>;
-type ArenaScreenRouteProp = RouteProp<RootStackParamList, 'Arena'>;
-
-interface ArenaScreenProps {
-  navigation: ArenaScreenNavigationProp;
-  route: ArenaScreenRouteProp;
-}
 
 interface ArenaPageProps {
   onClose: () => void;
@@ -265,17 +253,21 @@ const recordTaskCompletion = async (): Promise<{ isFirstToday: boolean; newStrea
 // MAIN COMPONENT
 // ============================================
 
-const ArenaScreen: React.FC<ArenaScreenProps> = ({ navigation, route }) => {
-  // Extract params from route
-  const initialCoins = route.params?.coins || 0;
-  const parentOnCoinsChange = route.params?.onCoinsChange || (() => {});
-  const subscriptionTier = route.params?.subscriptionTier || 'free';
-
+const ArenaPage: React.FC<ArenaPageProps> = ({
+  onClose,
+  coins,
+  onCoinsChange,
+  subscriptionTier = 'free',
+  onLimitReached,
+  onXpGain,
+  onNavigateToLibrary,
+  onStageAdvance,
+  onStreakUpdate,
+}) => {
   // ============================================
   // STATE
   // ============================================
-
-  const [coins, setCoins] = useState(initialCoins);
+  
   const [activeTab, setActiveTab] = useState<GameMode>('numbers');
   const [gameState, setGameState] = useState<GameState>('betting');
   const [betAmount, setBetAmount] = useState<number>(50);
@@ -296,22 +288,6 @@ const ArenaScreen: React.FC<ArenaScreenProps> = ({ navigation, route }) => {
   const [config, setConfig] = useState<GameConfig>(DEFAULT_CONFIG);
 
   const maxBet = Math.min(coins, config.arenaMaxBet);
-
-  // ============================================
-  // HANDLERS
-  // ============================================
-
-  const handleCoinsChange = (newCoins: number) => {
-    setCoins(newCoins);
-    parentOnCoinsChange(newCoins);
-  };
-
-  const onClose = () => navigation.goBack();
-  const onLimitReached = undefined;
-  const onXpGain = undefined;
-  const onNavigateToLibrary = () => navigation.navigate('Library');
-  const onStageAdvance = undefined;
-  const onStreakUpdate = undefined;
 
   // ============================================
   // EFFECTS
@@ -446,27 +422,29 @@ const ArenaScreen: React.FC<ArenaScreenProps> = ({ navigation, route }) => {
     await incrementGamesPlayed();
 
     // Generate 10 random questions
-    // Select 10 random questions from all available questions
-    const selectedQuestions: Question[] = [];
-    const usedIndices = new Set<number>();
-
-    while (selectedQuestions.length < 10) {
-      const randomIndex = Math.floor(Math.random() * SAMPLE_QUESTIONS.length);
-      if (!usedIndices.has(randomIndex)) {
-        usedIndices.add(randomIndex);
-
-        // Clone the question and randomly assign a source from selected books
-        const baseQuestion = SAMPLE_QUESTIONS[randomIndex];
-        const randomBook = selectedBooks[Math.floor(Math.random() * selectedBooks.length)];
-
-        selectedQuestions.push({
-          ...baseQuestion,
-          source: randomBook, // Set source to one of the selected books
-        });
+    const allQuestions = SAMPLE_QUESTIONS.filter((q) => selectedBooks.includes(q.source));
+    
+    if (allQuestions.length < 10) {
+      // If not enough questions, use all sample questions
+      const selectedQuestions = [];
+      for (let i = 0; i < 10; i++) {
+        selectedQuestions.push(SAMPLE_QUESTIONS[i % SAMPLE_QUESTIONS.length]);
       }
+      setQuestions(selectedQuestions);
+    } else {
+      // Select 10 random questions
+      const selectedQuestions = [];
+      const usedIndices = new Set<number>();
+      
+      while (selectedQuestions.length < 10) {
+        const randomIndex = Math.floor(Math.random() * allQuestions.length);
+        if (!usedIndices.has(randomIndex)) {
+          usedIndices.add(randomIndex);
+          selectedQuestions.push(allQuestions[randomIndex]);
+        }
+      }
+      setQuestions(selectedQuestions);
     }
-
-    setQuestions(selectedQuestions);
 
     setCurrentQuestionIndex(0);
     setPlayerScore(0);
@@ -541,12 +519,12 @@ const ArenaScreen: React.FC<ArenaScreenProps> = ({ navigation, route }) => {
         
         // Update coins
         if (finalPlayerScore > finalOpponentScore) {
-          handleCoinsChange(coins + betAmount);
+          onCoinsChange(coins + betAmount);
           if (onStageAdvance) {
             onStageAdvance();
           }
         } else if (finalOpponentScore > finalPlayerScore) {
-          handleCoinsChange(coins - betAmount);
+          onCoinsChange(coins - betAmount);
         }
         
         // Record streak
@@ -636,22 +614,14 @@ const ArenaScreen: React.FC<ArenaScreenProps> = ({ navigation, route }) => {
           <Text style={styles.bettingTitle}>Válassz tétet</Text>
         </View>
 
-        {/* Range Slider */}
+        {/* Range Slider - use TextInput as workaround */}
         <View style={styles.rangeContainer}>
-          <Slider
-            style={styles.slider}
-            minimumValue={10}
-            maximumValue={maxBet}
-            step={10}
-            value={betAmount}
-            onValueChange={setBetAmount}
-            minimumTrackTintColor={COLORS.purple500}
-            maximumTrackTintColor="rgba(51, 65, 85, 0.5)"
-            thumbTintColor={COLORS.purple400}
-          />
+          <View style={styles.rangeTrack}>
+            <View style={[styles.rangeProgress, { width: `${((betAmount - 10) / (maxBet - 10)) * 100}%` }]} />
+          </View>
           <View style={styles.rangeLabels}>
             <Text style={styles.rangeLabel}>10</Text>
-            <Text style={styles.rangeLabelValue}>{Math.round(betAmount)}</Text>
+            <Text style={styles.rangeLabelValue}>{betAmount}</Text>
             <Text style={styles.rangeLabel}>{maxBet}</Text>
           </View>
         </View>
@@ -925,57 +895,54 @@ const ArenaScreen: React.FC<ArenaScreenProps> = ({ navigation, route }) => {
         </LinearGradient>
 
         {/* Answer Input */}
-        <LinearGradient
-          colors={['rgba(30, 41, 59, 0.8)', 'rgba(8, 145, 178, 0.2)', 'rgba(30, 41, 59, 0.8)']}
-          style={styles.answerCard}
-        >
-          <View style={styles.answerLabel}>
-            <Text style={styles.answerLabelText}>Válaszod:</Text>
-            <View style={styles.answerDisplay}>
-              <Text style={styles.answerDisplayText}>{playerAnswer || '0'}</Text>
-            </View>
-          </View>
-
-          {/* Number Keyboard */}
-          <View style={styles.numberKeyboard}>
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
-              <Pressable
-                key={num}
-                onPress={() => handleNumberClick(num)}
-                style={styles.numberKey}
-                disabled={showRoundResult}
-              >
-                <Text style={styles.numberKeyText}>{num}</Text>
-              </Pressable>
-            ))}
-            <Pressable onPress={handleClear} style={styles.clearKey} disabled={showRoundResult}>
-              <Text style={styles.clearKeyText}>C</Text>
-            </Pressable>
-            <Pressable onPress={() => handleNumberClick('0')} style={styles.numberKey} disabled={showRoundResult}>
-              <Text style={styles.numberKeyText}>0</Text>
-            </Pressable>
-            <Pressable onPress={handleBackspace} style={styles.backspaceKey} disabled={showRoundResult}>
-              <Text style={styles.backspaceKeyText}>⌫</Text>
-            </Pressable>
-          </View>
-
-          {/* Submit Button */}
-          <Pressable
-            onPress={() => submitAnswer(false)}
-            disabled={!playerAnswer || showRoundResult}
-            style={[styles.submitButton, (!playerAnswer || showRoundResult) && styles.submitButtonDisabled]}
+        {!showRoundResult && (
+          <LinearGradient
+            colors={['rgba(30, 41, 59, 0.8)', 'rgba(8, 145, 178, 0.2)', 'rgba(30, 41, 59, 0.8)']}
+            style={styles.answerCard}
           >
-            <LinearGradient
-              colors={(playerAnswer && !showRoundResult) ? [COLORS.green600, COLORS.green700, COLORS.green600] : [COLORS.slate700, COLORS.slate800]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.submitButtonGradient}
+            <View style={styles.answerLabel}>
+              <Text style={styles.answerLabelText}>Válaszod:</Text>
+              <View style={styles.answerDisplay}>
+                <Text style={styles.answerDisplayText}>{playerAnswer || '0'}</Text>
+              </View>
+            </View>
+
+            {/* Number Keyboard */}
+            <View style={styles.numberKeyboard}>
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
+                <Pressable key={num} onPress={() => handleNumberClick(num)} style={styles.numberKey}>
+                  <Text style={styles.numberKeyText}>{num}</Text>
+                </Pressable>
+              ))}
+              <Pressable onPress={handleClear} style={styles.clearKey}>
+                <Text style={styles.clearKeyText}>C</Text>
+              </Pressable>
+              <Pressable onPress={() => handleNumberClick('0')} style={styles.numberKey}>
+                <Text style={styles.numberKeyText}>0</Text>
+              </Pressable>
+              <Pressable onPress={handleBackspace} style={styles.backspaceKey}>
+                <Text style={styles.backspaceKeyText}>⌫</Text>
+              </Pressable>
+            </View>
+
+            {/* Submit Button */}
+            <Pressable
+              onPress={() => submitAnswer(false)}
+              disabled={!playerAnswer}
+              style={[styles.submitButton, !playerAnswer && styles.submitButtonDisabled]}
             >
-              <CheckCircle2 size={SIZES.iconBase} color={COLORS.white} />
-              <Text style={styles.submitButtonText}>Beküldés</Text>
-            </LinearGradient>
-          </Pressable>
-        </LinearGradient>
+              <LinearGradient
+                colors={playerAnswer ? [COLORS.green600, COLORS.green700, COLORS.green600] : [COLORS.slate700, COLORS.slate800]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.submitButtonGradient}
+              >
+                <CheckCircle2 size={SIZES.iconBase} color={COLORS.white} />
+                <Text style={styles.submitButtonText}>Beküldés</Text>
+              </LinearGradient>
+            </Pressable>
+          </LinearGradient>
+        )}
       </ScrollView>
     );
   };
@@ -1098,7 +1065,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: SPACING.base,
     paddingVertical: SPACING.sm,
-    paddingTop: Platform.OS === 'ios' ? 58 : SPACING.base,
+    paddingTop: Platform.OS === 'ios' ? 50 : SPACING.base,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(168, 85, 247, 0.3)',
   },
@@ -1226,27 +1193,32 @@ const styles = StyleSheet.create({
     fontSize: SIZES.fontSM,
   },
 
-  // Range Slider
+  // Range Slider (Custom)
   rangeContainer: {
     marginBottom: SPACING.base,
   },
-  slider: {
-    width: '100%',
-    height: 40,
+  rangeTrack: {
+    height: 8,
+    backgroundColor: 'rgba(51, 65, 85, 0.5)',
+    borderRadius: SIZES.radiusLG,
+    overflow: 'hidden',
+  },
+  rangeProgress: {
+    height: '100%',
+    backgroundColor: COLORS.purple500,
   },
   rangeLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: SPACING.xs,
+    marginTop: SPACING.sm,
   },
   rangeLabel: {
     fontSize: SIZES.fontXS,
     color: COLORS.slate400,
   },
   rangeLabelValue: {
-    fontSize: SIZES.fontSM,
+    fontSize: SIZES.fontXS,
     color: COLORS.amber400,
-    fontWeight: '600',
   },
 
   // Quick Bet
@@ -1922,4 +1894,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ArenaScreen;
+export default ArenaPage;

@@ -95,6 +95,7 @@ interface TopBarProps {
   currentLesson?: number;
   onAvatarClick?: () => void;
   currentStageInSection?: number; // 1-based (1-6)
+  playerAvatar?: string | null; // Avatar emoji from parent
 }
 
 type DifficultyType = 'easy' | 'medium' | 'hard';
@@ -111,6 +112,7 @@ export function TopBar({
   currentLesson = 7,
   onAvatarClick,
   currentStageInSection = 1,
+  playerAvatar: playerAvatarProp,
 }: TopBarProps) {
   // ============================================
   // GLOBAL STATE (CoinsContext)
@@ -127,6 +129,9 @@ export function TopBar({
   // ============================================
 
   const [currentAvatar, setCurrentAvatar] = useState<string | null>(null);
+
+  // Use prop avatar if provided, otherwise use loaded avatar
+  const displayAvatar = playerAvatarProp !== undefined ? playerAvatarProp : currentAvatar;
 
   // ============================================
   // EFFECTS
@@ -183,33 +188,33 @@ export function TopBar({
   const getDifficultyBackgroundColor = () => {
     switch (difficulty) {
       case 'easy':
-        return 'rgba(16, 185, 129, 0.2)';
+        return '#6EE7B7'; // Telt világos zöld
       case 'hard':
-        return 'rgba(239, 68, 68, 0.2)';
+        return '#FCA5A5'; // Telt világos piros
       default:
-        return 'rgba(6, 182, 212, 0.2)';
+        return '#67E8F9'; // Telt világos cyan/kék
     }
   };
 
   const getDifficultyBorderColor = () => {
     switch (difficulty) {
       case 'easy':
-        return 'rgba(52, 211, 153, 0.3)';
+        return 'rgba(52, 211, 153, 0.5)';
       case 'hard':
-        return 'rgba(248, 113, 113, 0.3)';
+        return 'rgba(248, 113, 113, 0.5)';
       default:
-        return 'rgba(34, 211, 238, 0.3)';
+        return 'rgba(34, 211, 238, 0.5)';
     }
   };
 
   const getDifficultyTextColor = () => {
     switch (difficulty) {
       case 'easy':
-        return '#6EE7B7';
+        return '#064E3B'; // Sötét zöld szöveg
       case 'hard':
-        return '#FCA5A5';
+        return '#7F1D1D'; // Sötét piros szöveg
       default:
-        return '#67E8F9';
+        return '#0C4A6E'; // Sötét kék szöveg
     }
   };
 
@@ -247,11 +252,11 @@ export function TopBar({
             <View
               style={[
                 styles.avatarContainer,
-                currentAvatar ? styles.avatarWithImage : styles.avatarWithoutImage,
+                displayAvatar ? styles.avatarWithImage : styles.avatarWithoutImage,
               ]}
             >
-              <Text style={currentAvatar ? styles.avatarEmoji : styles.avatarPlaceholder}>
-                {currentAvatar || '+'}
+              <Text style={displayAvatar ? styles.avatarEmoji : styles.avatarPlaceholder}>
+                {displayAvatar || '+'}
               </Text>
             </View>
 
@@ -259,7 +264,7 @@ export function TopBar({
             <View
               style={[
                 styles.avatarGlow,
-                currentAvatar ? styles.avatarGlowWithImage : styles.avatarGlowWithoutImage,
+                displayAvatar ? styles.avatarGlowWithImage : styles.avatarGlowWithoutImage,
               ]}
             />
           </TouchableOpacity>
@@ -769,9 +774,17 @@ const styles = StyleSheet.create({
   },
   difficultyText: {
     fontSize: SIZES.fontXS,
+    fontWeight: '700',
   },
   stageText: {
     color: COLORS.white,
     fontSize: SIZES.fontXS,
+    backgroundColor: 'rgba(30, 41, 59, 0.85)',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    borderRadius: SIZES.radiusXS,
+    borderWidth: 1,
+    borderColor: 'rgba(71, 85, 105, 0.5)',
+    overflow: 'hidden',
   },
 });

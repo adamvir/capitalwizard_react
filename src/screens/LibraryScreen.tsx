@@ -404,8 +404,7 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
                 styles.bookTitle,
                 { color: book.textColor },
               ]}
-              numberOfLines={2}
-              ellipsizeMode="tail"
+              numberOfLines={1}
             >
               {book.title}
             </Text>
@@ -1194,16 +1193,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 4,
-    overflow: 'visible',
+    paddingVertical: 4,
+    paddingHorizontal: 2,
   },
   bookTitle: {
     fontSize: 11,
     fontWeight: '700',
     transform: [{ rotate: '-90deg' }],
     letterSpacing: 0.3,
-    width: 140,
     textAlign: 'center',
+    width: 160,
   },
   bookTexture: {
     position: 'absolute',

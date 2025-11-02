@@ -186,10 +186,15 @@ const styles = StyleSheet.create({
   },
   labelText: {
     color: COLORS.white,
-    fontSize: SIZES.fontXS,
-    // Text shadow (iOS + Android)
-    textShadowColor: 'rgba(0, 0, 0, 0.25)',
+    fontSize: 11,
+    fontWeight: '700',
+    // Erős text shadow a jobb láthatóságért
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowRadius: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
 });
