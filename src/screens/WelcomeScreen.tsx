@@ -121,7 +121,7 @@ export default function WelcomeScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.logoIcon}
           >
-            <MaterialCommunityIcons name="sparkles" size={48} color={COLORS.white} />
+            <MaterialCommunityIcons name="shimmer" size={48} color={COLORS.white} />
           </LinearGradient>
 
           <Text style={styles.title}>CapitalWizard</Text>

@@ -265,7 +265,7 @@ export function LevelUpCelebration({ newLevel, onContinue }: LevelUpCelebrationP
               ]}
             >
               <MaterialCommunityIcons
-                name="sparkles"
+                name="shimmer"
                 size={SIZES.iconLG}
                 color="#FBBF24"
               />

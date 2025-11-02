@@ -18,7 +18,7 @@ export type RootStackParamList = {
     gameType?: 'reading' | 'matching' | 'quiz';
     isFirstRound?: boolean;
   };
-  BookView: { bookTitle: string };
+  BookView: { bookTitle: string; content: string };
   Subscription: { subscriptionTier: 'free' | 'pro' | 'master'; onSubscriptionChange: (tier: 'free' | 'pro' | 'master') => void };
   Shop: { coins: number; gems: number; onCoinsChange: (coins: number) => void; onGemsChange: (gems: number) => void };
   Streak: { currentStreak: number; coins: number; onCoinsChange: (coins: number) => void };

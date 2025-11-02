@@ -1,26 +1,27 @@
 /**
  * ============================================
- * BOOKVIEWSCREEN - REACT NATIVE VERSION
+ * BOOKREADER - REACT NATIVE VERSION
  * ============================================
- *
+ * 
  * Book reading screen with:
  * - Page-by-page book content navigation
+ * - Swipe/button page turning
  * - Chapter/section detection and styling
  * - Book-like design (cream background, serif font)
  * - Page counter and navigation
- * - Fade transition animation
- *
- * USAGE:
- * navigation.navigate('BookView', {
- *   bookTitle: 'Book Title',
- *   content: 'Book content...'
- * })
- *
- * CONTENT FORMAT:
- * - Pages split by '\n\n\n' (3 newlines)
- * - Chapter titles: ALL CAPS, < 50 chars
- * - Section titles: Title Case, < 100 chars, no period
- * - Paragraphs: Regular text with justify alignment
+ * 
+ * HASZNÁLAT:
+ * cp exports/BookReader.rn.tsx src/components/BookReader.tsx
+ * 
+ * FÜGGŐSÉGEK:
+ * npm install react-native-linear-gradient
+ * npm install lucide-react-native
+ * npm install react-native-gesture-handler  # Optional: for swipe gestures
+ * 
+ * MEGJEGYZÉS:
+ * - Content splitting: '\n\n\n' delimiter (3 newlines)
+ * - Auto-detection: Chapter titles (ALL CAPS), Section titles (Title Case)
+ * - Page animation: Slide transition (Animated API)
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -34,17 +35,19 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, ChevronRight, X, BookOpen } from 'lucide-react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/types';
-import { COLORS, SPACING, SIZES, SHADOWS } from '../utils/styleConstants';
+import LinearGradient from 'react-native-linear-gradient';
+import {
+  ChevronLeft,
+  ChevronRight,
+  X,
+  BookOpen,
+} from 'lucide-react-native';
 
 // ============================================
 // CONSTANTS
 // ============================================
 
-const BOOK_COLORS = {
+const COLORS = {
   white: '#FFFFFF',
   slate: {
     700: '#334155',
@@ -64,25 +67,48 @@ const BOOK_COLORS = {
   },
 };
 
+const SPACING = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  base: 16,
+  lg: 20,
+  xl: 24,
+  '2xl': 32,
+  '3xl': 48,
+};
+
+const SIZES = {
+  fontXS: 10,
+  fontSM: 12,
+  fontBase: 14,
+  fontLG: 16,
+  fontXL: 18,
+  font2XL: 24,
+  iconBase: 20,
+  iconLG: 24,
+  radiusLG: 12,
+  radiusXL: 16,
+  radius2XL: 20,
+};
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // ============================================
 // TYPES
 // ============================================
 
-type BookViewScreenProps = NativeStackScreenProps<RootStackParamList, 'BookView'>;
+interface BookReaderProps {
+  title: string;
+  content: string; // Full book content with chapters (split by '\n\n\n')
+  onBack: () => void;
+}
 
 // ============================================
 // COMPONENT
 // ============================================
 
-export default function BookViewScreen({ route, navigation }: BookViewScreenProps) {
-  // ============================================
-  // PARAMS
-  // ============================================
-
-  const { bookTitle, content } = route.params;
-
+export function BookReader({ title, content, onBack }: BookReaderProps) {
   // ============================================
   // STATE
   // ============================================
@@ -101,7 +127,7 @@ export default function BookViewScreen({ route, navigation }: BookViewScreenProp
   // ============================================
 
   // Split content into pages by '\n\n\n' delimiter
-  const pages = content.split('\n\n\n').filter((p: string) => p.trim());
+  const pages = content.split('\n\n\n').filter(p => p.trim());
 
   // ============================================
   // EVENT HANDLERS
@@ -133,10 +159,6 @@ export default function BookViewScreen({ route, navigation }: BookViewScreenProp
       // Fade in new page
       pageAnim.setValue(0);
     });
-  };
-
-  const handleClose = () => {
-    navigation.goBack();
   };
 
   // ============================================
@@ -191,11 +213,11 @@ export default function BookViewScreen({ route, navigation }: BookViewScreenProp
   // ============================================
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={handleClose}>
+    <Modal visible transparent animationType="fade" onRequestClose={onBack}>
       <View style={styles.overlay}>
         {/* Book Container */}
         <LinearGradient
-          colors={[BOOK_COLORS.cream[50], BOOK_COLORS.cream[100]]}
+          colors={[COLORS.cream[50], COLORS.cream[100]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.bookContainer}
@@ -204,23 +226,23 @@ export default function BookViewScreen({ route, navigation }: BookViewScreenProp
           {/* HEADER */}
           {/* ============================================ */}
           <LinearGradient
-            colors={[BOOK_COLORS.slate[800], BOOK_COLORS.slate[700]]}
+            colors={[COLORS.slate[800], COLORS.slate[700]]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.header}
           >
             <View style={styles.headerLeft}>
-              <BookOpen size={SIZES.iconLG} color={BOOK_COLORS.amber[400]} />
+              <BookOpen size={SIZES.iconLG} color={COLORS.amber[400]} />
               <Text style={styles.headerTitle} numberOfLines={1}>
-                {bookTitle}
+                {title}
               </Text>
             </View>
             <View style={styles.headerRight}>
               <Text style={styles.pageCounter}>
                 {currentPage + 1} / {pages.length}
               </Text>
-              <TouchableOpacity onPress={handleClose} style={styles.closeButton} activeOpacity={0.7}>
-                <X size={SIZES.iconBase} color={BOOK_COLORS.white} />
+              <TouchableOpacity onPress={onBack} style={styles.closeButton} activeOpacity={0.7}>
+                <X size={SIZES.iconBase} color={COLORS.white} />
               </TouchableOpacity>
             </View>
           </LinearGradient>
@@ -249,7 +271,7 @@ export default function BookViewScreen({ route, navigation }: BookViewScreenProp
                   {/* Render page lines */}
                   {pages[currentPage]
                     .split('\n')
-                    .map((line: string, idx: number) => renderLine(line, idx))}
+                    .map((line, idx) => renderLine(line, idx))}
                 </View>
 
                 {/* Page number at bottom */}
@@ -262,7 +284,7 @@ export default function BookViewScreen({ route, navigation }: BookViewScreenProp
           {/* NAVIGATION */}
           {/* ============================================ */}
           <LinearGradient
-            colors={[BOOK_COLORS.slate[800], BOOK_COLORS.slate[700]]}
+            colors={[COLORS.slate[800], COLORS.slate[700]]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.navigation}
@@ -280,7 +302,7 @@ export default function BookViewScreen({ route, navigation }: BookViewScreenProp
                   currentPage === 0 && styles.navButtonDisabled,
                 ]}
               >
-                <ChevronLeft size={SIZES.iconBase} color={BOOK_COLORS.white} />
+                <ChevronLeft size={SIZES.iconBase} color={COLORS.white} />
                 <Text style={styles.navButtonText}>Előző</Text>
               </View>
             </TouchableOpacity>
@@ -306,7 +328,7 @@ export default function BookViewScreen({ route, navigation }: BookViewScreenProp
                 ]}
               >
                 <Text style={styles.navButtonText}>Következő</Text>
-                <ChevronRight size={SIZES.iconBase} color={BOOK_COLORS.white} />
+                <ChevronRight size={SIZES.iconBase} color={COLORS.white} />
               </View>
             </TouchableOpacity>
           </LinearGradient>
@@ -352,7 +374,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 4,
-    borderBottomColor: BOOK_COLORS.amber[600],
+    borderBottomColor: COLORS.amber[600],
   },
   headerLeft: {
     flexDirection: 'row',
@@ -363,7 +385,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: SIZES.fontXL,
     fontWeight: '700',
-    color: BOOK_COLORS.white,
+    color: COLORS.white,
     flex: 1,
   },
   headerRight: {
@@ -372,7 +394,7 @@ const styles = StyleSheet.create({
     gap: SPACING.base,
   },
   pageCounter: {
-    color: BOOK_COLORS.amber[300],
+    color: COLORS.amber[300],
     fontSize: SIZES.fontSM,
     fontWeight: '600',
   },
@@ -415,26 +437,26 @@ const styles = StyleSheet.create({
   chapterHeading: {
     fontSize: SIZES.font2XL,
     fontWeight: '700',
-    color: BOOK_COLORS.slate[800],
+    color: COLORS.slate[800],
     marginBottom: SPACING.lg,
     marginTop: SPACING['2xl'],
     textAlign: 'center',
     borderBottomWidth: 2,
-    borderBottomColor: BOOK_COLORS.amber[600],
+    borderBottomColor: COLORS.amber[600],
     paddingBottom: SPACING.sm,
     fontFamily: 'Georgia', // Serif font (may need custom font setup)
   },
   sectionHeading: {
     fontSize: SIZES.fontXL,
     fontWeight: '600',
-    color: BOOK_COLORS.slate[700],
+    color: COLORS.slate[700],
     marginBottom: SPACING.base,
     marginTop: SPACING.lg,
     fontFamily: 'Georgia',
   },
   paragraph: {
     fontSize: SIZES.fontBase,
-    color: BOOK_COLORS.slate[800],
+    color: COLORS.slate[800],
     marginBottom: SPACING.base,
     lineHeight: 24, // 1.8 line-height
     textAlign: 'justify',
@@ -446,7 +468,7 @@ const styles = StyleSheet.create({
   pageNumber: {
     textAlign: 'center',
     marginTop: SPACING['3xl'],
-    color: BOOK_COLORS.slate[500],
+    color: COLORS.slate[500],
     fontSize: SIZES.fontSM,
     fontFamily: 'Georgia',
   },
@@ -459,7 +481,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTopWidth: 4,
-    borderTopColor: BOOK_COLORS.amber[600],
+    borderTopColor: COLORS.amber[600],
     gap: SPACING.md,
   },
   navButton: {
@@ -469,7 +491,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
-    backgroundColor: BOOK_COLORS.amber[600],
+    backgroundColor: COLORS.amber[600],
     borderRadius: SIZES.radiusLG,
     // Shadow
     shadowColor: '#000',
@@ -479,11 +501,11 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   navButtonDisabled: {
-    backgroundColor: BOOK_COLORS.slate[600],
+    backgroundColor: COLORS.slate[600],
     opacity: 0.6,
   },
   navButtonText: {
-    color: BOOK_COLORS.white,
+    color: COLORS.white,
     fontSize: SIZES.fontBase,
     fontWeight: '600',
   },
@@ -492,7 +514,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   navInfoText: {
-    color: BOOK_COLORS.amber[300],
+    color: COLORS.amber[300],
     fontSize: SIZES.fontSM,
     fontWeight: '600',
   },

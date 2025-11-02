@@ -99,7 +99,7 @@ export function PlayerStatusBar({
                 end={{ x: 1, y: 0 }}
                 style={styles.tierBadge}
               >
-                <MaterialCommunityIcons name="sparkles" size={14} color={COLORS.white} />
+                <MaterialCommunityIcons name="shimmer" size={14} color={COLORS.white} />
                 <Text style={styles.badgeText}>Master</Text>
               </LinearGradient>
             ) : subscriptionTier === 'pro' ? (

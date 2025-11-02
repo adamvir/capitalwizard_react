@@ -512,7 +512,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(71, 85, 105, 0.5)',
     padding: SPACING.sm,
     gap: 10,
-    minWidth: 220, // Ensure card doesn't get clipped (avatar:56 + gap:10 + info:140 + padding:16 + gap:10)
+    minWidth: 220,
+    maxWidth: 260,
+    flexShrink: 0,
     // Shadow (iOS) - reduced to prevent clipping
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -574,7 +576,9 @@ const styles = StyleSheet.create({
   // Info section
   infoSection: {
     gap: 6,
-    width: 140, // Changed from flex: 1 to fixed width to prevent clipping
+    flexShrink: 0,
+    minWidth: 140,
+    maxWidth: 180,
   },
   levelRow: {
     flexDirection: 'row',
@@ -609,11 +613,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
+    flexWrap: 'wrap',
   },
   coinsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 0,
   },
   coinIconBg: {
     width: 20,
@@ -633,6 +639,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 0,
   },
   gemIconBg: {
     width: 20,
@@ -651,6 +658,7 @@ const styles = StyleSheet.create({
   currencyText: {
     color: COLORS.white,
     fontSize: SIZES.fontXS,
+    fontWeight: '600',
     // Text shadow
     textShadowColor: 'rgba(0, 0, 0, 0.1)',
     textShadowOffset: { width: 0, height: 1 },

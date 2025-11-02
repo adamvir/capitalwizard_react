@@ -10,7 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.ReactN-CW"
+      "bundleIdentifier": "com.anonymous.ReactN-CW",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -42,6 +45,11 @@
     ],
     "experiments": {
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "11dbb43f-81c6-4543-982d-ed76f32f53d8"
+      }
     }
   }
 }

@@ -121,11 +121,11 @@ export function TipBar() {
   }, [currentTip]);
 
   const startMarqueeAnimation = () => {
-    // Animate from 0 to -screenWidth slowly for smooth marquee
+    // Animate from right to left continuously
     Animated.loop(
       Animated.timing(scrollX, {
-        toValue: -screenWidth * 1.5, // Scroll 1.5x screen width
-        duration: 30000, // 30 seconds (slower)
+        toValue: -screenWidth * 2, // Scroll 2x screen width for full text visibility
+        duration: 40000, // 40 seconds (slow and smooth)
         useNativeDriver: true,
       })
     ).start();
@@ -152,7 +152,6 @@ export function TipBar() {
             {/* Tip text with marquee animation */}
             <View style={styles.textContainer}>
               <Animated.Text
-                numberOfLines={1}
                 style={[
                   styles.text,
                   {
@@ -160,7 +159,7 @@ export function TipBar() {
                   },
                 ]}
               >
-                {currentTip}
+                {currentTip}    •    {currentTip}
               </Animated.Text>
             </View>
           </View>
@@ -218,9 +217,12 @@ const styles = StyleSheet.create({
   textContainer: {
     flex: 1,
     overflow: 'hidden',
+    height: 20, // Fix height to prevent text wrapping to multiple lines
   },
   text: {
     color: COLORS.white,
     fontSize: SIZES.fontSize,
+    lineHeight: 20, // Match container height for vertical centering
+    width: 2000, // Wide enough to hold duplicated text without wrapping
   },
 });

@@ -201,7 +201,7 @@ export function ProgressAnimation({
               entering={FadeIn.delay(i * 100).duration(400)}
             >
               <MaterialCommunityIcons
-                name="sparkles"
+                name="shimmer"
                 size={SIZES.iconLG}
                 color="#FBBF24"
               />

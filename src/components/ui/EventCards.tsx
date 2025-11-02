@@ -1,13 +1,55 @@
+/**
+ * ============================================
+ * EVENTCARDS - REACT NATIVE VERSION
+ * ============================================
+ *
+ * Event cards display: Arena and Templomos
+ * - Arena card (clickable, daily limit tracking)
+ * - Templomos card (placeholder, disabled)
+ *
+ * HASZNÁLAT:
+ * <EventCards
+ *   onArenaClick={() => navigation.navigate('Arena')}
+ *   subscriptionTier="free"  // 'free' | 'pro' | 'master'
+ * />
+ *
+ * FÜGGŐSÉGEK:
+ * npm install @react-native-async-storage/async-storage
+ * npm install expo-linear-gradient
+ * npm install lucide-react-native
+ */
+
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { View, Text, TouchableOpacity, StyleSheet, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS, SIZES, SPACING, FONT_WEIGHT, SHADOWS } from '../../utils/styleConstants';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Clock, Crown, Infinity } from 'lucide-react-native';
 
 // ============================================
-// EVENTCARDS KOMPONENS
-// Esemény kártyák megjelenítése: Küzdőtér és Templomos
+// CONSTANTS
+// ============================================
+
+const COLORS = {
+  white: '#FFFFFF',
+  shadowMedium: 'rgba(0, 0, 0, 0.15)',
+};
+
+const SPACING = {
+  sm: 8,
+};
+
+const SIZES = {
+  radiusBase: 8,
+  radiusFull: 9999,
+  fontSM: 12,
+  fontBase: 14,
+};
+
+// Game config (simple version)
+const FREE_DAILY_ARENA_GAMES = 3;
+
+// ============================================
+// TYPES
 // ============================================
 
 interface EventCardsProps {
@@ -15,117 +57,133 @@ interface EventCardsProps {
   subscriptionTier?: 'free' | 'pro' | 'master';
 }
 
+// ============================================
+// COMPONENT
+// ============================================
+
 export function EventCards({ onArenaClick, subscriptionTier = 'free' }: EventCardsProps) {
+  // ============================================
+  // STATE
+  // ============================================
 
-  // ===== HELPER FUNCTIONS =====
+  const [remainingGames, setRemainingGames] = useState<number | 'unlimited'>(
+    FREE_DAILY_ARENA_GAMES
+  );
 
-  // Hátralévő játékok száma ma (Arena esetén)
-  const getRemainingGames = async (): Promise<number | 'unlimited'> => {
-    // Premium felhasználóknak korlátlan
+  // ============================================
+  // EFFECTS
+  // ============================================
+
+  // Load remaining games on mount and when app becomes active
+  useEffect(() => {
+    getRemainingGames();
+
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        getRemainingGames();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [subscriptionTier]);
+
+  // Periodic check for day change (every minute)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      getRemainingGames();
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [subscriptionTier]);
+
+  // ============================================
+  // ASYNC STORAGE
+  // ============================================
+
+  const getRemainingGames = async () => {
+    // Premium users have unlimited games
     if (subscriptionTier !== 'free') {
-      return 'unlimited';
+      setRemainingGames('unlimited');
+      return;
     }
 
-    // Ingyenes felhasználóknak napi limit
-    const maxGames = 5; // Default config value
-    const today = new Date().toDateString();
-
+    // Free users have daily limit
     try {
+      const today = new Date().toDateString();
       const savedData = await AsyncStorage.getItem('arena_daily_games');
 
       if (savedData) {
         const data = JSON.parse(savedData);
         if (data.date === today) {
-          return Math.max(0, maxGames - data.gamesPlayed);
+          const remaining = Math.max(0, FREE_DAILY_ARENA_GAMES - data.gamesPlayed);
+          setRemainingGames(remaining);
+          return;
         }
       }
 
-      return maxGames;
+      setRemainingGames(FREE_DAILY_ARENA_GAMES);
     } catch (error) {
-      console.error('Error reading arena games:', error);
-      return maxGames;
+      console.error('Error loading remaining games:', error);
+      setRemainingGames(FREE_DAILY_ARENA_GAMES);
     }
   };
 
-  // ===== STATE MANAGEMENT =====
+  // ============================================
+  // EVENT HANDLERS
+  // ============================================
 
-  // Hátralévő játékok állapota
-  const [remainingGames, setRemainingGames] = useState<number | 'unlimited'>('unlimited');
-
-  // ===== EFFECTS =====
-
-  // Hátralévő játékok frissítése előfizetési szint változásakor
-  useEffect(() => {
-    const loadRemainingGames = async () => {
-      const games = await getRemainingGames();
-      setRemainingGames(games);
-    };
-
-    loadRemainingGames();
-  }, [subscriptionTier]);
-
-  // ===== EVENT HANDLERS =====
-
-  // Arena kártya klikk kezelése
   const handleArenaClick = () => {
     onArenaClick?.();
   };
 
+  // ============================================
+  // RENDER
+  // ============================================
+
   return (
     <View style={styles.container}>
-      {/* KÜZDŐTÉR KÁRTYA */}
-      <TouchableOpacity
-        onPress={handleArenaClick}
-        activeOpacity={0.8}
-      >
+      {/* ============================================ */}
+      {/* ARENA CARD */}
+      {/* ============================================ */}
+      <TouchableOpacity onPress={handleArenaClick} activeOpacity={0.8}>
         <LinearGradient
-          colors={['#D97706', '#EA580C']}
+          colors={['#D97706', '#EA580C']} // Amber → Orange
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.arenaCard}
         >
-          {/* Overlay sötétítés */}
+          {/* Overlay */}
           <View style={styles.cardOverlay} />
 
-          {/* Kártya tartalom */}
+          {/* Content */}
           <View style={styles.cardContent}>
-            {/* Fejléc: Ikon + Cím */}
+            {/* Header: Icon + Title */}
             <View style={styles.cardHeader}>
-              <MaterialCommunityIcons
-                name="crown-outline"
-                size={20}
-                color="#FDE047"
-              />
+              <Crown size={20} color="#FDE047" />
               <Text style={styles.cardTitle}>Küzdőtér</Text>
             </View>
 
-            {/* Alsó info: Hátralévő játékok */}
+            {/* Info: Remaining games */}
             <View style={styles.cardInfo}>
               {remainingGames === 'unlimited' ? (
                 <>
-                  <MaterialCommunityIcons
-                    name="infinity"
-                    size={16}
-                    color={COLORS.white}
-                  />
+                  <Infinity size={16} color={COLORS.white} />
                   <Text style={styles.infoText}>Korlátlan</Text>
                 </>
               ) : (
                 <>
-                  <MaterialCommunityIcons
-                    name="crown-outline"
-                    size={12}
-                    color={COLORS.white}
-                  />
+                  <Crown size={12} color={COLORS.white} />
                   <Text style={styles.infoText}>{remainingGames} játék</Text>
                 </>
               )}
             </View>
           </View>
 
-          {/* Karakter illusztráció */}
+          {/* Character illustration */}
           <LinearGradient
-            colors={['#3B82F6', '#9333EA']}
+            colors={['#3B82F6', '#9333EA']} // Blue → Purple
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.arenaIllustration}
@@ -133,79 +191,93 @@ export function EventCards({ onArenaClick, subscriptionTier = 'free' }: EventCar
         </LinearGradient>
       </TouchableOpacity>
 
-      {/* TEMPLOMOS KÁRTYA */}
-      <View>
-        <LinearGradient
-          colors={['#2563EB', '#06B6D4']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.templomosCard}
-        >
-          {/* Overlay sötétítés */}
-          <View style={styles.cardOverlay} />
+      {/* ============================================ */}
+      {/* TEMPLOMOS CARD (Placeholder) */}
+      {/* ============================================ */}
+      <LinearGradient
+        colors={['#2563EB', '#06B6D4']} // Blue → Cyan
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.templomosCard}
+      >
+        {/* Overlay */}
+        <View style={styles.cardOverlay} />
 
-          {/* Kártya tartalom */}
-          <View style={styles.cardContent}>
-            {/* Cím */}
-            <Text style={styles.cardTitle}>Templomos</Text>
+        {/* Content */}
+        <View style={styles.cardContent}>
+          {/* Title */}
+          <Text style={styles.cardTitle}>Templomos</Text>
 
-            {/* Alsó info: Időzítő */}
-            <View style={styles.cardInfo}>
-              <MaterialCommunityIcons
-                name="clock-outline"
-                size={12}
-                color={COLORS.white}
-              />
-              <Text style={styles.infoText}>9h 6m</Text>
-            </View>
+          {/* Info: Timer */}
+          <View style={styles.cardInfo}>
+            <Clock size={12} color={COLORS.white} />
+            <Text style={styles.infoText}>9h 6m</Text>
           </View>
+        </View>
 
-          {/* Sárkány illusztráció */}
-          <LinearGradient
-            colors={['#A855F7', '#EC4899']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.dragonIllustration}
-          />
-        </LinearGradient>
-      </View>
+        {/* Dragon illustration */}
+        <LinearGradient
+          colors={['#A855F7', '#EC4899']} // Purple → Pink
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.dragonIllustration}
+        />
+      </LinearGradient>
     </View>
   );
 }
 
+// ============================================
+// STYLES
+// ============================================
+
 const styles = StyleSheet.create({
-  // Fő container (jobb felső sarok)
   container: {
     position: 'absolute',
     right: 8,
-    top: 16,
+    top: 112,
+    flexDirection: 'column',
     gap: SPACING.sm,
     zIndex: 10,
   },
 
-  // Küzdőtér kártya
+  // Arena card
   arenaCard: {
-    width: 140,
-    height: 56,
+    position: 'relative',
+    width: 160,
+    height: 64,
     borderRadius: SIZES.radiusBase,
     borderWidth: 2,
-    borderColor: '#FCD34D',
+    borderColor: '#FCD34D', // Yellow
     overflow: 'hidden',
-    ...SHADOWS.large,
+    // Shadow (iOS)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    // Shadow (Android)
+    elevation: 5,
   },
 
-  // Templomos kártya
+  // Templomos card
   templomosCard: {
-    width: 140,
-    height: 56,
+    position: 'relative',
+    width: 160,
+    height: 64,
     borderRadius: SIZES.radiusBase,
     borderWidth: 2,
-    borderColor: '#22D3EE',
+    borderColor: '#22D3EE', // Cyan
     overflow: 'hidden',
-    ...SHADOWS.large,
+    // Shadow (iOS)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    // Shadow (Android)
+    elevation: 5,
   },
 
-  // Kártya overlay (sötétítés)
+  // Card overlay (darkening)
   cardOverlay: {
     position: 'absolute',
     top: 0,
@@ -215,64 +287,66 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
 
-  // Kártya tartalom
+  // Card content
   cardContent: {
+    position: 'relative',
     padding: SPACING.sm,
     height: '100%',
     justifyContent: 'space-between',
-    zIndex: 1,
   },
 
-  // Kártya fejléc sor (ikon + cím)
+  // Card header (icon + title)
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
 
-  // Kártya cím
+  // Card title
   cardTitle: {
     color: COLORS.white,
     fontSize: SIZES.fontBase,
-    fontWeight: FONT_WEIGHT.semibold,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    fontWeight: '600',
+    // Text shadow
+    textShadowColor: 'rgba(0, 0, 0, 0.25)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
 
-  // Kártya alsó sor (info)
+  // Card info row
   cardInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
 
-  // Info szöveg
+  // Info text
   infoText: {
     color: COLORS.white,
     fontSize: SIZES.fontSM,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    // Text shadow
+    textShadowColor: 'rgba(0, 0, 0, 0.25)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
 
-  // Karakter illusztráció (Küzdőtér)
+  // Arena illustration (character)
   arenaIllustration: {
     position: 'absolute',
     right: 0,
     bottom: 0,
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     borderTopLeftRadius: SIZES.radiusFull,
   },
 
-  // Sárkány illusztráció (Templomos)
+  // Dragon illustration (Templomos)
   dragonIllustration: {
     position: 'absolute',
     right: 0,
     bottom: 0,
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     borderTopLeftRadius: SIZES.radiusFull,
   },
 });

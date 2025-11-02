@@ -397,14 +397,15 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
             },
           ]}
         >
-          {/* Book title (vertical) */}
+          {/* Book title (vertical - spine text) */}
           <View style={styles.bookTitleContainer}>
             <Text
               style={[
                 styles.bookTitle,
                 { color: book.textColor },
               ]}
-              numberOfLines={3}
+              numberOfLines={2}
+              ellipsizeMode="tail"
             >
               {book.title}
             </Text>
@@ -1194,12 +1195,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 4,
+    overflow: 'visible',
   },
   bookTitle: {
-    fontSize: SIZES.fontXS,
+    fontSize: 11,
+    fontWeight: '700',
+    transform: [{ rotate: '-90deg' }],
+    letterSpacing: 0.3,
+    width: 140,
     textAlign: 'center',
-    lineHeight: 14,
-    transform: [{ rotate: '180deg' }],
   },
   bookTexture: {
     position: 'absolute',
