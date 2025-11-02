@@ -358,16 +358,20 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 8,
+    fontFamily: 'Georgia',
   },
   noBookMainText: {
-    fontSize: SIZES.font2XL,
+    fontSize: 36,
     marginBottom: SPACING.sm,
+    fontFamily: 'Georgia',
+    fontWeight: '700',
   },
   noBookGradientText: {
-    fontSize: SIZES.font2XL,
+    fontSize: 36,
     color: COLORS.white,
     paddingHorizontal: 4,
     paddingVertical: 2,
+    fontWeight: '700',
   },
   noBookSubtitle: {
     fontSize: SIZES.fontSM,
@@ -376,6 +380,7 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 8,
+    fontFamily: 'Georgia',
   },
 
   // Has book view
@@ -421,13 +426,16 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 8,
+    fontFamily: 'Georgia',
   },
   lessonNumber: {
-    fontSize: SIZES.font4XL,
+    fontSize: 48,
     marginBottom: SPACING.base,
+    fontFamily: 'Georgia',
+    fontWeight: '700',
   },
   lessonGradientText: {
-    fontSize: SIZES.font4XL,
+    fontSize: 48,
     color: COLORS.white,
     fontWeight: '700',
     paddingHorizontal: 4,
@@ -440,12 +448,13 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 8,
+    fontFamily: 'Georgia',
   },
 
   // Progress bar
   progressBarContainer: {
-    width: 200,
-    height: 4,
+    width: 280,
+    height: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: SIZES.radiusFull,
     overflow: 'hidden',

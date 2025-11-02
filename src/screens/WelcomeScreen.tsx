@@ -1,179 +1,527 @@
-// ============================================
-// WELCOMESCREEN KOMPONENS
-// Üdvözlő képernyő első indításkor kezdő ajándékkal
-// ============================================
+/**
+ * ============================================
+ * WELCOMESCREEN - REACT NATIVE VERSION
+ * ============================================
+ *
+ * Welcome screen with animated gift reveal:
+ * - Floating crystals (20 particles)
+ * - Sparkles (15 particles)
+ * - Gift box reveal animation
+ * - Gold amount counter animation
+ * - "Kezdjük!" button with shine effect
+ *
+ * HASZNÁLAT:
+ * <WelcomeScreen
+ *   onGetStarted={() => navigation.navigate('Home')}
+ *   initialGold={1000}
+ * />
+ *
+ * FÜGGŐSÉGEK:
+ * expo-linear-gradient (already installed)
+ * lucide-react-native (already installed)
+ */
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSpring,
-  withDelay,
-} from 'react-native-reanimated';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+  Animated,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Sparkles, Coins, BookOpen } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { getGameConfig } from '../utils/gameConfig';
-import { COLORS, SIZES, SPACING, FONT_WEIGHT, SHADOWS } from '../utils/styleConstants';
 
-const { width, height } = Dimensions.get('window');
+// ============================================
+// CONSTANTS
+// ============================================
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Welcome'>;
+const COLORS = {
+  white: '#FFFFFF',
+  gray400: '#9CA3AF',
+};
 
-export default function WelcomeScreen() {
-  const navigation = useNavigation<NavigationProp>();
+const SPACING = {
+  sm: 8,
+  base: 16,
+  xl: 24,
+  xxxl: 48,
+};
 
-  // ===== STATE MANAGEMENT =====
-  const [initialGold, setInitialGold] = useState(1000);
+const SIZES = {
+  fontSM: 12,
+  fontLG: 16,
+  fontXL: 18,
+  font2XL: 24,
+  radiusFull: 9999,
+  radius2XL: 20,
+};
 
-  // ===== ANIMATION VALUES =====
-  const containerOpacity = useSharedValue(0);
-  const logoScale = useSharedValue(0);
-  const cardScale = useSharedValue(0.8);
-  const cardOpacity = useSharedValue(0);
-  const buttonOpacity = useSharedValue(0);
-  const giftScale = useSharedValue(0);
-  const goldScale = useSharedValue(0);
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-  // ===== EFFECTS =====
+// ============================================
+// TYPES
+// ============================================
+
+type WelcomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Welcome'>;
+
+interface WelcomeScreenProps {
+  onGetStarted?: () => void;
+  initialGold?: number;
+}
+
+// ============================================
+// FLOATING CRYSTAL COMPONENT
+// ============================================
+
+function FloatingCrystal({ index }: { index: number }) {
+  const translateY = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(0.3)).current;
+
   useEffect(() => {
-    // Load initial gold from config
-    loadGameConfig();
+    const yOffset = Math.random() * 100 - 50;
+    const duration = (3 + Math.random() * 4) * 1000;
 
-    // Start animations
-    containerOpacity.value = withTiming(1, { duration: 500 });
-    logoScale.value = withSpring(1, { damping: 10, stiffness: 100 });
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(translateY, {
+          toValue: yOffset,
+          duration,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
 
-    cardOpacity.value = withDelay(300, withTiming(1, { duration: 800 }));
-    cardScale.value = withDelay(300, withSpring(1, { damping: 12 }));
-
-    giftScale.value = withDelay(900, withSpring(1, { damping: 10 }));
-    goldScale.value = withDelay(1500, withSpring(1, { damping: 15 }));
-
-    buttonOpacity.value = withDelay(2100, withTiming(1, { duration: 600 }));
-
-    // Auto navigate after 5 seconds (optional)
-    const timer = setTimeout(() => {
-      handleGetStarted();
-    }, 5000);
-
-    return () => clearTimeout(timer);
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 0.8,
+          duration,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.3,
+          duration,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
   }, []);
 
-  const loadGameConfig = async () => {
-    try {
-      const config = await getGameConfig();
-      setInitialGold(config.initialGold);
-    } catch (error) {
-      console.error('Error loading game config:', error);
-    }
-  };
+  return (
+    <Animated.View
+      style={[
+        styles.floatingCrystal,
+        {
+          left: Math.random() * SCREEN_WIDTH,
+          top: Math.random() * SCREEN_HEIGHT,
+          transform: [{ translateY }],
+          opacity,
+        },
+      ]}
+    />
+  );
+}
 
-  // ===== EVENT HANDLERS =====
-  const handleGetStarted = () => {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Home' }],
-    });
-  };
+// ============================================
+// SPARKLE COMPONENT
+// ============================================
 
-  // ===== ANIMATED STYLES =====
-  const containerAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: containerOpacity.value,
-  }));
+function SparkleParticle({ index }: { index: number }) {
+  const scale = useRef(new Animated.Value(0)).current;
+  const rotate = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
-  const logoAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: logoScale.value }],
-  }));
+  useEffect(() => {
+    const duration = (2 + Math.random() * 2) * 1000;
+    const delay = Math.random() * 2000;
 
-  const cardAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: cardOpacity.value,
-    transform: [{ scale: cardScale.value }],
-  }));
+    setTimeout(() => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(scale, {
+            toValue: 1,
+            duration: duration / 3,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scale, {
+            toValue: 0,
+            duration: duration / 3,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
 
-  const giftAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: giftScale.value }],
-  }));
+      Animated.loop(
+        Animated.timing(rotate, {
+          toValue: 1,
+          duration,
+          useNativeDriver: true,
+        })
+      ).start();
 
-  const goldAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: goldScale.value }],
-  }));
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(opacity, {
+            toValue: 1,
+            duration: duration / 3,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacity, {
+            toValue: 0,
+            duration: duration / 3,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }, delay);
+  }, []);
 
-  const buttonAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: buttonOpacity.value,
-  }));
+  const spin = rotate.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   return (
-    <LinearGradient
-      colors={['#581C87', '#312E81', '#0F172A']}
-      style={styles.container}
+    <Animated.View
+      style={[
+        styles.sparkleParticle,
+        {
+          left: Math.random() * SCREEN_WIDTH,
+          top: Math.random() * SCREEN_HEIGHT,
+          transform: [{ scale }, { rotate: spin }],
+          opacity,
+        },
+      ]}
     >
-      <Animated.View style={[styles.content, containerAnimatedStyle]}>
-        {/* LOGO/CÍM TERÜLET */}
-        <Animated.View style={[styles.logoArea, logoAnimatedStyle]}>
+      <Sparkles size={16} color="#FBBF24" />
+    </Animated.View>
+  );
+}
+
+// ============================================
+// COMPONENT
+// ============================================
+
+export default function WelcomeScreen({
+  onGetStarted,
+  initialGold = 1000,
+}: WelcomeScreenProps) {
+  const navigation = useNavigation<WelcomeScreenNavigationProp>();
+
+  // ============================================
+  // ANIMATIONS
+  // ============================================
+
+  const contentScale = useRef(new Animated.Value(0.8)).current;
+  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const contentTranslateY = useRef(new Animated.Value(50)).current;
+
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const logoTranslateY = useRef(new Animated.Value(-20)).current;
+
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+  const cardTranslateY = useRef(new Animated.Value(20)).current;
+
+  const giftScale = useRef(new Animated.Value(0)).current;
+  const giftRotate = useRef(new Animated.Value(-180)).current;
+
+  const giftTextOpacity = useRef(new Animated.Value(0)).current;
+  const goldScale = useRef(new Animated.Value(0)).current;
+  const farewellOpacity = useRef(new Animated.Value(0)).current;
+
+  const buttonOpacity = useRef(new Animated.Value(0)).current;
+  const buttonTranslateY = useRef(new Animated.Value(20)).current;
+
+  const hintOpacity = useRef(new Animated.Value(0)).current;
+
+  // ============================================
+  // EFFECTS
+  // ============================================
+
+  useEffect(() => {
+    // Staggered animation sequence
+    const animations = [
+      // 1. Main content (0ms)
+      Animated.parallel([
+        Animated.timing(contentScale, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(contentOpacity, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(contentTranslateY, {
+          toValue: 0,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]),
+
+      // 2. Logo (300ms)
+      Animated.parallel([
+        Animated.delay(300),
+        Animated.timing(logoOpacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoTranslateY, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]),
+
+      // 3. Welcome card (600ms)
+      Animated.parallel([
+        Animated.delay(600),
+        Animated.timing(cardOpacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardTranslateY, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]),
+
+      // 4. Gift box (900ms)
+      Animated.parallel([
+        Animated.delay(900),
+        Animated.spring(giftScale, {
+          toValue: 1,
+          friction: 5,
+          useNativeDriver: true,
+        }),
+        Animated.spring(giftRotate, {
+          toValue: 0,
+          friction: 5,
+          useNativeDriver: true,
+        }),
+      ]),
+
+      // 5. Gift text (1200ms)
+      Animated.sequence([
+        Animated.delay(1200),
+        Animated.timing(giftTextOpacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]),
+
+      // 6. Gold amount (1500ms)
+      Animated.sequence([
+        Animated.delay(1500),
+        Animated.spring(goldScale, {
+          toValue: 1,
+          friction: 4,
+          useNativeDriver: true,
+        }),
+      ]),
+
+      // 7. Farewell text (1800ms)
+      Animated.sequence([
+        Animated.delay(1800),
+        Animated.timing(farewellOpacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]),
+
+      // 8. Button (2100ms)
+      Animated.parallel([
+        Animated.delay(2100),
+        Animated.timing(buttonOpacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(buttonTranslateY, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]),
+
+      // 9. Hint text (2400ms)
+      Animated.sequence([
+        Animated.delay(2400),
+        Animated.timing(hintOpacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]),
+    ];
+
+    // Start all animations
+    animations.forEach((anim) => anim.start());
+  }, []);
+
+  const giftRotateStyle = giftRotate.interpolate({
+    inputRange: [-180, 0],
+    outputRange: ['-180deg', '0deg'],
+  });
+
+  // ============================================
+  // EVENT HANDLERS
+  // ============================================
+
+  const handleGetStarted = () => {
+    // Call onGetStarted callback if provided
+    if (onGetStarted) {
+      onGetStarted();
+    }
+
+    // Navigate to Home screen
+    navigation.navigate('Home');
+  };
+
+  // ============================================
+  // RENDER
+  // ============================================
+
+  return (
+    <View style={styles.container}>
+      {/* Background Gradient */}
+      <LinearGradient
+        colors={['#581C87', '#312E81', '#0F172A']}
+        style={styles.backgroundGradient}
+      />
+
+      {/* Animated Background Particles */}
+      <View style={styles.backgroundLayer}>
+        {[...Array(20)].map((_, i) => (
+          <FloatingCrystal key={`crystal-${i}`} index={i} />
+        ))}
+        {[...Array(15)].map((_, i) => (
+          <SparkleParticle key={`sparkle-${i}`} index={i} />
+        ))}
+      </View>
+
+      {/* Main Content */}
+      <Animated.View
+        style={[
+          styles.mainContent,
+          {
+            transform: [{ scale: contentScale }, { translateY: contentTranslateY }],
+            opacity: contentOpacity,
+          },
+        ]}
+      >
+        {/* Logo Area */}
+        <Animated.View
+          style={[
+            styles.logoArea,
+            {
+              transform: [{ translateY: logoTranslateY }],
+              opacity: logoOpacity,
+            },
+          ]}
+        >
           <LinearGradient
             colors={['#A855F7', '#4F46E5']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.logoIcon}
           >
-            <MaterialCommunityIcons name="shimmer" size={48} color={COLORS.white} />
+            <Sparkles size={48} color={COLORS.white} />
           </LinearGradient>
 
           <Text style={styles.title}>CapitalWizard</Text>
 
-          <View style={styles.divider} />
+          <LinearGradient
+            colors={['transparent', '#22D3EE', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.divider}
+          />
         </Animated.View>
 
-        {/* ÜDVÖZLŐ ÜZENET */}
-        <Animated.View style={[styles.welcomeCard, cardAnimatedStyle]}>
+        {/* Welcome Card */}
+        <Animated.View
+          style={[
+            {
+              transform: [{ translateY: cardTranslateY }],
+              opacity: cardOpacity,
+            },
+          ]}
+        >
           <LinearGradient
-            colors={['rgba(30, 41, 59, 0.9)', 'rgba(15, 23, 42, 0.9)']}
+            colors={['rgba(30, 41, 59, 0.8)', 'rgba(15, 23, 42, 0.8)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.cardGradient}
+            style={styles.welcomeCard}
           >
             <Text style={styles.welcomeTitle}>A CapitalWizard üdvözöl!</Text>
 
-            {/* Ajándék doboz animáció */}
-            <Animated.View style={[styles.giftBox, giftAnimatedStyle]}>
+            {/* Gift Box */}
+            <Animated.View
+              style={[
+                styles.giftBox,
+                {
+                  transform: [{ scale: giftScale }, { rotate: giftRotateStyle }],
+                },
+              ]}
+            >
               <LinearGradient
                 colors={['#FBBF24', '#F59E0B']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.giftIconBg}
               >
-                <MaterialCommunityIcons name="currency-usd" size={48} color="#78350F" />
+                <Coins size={48} color="#78350F" />
               </LinearGradient>
             </Animated.View>
 
-            <Text style={styles.giftText}>Kezdésnek adunk</Text>
-
-            {/* Arany mennyiség */}
-            <Animated.View style={[styles.goldAmountRow, goldAnimatedStyle]}>
-              <Text style={styles.goldAmount}>
-                {initialGold.toLocaleString('hu-HU')}
-              </Text>
-              <MaterialCommunityIcons name="currency-usd" size={32} color="#FBBF24" />
+            {/* Gift Text */}
+            <Animated.View style={{ opacity: giftTextOpacity }}>
+              <Text style={styles.giftText}>Kezdésnek adunk</Text>
+              <View style={styles.goldAmountRow}>
+                <Animated.Text
+                  style={[styles.goldAmount, { transform: [{ scale: goldScale }] }]}
+                >
+                  {initialGold.toLocaleString('hu-HU')}
+                </Animated.Text>
+                <Coins size={32} color="#FBBF24" />
+              </View>
+              <Text style={styles.goldText}>arany ajándékot!</Text>
             </Animated.View>
 
-            <Text style={styles.goldText}>arany ajándékot!</Text>
-
-            <Text style={styles.farewellText}>Jó szórakozást!</Text>
+            {/* Farewell */}
+            <Animated.Text style={[styles.farewellText, { opacity: farewellOpacity }]}>
+              Jó szórakozást!
+            </Animated.Text>
           </LinearGradient>
         </Animated.View>
 
-        {/* KEZDÉS GOMB */}
-        <Animated.View style={buttonAnimatedStyle}>
-          <TouchableOpacity
-            onPress={handleGetStarted}
-            activeOpacity={0.8}
-            style={styles.startButtonContainer}
-          >
+        {/* Start Button */}
+        <Animated.View
+          style={[
+            {
+              transform: [{ translateY: buttonTranslateY }],
+              opacity: buttonOpacity,
+            },
+          ]}
+        >
+          <TouchableOpacity onPress={handleGetStarted} activeOpacity={0.8}>
             <LinearGradient
               colors={['#9333EA', '#4F46E5']}
               start={{ x: 0, y: 0 }}
@@ -185,145 +533,224 @@ export default function WelcomeScreen() {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* HINT SZÖVEG */}
-        <Animated.Text style={[styles.hintText, buttonAnimatedStyle]}>
+        {/* Hint Text */}
+        <Animated.Text style={[styles.hintText, { opacity: hintOpacity }]}>
           Tapasztalj meg egy izgalmas pénzügyi kalandot
         </Animated.Text>
       </Animated.View>
 
-      {/* ALSÓ GLOW EFFEKT */}
+      {/* Bottom Glow Effect */}
       <View style={styles.bottomGlow} />
-    </LinearGradient>
+    </View>
   );
 }
 
+// ============================================
+// STYLES
+// ============================================
+
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 50,
     alignItems: 'center',
     justifyContent: 'center',
     padding: SPACING.xxxl,
   },
-  content: {
+
+  backgroundGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+
+  backgroundLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+  },
+
+  floatingCrystal: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    backgroundColor: '#22D3EE',
+    borderRadius: SIZES.radiusFull,
+    shadowColor: '#22D3EE',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+
+  sparkleParticle: {
+    position: 'absolute',
+  },
+
+  mainContent: {
+    position: 'relative',
+    zIndex: 10,
     alignItems: 'center',
-    justifyContent: 'center',
     maxWidth: 448,
     width: '100%',
   },
+
   logoArea: {
-    alignItems: 'center',
     marginBottom: SPACING.xxxl,
+    alignItems: 'center',
   },
+
   logoIcon: {
     width: 96,
     height: 96,
+    borderRadius: SIZES.radius2XL,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: SIZES.radius2XL,
     marginBottom: SPACING.xl,
-    ...SHADOWS.xl,
+    shadowColor: '#A855F7',
+    shadowOffset: { width: 0, height: 25 },
+    shadowOpacity: 0.5,
+    shadowRadius: 50,
+    elevation: 20,
   },
+
   title: {
     fontSize: 48,
+    fontWeight: '700',
     color: COLORS.white,
     marginBottom: SPACING.sm,
-    fontWeight: FONT_WEIGHT.bold,
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+    textAlign: 'center',
   },
+
   divider: {
     width: 128,
     height: 4,
-    backgroundColor: '#22D3EE',
-    opacity: 0.5,
+    borderRadius: 2,
   },
+
   welcomeCard: {
-    width: '100%',
-    marginBottom: SPACING.xxxl,
     borderRadius: SIZES.radius2XL,
-    overflow: 'hidden',
-    ...SHADOWS.xl,
-  },
-  cardGradient: {
     padding: SPACING.xxxl,
     borderWidth: 1,
     borderColor: 'rgba(168, 85, 247, 0.3)',
-    borderRadius: SIZES.radius2XL,
+    marginBottom: SPACING.xxxl,
     alignItems: 'center',
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 25 },
+    shadowOpacity: 0.5,
+    shadowRadius: 50,
+    elevation: 20,
   },
+
   welcomeTitle: {
     fontSize: SIZES.font2XL,
+    fontWeight: '700',
     color: COLORS.white,
     marginBottom: SPACING.base,
-    fontWeight: FONT_WEIGHT.bold,
     textAlign: 'center',
   },
+
   giftBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: SPACING.base,
   },
+
   giftIconBg: {
     borderRadius: SIZES.radiusFull,
     padding: SPACING.xl,
-    ...SHADOWS.large,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FBBF24',
+    shadowOffset: { width: 0, height: 25 },
+    shadowOpacity: 0.5,
+    shadowRadius: 50,
+    elevation: 20,
   },
+
   giftText: {
     color: '#67E8F9',
     fontSize: SIZES.fontXL,
+    fontWeight: '600',
     marginBottom: SPACING.sm,
     textAlign: 'center',
   },
+
   goldAmountRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: SPACING.sm,
     marginBottom: SPACING.base,
   },
+
   goldAmount: {
     fontSize: 48,
+    fontWeight: '700',
     color: '#FBBF24',
-    fontWeight: FONT_WEIGHT.bold,
-    marginRight: SPACING.sm,
   },
+
   goldText: {
     color: '#67E8F9',
     fontSize: SIZES.fontXL,
-    marginBottom: SPACING.xl,
+    fontWeight: '600',
     textAlign: 'center',
   },
+
   farewellText: {
     color: '#CBD5E1',
+    marginTop: SPACING.xl,
     fontSize: SIZES.fontLG,
+    fontWeight: '500',
     textAlign: 'center',
   },
-  startButtonContainer: {
-    borderRadius: SIZES.radiusFull,
-    overflow: 'hidden',
-    ...SHADOWS.large,
-  },
+
   startButton: {
     paddingHorizontal: 48,
     paddingVertical: SPACING.base,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: SIZES.radiusFull,
+    shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 25 },
+    shadowOpacity: 0.5,
+    shadowRadius: 50,
+    elevation: 20,
   },
+
   buttonText: {
     color: COLORS.white,
     fontSize: SIZES.fontXL,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: '700',
+    textAlign: 'center',
   },
+
   hintText: {
     color: COLORS.gray400,
     fontSize: SIZES.fontSM,
     marginTop: SPACING.xl,
     textAlign: 'center',
   },
+
   bottomGlow: {
     position: 'absolute',
     bottom: 0,
+    left: '50%',
+    marginLeft: -192,
     width: 384,
     height: 384,
-    backgroundColor: 'rgba(147, 51, 234, 0.2)',
+    backgroundColor: 'rgba(147, 51, 234, 0.3)',
     borderRadius: SIZES.radiusFull,
+    shadowColor: 'rgba(147, 51, 234, 0.3)',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 96,
   },
 });

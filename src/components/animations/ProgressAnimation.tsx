@@ -213,16 +213,9 @@ export function ProgressAnimation({
           {/* Text */}
           <View style={styles.noBookTextContainer}>
             <Text style={styles.noBookTitle}>Nincs kölcsönzött</Text>
-            <View style={styles.noBookMainTextContainer}>
-              <LinearGradient
-                colors={['#FCD34D', '#FDE047', '#FDBA74']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.gradientBackground}
-              >
-                <Text style={styles.noBookGradientText}>tankönyv</Text>
-              </LinearGradient>
-            </View>
+            <Text style={styles.noBookMainText}>
+              <Text style={styles.noBookGradientText}>tankönyv</Text>
+            </Text>
             <Text style={styles.noBookSubtitle}>Kölcsönözz ki könyvet a könyvtárból!</Text>
           </View>
         </View>
@@ -372,18 +365,19 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 8,
+    fontFamily: 'Georgia',
   },
-  noBookMainTextContainer: {
+  noBookMainText: {
+    fontSize: 36,
     marginBottom: SPACING.sm,
-  },
-  gradientBackground: {
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
+    fontFamily: 'Georgia',
+    fontWeight: '700',
   },
   noBookGradientText: {
-    fontSize: SIZES.font2XL,
+    fontSize: 36,
     color: COLORS.white,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
     fontWeight: '700',
   },
   noBookSubtitle: {
@@ -393,6 +387,7 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 8,
+    fontFamily: 'Georgia',
   },
 
   // Has book view
@@ -438,6 +433,7 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 8,
+    fontFamily: 'Georgia',
   },
   lessonNumberContainer: {
     marginBottom: SPACING.base,
@@ -448,7 +444,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   lessonGradientText: {
-    fontSize: SIZES.font4XL,
+    fontSize: 48,
     color: COLORS.white,
     fontWeight: '700',
   },
@@ -459,12 +455,13 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 8,
+    fontFamily: 'Georgia',
   },
 
   // Progress bar
   progressBarContainer: {
-    width: 200,
-    height: 4,
+    width: 280,
+    height: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: SIZES.radiusFull,
     overflow: 'hidden',

@@ -32,6 +32,7 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Slider from '@react-native-community/slider';
 import Animated, {
@@ -938,32 +939,34 @@ export default function ArenaScreen({ navigation, route }: ArenaPageProps) {
   // ============================================
 
   return (
-    <View style={styles.container}>
-      {/* Background Gradient */}
-      <LinearGradient
-        colors={['#0F172A', 'rgba(88, 28, 135, 0.2)', '#0F172A']}
-        style={styles.backgroundGradient}
-      />
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.container}>
+        {/* Background Gradient */}
+        <LinearGradient
+          colors={['#0F172A', 'rgba(88, 28, 135, 0.2)', '#0F172A']}
+          style={styles.backgroundGradient}
+        />
 
-      {/* Crystal Decorations */}
-      <View style={styles.crystalContainer}>
-        <AnimatedCrystal delay={0} style={styles.crystal1} />
-        <AnimatedCrystal delay={500} style={styles.crystal2} />
-        <AnimatedCrystal delay={1000} style={styles.crystal3} />
-        <AnimatedCrystal delay={1500} style={styles.crystal4} />
+        {/* Crystal Decorations */}
+        <View style={styles.crystalContainer}>
+          <AnimatedCrystal delay={0} style={styles.crystal1} />
+          <AnimatedCrystal delay={500} style={styles.crystal2} />
+          <AnimatedCrystal delay={1000} style={styles.crystal3} />
+          <AnimatedCrystal delay={1500} style={styles.crystal4} />
+        </View>
+
+        {/* Header */}
+        {renderHeader()}
+
+        {/* Tabs (only in betting state) */}
+        {gameState === 'betting' && renderTabs()}
+
+        {/* Content based on game state */}
+        {gameState === 'betting' && renderBettingState()}
+        {gameState === 'playing' && renderPlayingState()}
+        {gameState === 'result' && renderResultState()}
       </View>
-
-      {/* Header */}
-      {renderHeader()}
-
-      {/* Tabs (only in betting state) */}
-      {gameState === 'betting' && renderTabs()}
-
-      {/* Content based on game state */}
-      {gameState === 'betting' && renderBettingState()}
-      {gameState === 'playing' && renderPlayingState()}
-      {gameState === 'result' && renderResultState()}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -972,6 +975,10 @@ export default function ArenaScreen({ navigation, route }: ArenaPageProps) {
 // ============================================
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+  },
   container: {
     flex: 1,
     backgroundColor: '#0F172A',

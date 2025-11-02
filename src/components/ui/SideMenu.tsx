@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   container: {
     position: 'absolute',
     left: 8,
-    top: 111,
+    top: 80,
     flexDirection: 'column',
     gap: SPACING.sm,
     zIndex: 10,
