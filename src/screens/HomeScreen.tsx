@@ -29,6 +29,7 @@ const DEFAULT_STATE = {
   playerName: 'Vendég',
   subscriptionTier: 'free' as 'free' | 'pro' | 'master',
   currentStreak: 0,
+  lastCompletionDate: null as string | null,
   currentBookLessonIndex: 0,
   currentGameType: 'reading' as 'reading' | 'matching' | 'quiz',
   isFirstRound: true,
@@ -47,6 +48,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [playerName, setPlayerName] = useState(DEFAULT_STATE.playerName);
   const [subscriptionTier, setSubscriptionTier] = useState(DEFAULT_STATE.subscriptionTier);
   const [currentStreak, setCurrentStreak] = useState(DEFAULT_STATE.currentStreak);
+  const [lastCompletionDate, setLastCompletionDate] = useState<string | null>(DEFAULT_STATE.lastCompletionDate);
   const [currentBookLessonIndex, setCurrentBookLessonIndex] = useState(DEFAULT_STATE.currentBookLessonIndex);
   const [currentGameType, setCurrentGameType] = useState(DEFAULT_STATE.currentGameType);
   const [isFirstRound, setIsFirstRound] = useState(DEFAULT_STATE.isFirstRound);
@@ -61,6 +63,29 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       const saved = await AsyncStorage.getItem('game_state');
       if (saved) {
         const state = JSON.parse(saved);
+
+        // Check if streak should be reset before loading (timestamp-based)
+        const lastTimestampStr = state.lastCompletionDate;
+        const currentStreakValue = state.currentStreak || 0;
+        let streakToSet = currentStreakValue;
+        let lastTimestampToSet = state.lastCompletionDate || DEFAULT_STATE.lastCompletionDate;
+
+        if (lastTimestampStr && currentStreakValue > 0) {
+          const now = new Date().getTime();
+          const lastTimestamp = parseInt(lastTimestampStr);
+          const timeDiff = now - lastTimestamp;
+          const hoursDiff = timeDiff / (1000 * 60 * 60);
+
+          if (hoursDiff > 48) {
+            // More than 48 hours - reset streak
+            console.log('⚠️ Streak broken! (>48h) Resetting to 0');
+            streakToSet = 0;
+            lastTimestampToSet = null;
+          } else {
+            console.log(`✅ Streak valid (${hoursDiff.toFixed(2)}h ago)`);
+          }
+        }
+
         // NOTE: coins and gems are now managed by CoinsContext
         setPlayerLevel(state.playerLevel || DEFAULT_STATE.playerLevel);
         setTotalXp(state.totalXp || DEFAULT_STATE.totalXp);
@@ -69,10 +94,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         setCurrentStageInSection(state.currentStageInSection || DEFAULT_STATE.currentStageInSection);
         setPlayerName(state.playerName || DEFAULT_STATE.playerName);
         setSubscriptionTier(state.subscriptionTier || DEFAULT_STATE.subscriptionTier);
-        setCurrentStreak(state.currentStreak || DEFAULT_STATE.currentStreak);
+        setCurrentStreak(streakToSet);
+        setLastCompletionDate(lastTimestampToSet);
         setCurrentBookLessonIndex(state.currentBookLessonIndex || DEFAULT_STATE.currentBookLessonIndex);
         setCurrentGameType(state.currentGameType || DEFAULT_STATE.currentGameType);
         setIsFirstRound(state.isFirstRound !== undefined ? state.isFirstRound : DEFAULT_STATE.isFirstRound);
+
+        console.log('✅ Loaded game state. Streak:', streakToSet);
       }
     } catch (error) {
       console.error('Error loading game state:', error);
@@ -91,6 +119,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         playerName,
         subscriptionTier,
         currentStreak,
+        lastCompletionDate,
         currentBookLessonIndex,
         currentGameType,
         isFirstRound,
@@ -105,7 +134,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   useEffect(() => {
     saveGameState();
   }, [playerLevel, totalXp, progressPosition, currentLesson, currentStageInSection,
-      playerName, subscriptionTier, currentStreak, currentBookLessonIndex, currentGameType, isFirstRound]);
+      playerName, subscriptionTier, currentStreak, lastCompletionDate, currentBookLessonIndex, currentGameType, isFirstRound]);
 
   // Navigation handlers
   const handleAvatarClick = () => {
@@ -173,6 +202,41 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       currentGameType,
       isFirstRound
     });
+
+    console.log('🔥 BEFORE STREAK UPDATE - Current streak:', currentStreak, 'Last timestamp:', lastCompletionDate);
+
+    // Update streak tracking - using timestamp (24-hour window)
+    const now = new Date().getTime(); // Current timestamp in milliseconds
+    console.log('🔥 Current timestamp:', now);
+
+    if (lastCompletionDate) {
+      const lastTimestamp = parseInt(lastCompletionDate);
+      const timeDiff = now - lastTimestamp;
+      const hoursDiff = timeDiff / (1000 * 60 * 60); // Convert to hours
+
+      console.log('🔥 Hours since last completion:', hoursDiff.toFixed(2));
+
+      if (hoursDiff < 24) {
+        // Less than 24 hours - don't update streak
+        console.log('🔥 Less than 24 hours, streak stays at:', currentStreak);
+      } else if (hoursDiff >= 24 && hoursDiff < 48) {
+        // Between 24-48 hours - increase streak
+        const newStreak = currentStreak + 1;
+        setCurrentStreak(newStreak);
+        setLastCompletionDate(now.toString());
+        console.log('🔥 Streak increased to:', newStreak);
+      } else {
+        // More than 48 hours - reset streak to 1
+        setCurrentStreak(1);
+        setLastCompletionDate(now.toString());
+        console.log('🔥 More than 48 hours, streak reset to 1');
+      }
+    } else {
+      // First completion ever
+      setCurrentStreak(1);
+      setLastCompletionDate(now.toString());
+      console.log('🔥 First streak! Set to 1, timestamp:', now);
+    }
 
     // Update progress based on current game type (following the LECKE_RENDSZER_MUKODES.md logic)
     if (isFirstRound) {
@@ -275,6 +339,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     '→ Stage': `${dynamicCurrentStageInSection}/6`,
     '→ Zigzag pos': dynamicProgressPosition,
   });
+
+  // Debug streak (timestamp-based)
+  console.log('🔥 Current Streak:', currentStreak, 'Last Completion timestamp:', lastCompletionDate);
 
   return (
     <View style={styles.container}>

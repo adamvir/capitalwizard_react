@@ -1,80 +1,248 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, StatusBar } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+/**
+ * ShopScreen - REACT NATIVE VERSION
+ *
+ * Bolt képernyő - Erőforrások és bónuszok vásárlása
+ * - Balance card (Gold, Diamonds, Streak Freezes)
+ * - Streak Freeze vásárlás (aranyért)
+ * - Gold vásárlás (valódi pénzért - 4 csomag)
+ * - Diamond vásárlás (aranyért - 4 csomag)
+ * - 2-column grid layout
+ * - "BEST" és "BONUS" badge-ek
+ */
+
+import React from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  StatusBar,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, SPACING, SIZES } from '../utils/styleConstants';
+import {
+  ArrowLeft,
+  ShoppingBag,
+  Coins,
+  Flame,
+  Gem,
+  CreditCard,
+  Sparkles,
+} from 'lucide-react-native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/types';
+
+type ShopScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Shop'>;
+type ShopScreenRouteProp = RouteProp<RootStackParamList, 'Shop'>;
 
 interface ShopScreenProps {
-  navigation: any;
-  route: {
-    params: {
-      gold: number;
-      gems: number;
-      streakFreezes: number;
-    };
-  };
+  navigation: ShopScreenNavigationProp;
+  route: ShopScreenRouteProp;
 }
 
-export default function ShopScreen({ navigation, route }: ShopScreenProps) {
-  const { gold = 1000, gems = 0, streakFreezes = 0 } = route?.params || {};
+// ============================================
+// CONSTANTS
+// ============================================
 
-  const handlePurchaseStreakFreeze = () => {
-    const cost = 100;
-    if (gold < cost) {
-      Alert.alert('Nincs elég aranyad!', `Szükséges: ${cost} arany`);
-      return;
-    }
-    Alert.alert('Vásárlás sikeres!', 'Széria pont vásárlása sikeres!');
+const COLORS = {
+  white: '#FFFFFF',
+  purple900: '#581C87',
+  purple800: '#7E22CE',
+  purple600: '#9333EA',
+  purple500: '#A855F7',
+  purple400: '#C084FC',
+  pink500: '#EC4899',
+  orange900: '#7C2D12',
+  orange800: '#9A3412',
+  orange700: '#C2410C',
+  orange600: '#EA580C',
+  orange500: '#F97316',
+  orange400: '#FB923C',
+  yellow900: '#78350F',
+  yellow800: '#92400E',
+  yellow700: '#A16207',
+  yellow600: '#CA8A04',
+  yellow500: '#EAB308',
+  yellow400: '#FACC15',
+  yellow300: '#FDE047',
+  yellow200: '#FEF08A',
+  yellow100: '#FEF9C3',
+  yellow50: '#FEFCE8',
+  cyan800: '#164E63',
+  cyan700: '#0E7490',
+  cyan600: '#0891B2',
+  cyan500: '#06B6D4',
+  cyan400: '#22D3EE',
+  cyan200: '#A5F3FC',
+  cyan50: '#ECFEFF',
+  blue600: '#2563EB',
+  red600: '#DC2626',
+  purple50: '#FAF5FF',
+  orange50: '#FFF7ED',
+  orangeBorder: '#FED7AA',
+};
+
+const SPACING = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  base: 16,
+  lg: 20,
+  xl: 24,
+};
+
+const SIZES = {
+  fontXS: 10,
+  fontSM: 12,
+  fontBase: 14,
+  fontLG: 18,
+  fontXL: 20,
+  font2XL: 24,
+  borderThin: 1,
+  borderMedium: 2,
+  radiusSM: 8,
+  radiusLG: 12,
+  radiusXL: 16,
+  radiusFull: 9999,
+  iconSM: 16,
+  iconBase: 18,
+  iconLG: 24,
+};
+
+const FONT_WEIGHT = {
+  normal: '400' as const,
+  medium: '500' as const,
+  semibold: '600' as const,
+  bold: '700' as const,
+};
+
+// ============================================
+// GAME CONFIG
+// ============================================
+
+const GAME_CONFIG = {
+  streakFreezeGoldCost: 50,
+  gold100Price: 990,
+  gold500Price: 4990,
+  gold1000Price: 9990,
+  gold5000Price: 39990,
+  diamond1GoldCost: 10,
+  diamond10GoldCost: 90,
+  diamond50GoldCost: 400,
+  diamond100GoldCost: 750,
+};
+
+// ============================================
+// COMPONENT
+// ============================================
+
+export default function ShopScreen({ navigation, route }: ShopScreenProps) {
+  const { coins, gems, onCoinsChange, onGemsChange } = route.params;
+
+  // For this demo, we'll use coins as gold and gems as diamonds
+  const gold = coins;
+  const diamonds = gems;
+  const streakFreezes = 2; // Mock value
+
+  // ============================================
+  // HANDLERS
+  // ============================================
+
+  const handleBack = () => {
+    navigation.goBack();
   };
 
   const handleGoldPurchase = (amount: number, price: number) => {
-    Alert.alert('Arany vásárlás', `${amount} arany vásárlása ${price.toLocaleString('hu-HU')} Ft-ért`);
+    Alert.alert(
+      'Vásárlás',
+      `${amount} arany vásárlása ${price.toLocaleString('hu-HU')} Ft-ért`,
+      [
+        { text: 'Mégse', style: 'cancel' },
+        {
+          text: 'Vásárlás',
+          onPress: () => {
+            onCoinsChange(gold + amount);
+            Alert.alert('Sikeres!', `${amount} arany hozzáadva!`);
+          },
+        },
+      ]
+    );
   };
 
   const handleDiamondPurchase = (amount: number, cost: number) => {
     if (gold < cost) {
-      Alert.alert('Nincs elég aranyad!', `Szükséges: ${cost} arany`);
+      Alert.alert('Hiba', 'Nincs elég aranyad!');
       return;
     }
-    Alert.alert('Vásárlás sikeres!', `${amount} gyémánt vásárlása sikeres!`);
+    onCoinsChange(gold - cost);
+    onGemsChange(diamonds + amount);
+    Alert.alert('Sikeres!', `${amount} gyémánt vásárlása sikeres!`);
   };
+
+  const handleStreakFreezePurchase = () => {
+    if (gold < GAME_CONFIG.streakFreezeGoldCost) {
+      Alert.alert('Hiba', 'Nincs elég aranyad!');
+      return;
+    }
+    onCoinsChange(gold - GAME_CONFIG.streakFreezeGoldCost);
+    Alert.alert('Sikeres!', 'Széria pont vásárlása sikeres!');
+  };
+
+  // ============================================
+  // RENDER
+  // ============================================
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FAF5FF" translucent={false} />
-      <LinearGradient colors={['#FAF5FF', '#FFFFFF']} style={styles.gradient}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.purple50} translucent={false} />
+      <LinearGradient
+        colors={[COLORS.purple50, COLORS.white]}
+        style={styles.gradient}
+      >
         {/* Top spacer for iPhone notch/camera */}
         <View style={styles.topSpacer} />
 
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <MaterialCommunityIcons name="arrow-left" size={SIZES.iconBase} color="#7E22CE" />
-          </TouchableOpacity>
-          <View style={styles.headerTextContainer}>
-            <View style={styles.headerTitleRow}>
-              <MaterialCommunityIcons name="shopping" size={SIZES.iconLG} color="#A855F7" />
-              <Text style={styles.headerTitle}>Bolt</Text>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <ArrowLeft size={SIZES.iconBase} color={COLORS.purple800} />
+            </TouchableOpacity>
+            <View style={styles.headerTextContainer}>
+              <View style={styles.headerTitle}>
+                <ShoppingBag size={SIZES.iconLG} color={COLORS.purple500} />
+                <Text style={styles.headerTitleText}>Bolt</Text>
+              </View>
+              <Text style={styles.headerSubtitle}>
+                Vásárolj erőforrásokat és bónuszokat
+              </Text>
             </View>
-            <Text style={styles.headerSubtitle}>Vásárolj erőforrásokat és bónuszokat</Text>
           </View>
-        </View>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Current Balance */}
-          <LinearGradient colors={['#A855F7', '#EC4899']} style={styles.balanceCard}>
+          <LinearGradient
+            colors={[COLORS.purple500, COLORS.pink500]}
+            style={styles.balanceCard}
+          >
             <Text style={styles.balanceText}>Jelenlegi egyenleged</Text>
             <View style={styles.balanceRow}>
               <View style={styles.balanceItem}>
-                <MaterialCommunityIcons name="coin" size={SIZES.iconBase} color={COLORS.white} />
-                <Text style={styles.balanceValue}>{gold.toLocaleString('hu-HU')}</Text>
+                <Coins size={SIZES.iconBase} color={COLORS.white} />
+                <Text style={styles.balanceValue}>
+                  {gold.toLocaleString('hu-HU')}
+                </Text>
               </View>
               <View style={styles.balanceItem}>
-                <MaterialCommunityIcons name="diamond-stone" size={SIZES.iconBase} color={COLORS.white} />
-                <Text style={styles.balanceValue}>{gems}</Text>
+                <Gem size={SIZES.iconBase} color={COLORS.white} />
+                <Text style={styles.balanceValue}>{diamonds}</Text>
               </View>
               <View style={styles.balanceItem}>
-                <MaterialCommunityIcons name="fire" size={SIZES.iconBase} color={COLORS.white} />
+                <Flame size={SIZES.iconBase} color={COLORS.white} />
                 <Text style={styles.balanceValue}>{streakFreezes}</Text>
               </View>
             </View>
@@ -83,8 +251,10 @@ export default function ShopScreen({ navigation, route }: ShopScreenProps) {
           {/* Streak Freeze Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <MaterialCommunityIcons name="fire" size={SIZES.iconBase} color="#F97316" />
-              <Text style={styles.sectionTitle}>Széria Védelem</Text>
+              <Flame size={SIZES.iconBase} color={COLORS.orange500} />
+              <Text style={[styles.sectionTitle, { color: COLORS.orange900 }]}>
+                Széria Védelem
+              </Text>
             </View>
 
             <View style={styles.streakCard}>
@@ -92,102 +262,305 @@ export default function ShopScreen({ navigation, route }: ShopScreenProps) {
                 <View style={styles.streakTextContainer}>
                   <Text style={styles.streakTitle}>Széria Pont</Text>
                   <Text style={styles.streakDescription}>
-                    Ha kihagysz egy napot, a széria pont automatikusan megvédi a szériádat.
+                    Ha kihagysz egy napot, a széria pont automatikusan megvédi a
+                    szériádat.
                   </Text>
                   <View style={styles.streakCurrent}>
-                    <MaterialCommunityIcons name="fire" size={SIZES.iconSM} color="#9A3412" />
+                    <Flame size={SIZES.iconSM} color={COLORS.orange800} />
                     <Text style={styles.streakCurrentText}>
-                      Jelenleg: <Text style={styles.streakBold}>{streakFreezes} db</Text>
+                      Jelenleg:{' '}
+                      <Text style={styles.streakBold}>{streakFreezes} db</Text>
                     </Text>
                   </View>
                 </View>
                 <View style={styles.streakPriceContainer}>
-                  <Text style={styles.streakPrice}>100</Text>
+                  <Text style={styles.streakPrice}>
+                    {GAME_CONFIG.streakFreezeGoldCost}
+                  </Text>
                   <View style={styles.streakPriceLabel}>
-                    <MaterialCommunityIcons name="coin" size={12} color="#C2410C" />
+                    <Coins size={12} color={COLORS.orange700} />
                     <Text style={styles.streakPriceLabelText}>arany</Text>
                   </View>
-                  <TouchableOpacity onPress={handlePurchaseStreakFreeze} style={styles.purchaseButton}>
-                    <Text style={styles.purchaseButtonText}>Vásárlás</Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.streakButton,
+                      gold < GAME_CONFIG.streakFreezeGoldCost &&
+                        styles.buttonDisabled,
+                    ]}
+                    onPress={handleStreakFreezePurchase}
+                    disabled={gold < GAME_CONFIG.streakFreezeGoldCost}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.streakButtonText}>Vásárlás</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
           </View>
 
+          {/* Separator */}
+          <View style={styles.separator} />
+
           {/* Gold Purchase Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <MaterialCommunityIcons name="coin" size={SIZES.iconBase} color="#EAB308" />
-              <Text style={[styles.sectionTitle, { color: '#78350F' }]}>Arany vásárlása</Text>
+              <Coins size={SIZES.iconBase} color={COLORS.yellow500} />
+              <Text style={[styles.sectionTitle, { color: COLORS.yellow900 }]}>
+                Arany vásárlása
+              </Text>
             </View>
 
             <View style={styles.grid}>
-              {[
-                { amount: 100, price: 990 },
-                { amount: 500, price: 4490 },
-                { amount: 1000, price: 7990 },
-                { amount: 5000, price: 34990, best: true },
-              ].map((pack, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => handleGoldPurchase(pack.amount, pack.price)}
-                  style={styles.goldCard}
-                >
-                  {pack.best && (
-                    <View style={styles.bestBadge}>
-                      <Text style={styles.bestBadgeText}>BEST</Text>
-                    </View>
-                  )}
-                  <View style={styles.goldIconCircle}>
-                    <MaterialCommunityIcons name="coin" size={SIZES.iconLG} color={COLORS.white} />
-                  </View>
-                  <Text style={styles.goldAmount}>{pack.amount.toLocaleString('hu-HU')}</Text>
+              {/* Gold 100 */}
+              <TouchableOpacity
+                style={styles.goldCard}
+                onPress={() =>
+                  handleGoldPurchase(100, GAME_CONFIG.gold100Price)
+                }
+                activeOpacity={0.7}
+              >
+                <View style={styles.cardContent}>
+                  <LinearGradient
+                    colors={[COLORS.yellow400, COLORS.orange600]}
+                    style={styles.iconCircle}
+                  >
+                    <Coins size={SIZES.iconLG} color={COLORS.white} />
+                  </LinearGradient>
+                  <Text style={styles.goldAmount}>100</Text>
                   <Text style={styles.goldLabel}>arany</Text>
-                  <View style={styles.goldPriceButton}>
-                    <MaterialCommunityIcons name="credit-card" size={14} color={COLORS.white} />
-                    <Text style={styles.goldPriceText}>{pack.price.toLocaleString('hu-HU')} Ft</Text>
+                  <View style={styles.goldButton}>
+                    <CreditCard size={14} color={COLORS.white} />
+                    <Text style={styles.goldButtonText}>
+                      {GAME_CONFIG.gold100Price.toLocaleString('hu-HU')} Ft
+                    </Text>
                   </View>
-                </TouchableOpacity>
-              ))}
+                </View>
+              </TouchableOpacity>
+
+              {/* Gold 500 */}
+              <TouchableOpacity
+                style={styles.goldCard}
+                onPress={() =>
+                  handleGoldPurchase(500, GAME_CONFIG.gold500Price)
+                }
+                activeOpacity={0.7}
+              >
+                <View style={styles.cardContent}>
+                  <LinearGradient
+                    colors={[COLORS.yellow400, COLORS.orange600]}
+                    style={styles.iconCircle}
+                  >
+                    <Coins size={SIZES.iconLG} color={COLORS.white} />
+                  </LinearGradient>
+                  <Text style={styles.goldAmount}>500</Text>
+                  <Text style={styles.goldLabel}>arany</Text>
+                  <View style={styles.goldButton}>
+                    <CreditCard size={14} color={COLORS.white} />
+                    <Text style={styles.goldButtonText}>
+                      {GAME_CONFIG.gold500Price.toLocaleString('hu-HU')} Ft
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              {/* Gold 1000 */}
+              <TouchableOpacity
+                style={styles.goldCard}
+                onPress={() =>
+                  handleGoldPurchase(1000, GAME_CONFIG.gold1000Price)
+                }
+                activeOpacity={0.7}
+              >
+                <View style={styles.cardContent}>
+                  <LinearGradient
+                    colors={[COLORS.yellow400, COLORS.orange600]}
+                    style={styles.iconCircle}
+                  >
+                    <Coins size={SIZES.iconLG} color={COLORS.white} />
+                  </LinearGradient>
+                  <Text style={styles.goldAmount}>1,000</Text>
+                  <Text style={styles.goldLabel}>arany</Text>
+                  <View style={styles.goldButton}>
+                    <CreditCard size={14} color={COLORS.white} />
+                    <Text style={styles.goldButtonText}>
+                      {GAME_CONFIG.gold1000Price.toLocaleString('hu-HU')} Ft
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              {/* Gold 5000 (BEST) */}
+              <TouchableOpacity
+                style={styles.goldCard}
+                onPress={() =>
+                  handleGoldPurchase(5000, GAME_CONFIG.gold5000Price)
+                }
+                activeOpacity={0.7}
+              >
+                <View style={styles.bestBadge}>
+                  <Text style={styles.badgeText}>BEST</Text>
+                </View>
+                <View style={styles.cardContent}>
+                  <LinearGradient
+                    colors={[COLORS.orange400, COLORS.red600]}
+                    style={styles.iconCircle}
+                  >
+                    <Sparkles size={SIZES.iconLG} color={COLORS.white} />
+                  </LinearGradient>
+                  <Text style={styles.goldAmount}>5,000</Text>
+                  <Text style={styles.goldLabel}>arany</Text>
+                  <LinearGradient
+                    colors={[COLORS.yellow600, COLORS.orange600]}
+                    style={styles.goldButton}
+                  >
+                    <CreditCard size={14} color={COLORS.white} />
+                    <Text style={styles.goldButtonText}>
+                      {GAME_CONFIG.gold5000Price.toLocaleString('hu-HU')} Ft
+                    </Text>
+                  </LinearGradient>
+                </View>
+              </TouchableOpacity>
             </View>
           </View>
 
+          {/* Separator */}
+          <View style={styles.separator} />
+
           {/* Diamond Purchase Section */}
-          <View style={[styles.section, { marginBottom: SPACING.xl }]}>
+          <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <MaterialCommunityIcons name="diamond-stone" size={SIZES.iconBase} color="#06B6D4" />
-              <Text style={[styles.sectionTitle, { color: '#164E63' }]}>Gyémánt vásárlása aranyért</Text>
+              <Gem size={SIZES.iconBase} color={COLORS.cyan500} />
+              <Text style={[styles.sectionTitle, { color: COLORS.cyan800 }]}>
+                Gyémánt vásárlása aranyért
+              </Text>
             </View>
 
             <View style={styles.grid}>
-              {[
-                { amount: 1, cost: 100 },
-                { amount: 10, cost: 900 },
-                { amount: 50, cost: 4000 },
-                { amount: 100, cost: 7500, bonus: true },
-              ].map((pack, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => handleDiamondPurchase(pack.amount, pack.cost)}
-                  style={styles.diamondCard}
-                >
-                  {pack.bonus && (
-                    <View style={styles.bonusBadge}>
-                      <Text style={styles.bonusBadgeText}>BONUS</Text>
-                    </View>
-                  )}
-                  <View style={styles.diamondIconCircle}>
-                    <MaterialCommunityIcons name="diamond-stone" size={SIZES.iconLG} color={COLORS.white} />
-                  </View>
-                  <Text style={styles.diamondAmount}>{pack.amount}</Text>
+              {/* Diamond 1 */}
+              <TouchableOpacity
+                style={[
+                  styles.diamondCard,
+                  gold < GAME_CONFIG.diamond1GoldCost && styles.cardDisabled,
+                ]}
+                onPress={() =>
+                  handleDiamondPurchase(1, GAME_CONFIG.diamond1GoldCost)
+                }
+                disabled={gold < GAME_CONFIG.diamond1GoldCost}
+                activeOpacity={0.7}
+              >
+                <View style={styles.cardContent}>
+                  <LinearGradient
+                    colors={[COLORS.cyan400, COLORS.blue600]}
+                    style={styles.iconCircle}
+                  >
+                    <Gem size={SIZES.iconLG} color={COLORS.white} />
+                  </LinearGradient>
+                  <Text style={styles.diamondAmount}>1</Text>
                   <Text style={styles.diamondLabel}>gyémánt</Text>
-                  <View style={styles.diamondPriceButton}>
-                    <MaterialCommunityIcons name="coin" size={14} color={COLORS.white} />
-                    <Text style={styles.diamondPriceText}>{pack.cost} arany</Text>
+                  <View style={styles.diamondButton}>
+                    <Coins size={14} color={COLORS.white} />
+                    <Text style={styles.diamondButtonText}>
+                      {GAME_CONFIG.diamond1GoldCost} arany
+                    </Text>
                   </View>
-                </TouchableOpacity>
-              ))}
+                </View>
+              </TouchableOpacity>
+
+              {/* Diamond 10 */}
+              <TouchableOpacity
+                style={[
+                  styles.diamondCard,
+                  gold < GAME_CONFIG.diamond10GoldCost && styles.cardDisabled,
+                ]}
+                onPress={() =>
+                  handleDiamondPurchase(10, GAME_CONFIG.diamond10GoldCost)
+                }
+                disabled={gold < GAME_CONFIG.diamond10GoldCost}
+                activeOpacity={0.7}
+              >
+                <View style={styles.cardContent}>
+                  <LinearGradient
+                    colors={[COLORS.cyan400, COLORS.blue600]}
+                    style={styles.iconCircle}
+                  >
+                    <Gem size={SIZES.iconLG} color={COLORS.white} />
+                  </LinearGradient>
+                  <Text style={styles.diamondAmount}>10</Text>
+                  <Text style={styles.diamondLabel}>gyémánt</Text>
+                  <View style={styles.diamondButton}>
+                    <Coins size={14} color={COLORS.white} />
+                    <Text style={styles.diamondButtonText}>
+                      {GAME_CONFIG.diamond10GoldCost} arany
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              {/* Diamond 50 */}
+              <TouchableOpacity
+                style={[
+                  styles.diamondCard,
+                  gold < GAME_CONFIG.diamond50GoldCost && styles.cardDisabled,
+                ]}
+                onPress={() =>
+                  handleDiamondPurchase(50, GAME_CONFIG.diamond50GoldCost)
+                }
+                disabled={gold < GAME_CONFIG.diamond50GoldCost}
+                activeOpacity={0.7}
+              >
+                <View style={styles.cardContent}>
+                  <LinearGradient
+                    colors={[COLORS.cyan400, COLORS.purple600]}
+                    style={styles.iconCircle}
+                  >
+                    <Gem size={SIZES.iconLG} color={COLORS.white} />
+                  </LinearGradient>
+                  <Text style={styles.diamondAmount}>50</Text>
+                  <Text style={styles.diamondLabel}>gyémánt</Text>
+                  <View style={styles.diamondButton}>
+                    <Coins size={14} color={COLORS.white} />
+                    <Text style={styles.diamondButtonText}>
+                      {GAME_CONFIG.diamond50GoldCost} arany
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              {/* Diamond 100 (BONUS) */}
+              <TouchableOpacity
+                style={[
+                  styles.diamondCard,
+                  gold < GAME_CONFIG.diamond100GoldCost && styles.cardDisabled,
+                ]}
+                onPress={() =>
+                  handleDiamondPurchase(100, GAME_CONFIG.diamond100GoldCost)
+                }
+                disabled={gold < GAME_CONFIG.diamond100GoldCost}
+                activeOpacity={0.7}
+              >
+                <View style={styles.bonusBadge}>
+                  <Text style={styles.badgeText}>BONUS</Text>
+                </View>
+                <View style={styles.cardContent}>
+                  <LinearGradient
+                    colors={[COLORS.purple400, COLORS.pink500]}
+                    style={styles.iconCircle}
+                  >
+                    <Sparkles size={SIZES.iconLG} color={COLORS.white} />
+                  </LinearGradient>
+                  <Text style={styles.diamondAmount}>100</Text>
+                  <Text style={styles.diamondLabel}>gyémánt</Text>
+                  <LinearGradient
+                    colors={[COLORS.cyan600, COLORS.purple600]}
+                    style={styles.diamondButton}
+                  >
+                    <Coins size={14} color={COLORS.white} />
+                    <Text style={styles.diamondButtonText}>
+                      {GAME_CONFIG.diamond100GoldCost} arany
+                    </Text>
+                  </LinearGradient>
+                </View>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
@@ -196,25 +569,42 @@ export default function ShopScreen({ navigation, route }: ShopScreenProps) {
   );
 }
 
+// ============================================
+// STYLES
+// ============================================
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAF5FF' },
-  gradient: { flex: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.purple50,
+  },
+  gradient: {
+    flex: 1,
+  },
   topSpacer: {
     height: 48,
     backgroundColor: 'transparent',
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: SPACING.base,
+    paddingBottom: 256,
+  },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
     marginBottom: SPACING.lg,
-    paddingHorizontal: SPACING.base,
   },
   backButton: {
     width: 40,
     height: 40,
     backgroundColor: COLORS.white,
-    borderRadius: SIZES.radiusLG,
+    borderRadius: SIZES.radiusFull,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -223,127 +613,271 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  headerTextContainer: { flex: 1 },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  headerTitle: { fontSize: SIZES.fontXL, color: '#581C87', fontWeight: 'bold' },
-  headerSubtitle: { fontSize: SIZES.fontSM, color: '#7E22CE' },
-  scrollView: { flex: 1, paddingHorizontal: SPACING.base },
+  headerTextContainer: {
+    flex: 1,
+  },
+  headerTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  headerTitleText: {
+    fontSize: SIZES.fontXL,
+    color: COLORS.purple900,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  headerSubtitle: {
+    fontSize: SIZES.fontSM,
+    color: COLORS.purple800,
+  },
+
+  // Balance Card
   balanceCard: {
-    borderRadius: SIZES.radiusXL,
     padding: SPACING.base,
     marginBottom: SPACING.lg,
-  },
-  balanceText: { fontSize: SIZES.fontSM, color: COLORS.white, opacity: 0.9, marginBottom: SPACING.sm },
-  balanceRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.lg },
-  balanceItem: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  balanceValue: { fontSize: SIZES.fontXL, color: COLORS.white, fontWeight: 'bold' },
-  section: { marginBottom: SPACING.lg },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.md },
-  sectionTitle: { fontSize: SIZES.fontLG, color: '#7C2D12', fontWeight: 'bold' },
-  streakCard: {
-    backgroundColor: '#FFF7ED',
     borderRadius: SIZES.radiusXL,
-    padding: SPACING.base,
-    borderWidth: 2,
-    borderColor: '#FED7AA',
   },
-  streakCardContent: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.base },
-  streakTextContainer: { flex: 1 },
-  streakTitle: { fontSize: SIZES.fontBase, color: '#7C2D12', fontWeight: 'bold', marginBottom: SPACING.sm },
-  streakDescription: { fontSize: SIZES.fontSM, color: '#C2410C', marginBottom: SPACING.md },
-  streakCurrent: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  streakCurrentText: { fontSize: SIZES.fontSM, color: '#9A3412' },
-  streakBold: { fontWeight: 'bold' },
-  streakPriceContainer: { alignItems: 'center' },
-  streakPrice: { fontSize: SIZES.font2XL, color: '#EA580C', fontWeight: 'bold', marginBottom: SPACING.sm },
-  streakPriceLabel: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: SPACING.sm },
-  streakPriceLabelText: { fontSize: SIZES.fontXS, color: '#C2410C' },
-  purchaseButton: {
-    backgroundColor: '#F97316',
+  balanceText: {
+    fontSize: SIZES.fontSM,
+    color: COLORS.white,
+    opacity: 0.9,
+    marginBottom: SPACING.sm,
+  },
+  balanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.lg,
+  },
+  balanceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  balanceValue: {
+    fontSize: SIZES.fontXL,
+    color: COLORS.white,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+
+  // Section
+  section: {
+    marginBottom: SPACING.lg,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  sectionTitle: {
+    fontSize: SIZES.fontLG,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+
+  // Separator
+  separator: {
+    height: SIZES.borderThin,
+    backgroundColor: '#E5E7EB',
+    marginVertical: SPACING.lg,
+  },
+
+  // Streak Freeze Card
+  streakCard: {
+    padding: SPACING.base,
+    borderWidth: SIZES.borderMedium,
+    borderColor: COLORS.orangeBorder,
+    backgroundColor: COLORS.orange50,
+    borderRadius: SIZES.radiusXL,
+  },
+  streakCardContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: SPACING.base,
+  },
+  streakTextContainer: {
+    flex: 1,
+  },
+  streakTitle: {
+    color: COLORS.orange900,
+    marginBottom: SPACING.sm,
+    fontSize: SIZES.fontBase,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
+  streakDescription: {
+    fontSize: SIZES.fontSM,
+    color: COLORS.orange700,
+    marginBottom: SPACING.md,
+  },
+  streakCurrent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  streakCurrentText: {
+    fontSize: SIZES.fontSM,
+    color: COLORS.orange800,
+  },
+  streakBold: {
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  streakPriceContainer: {
+    alignItems: 'center',
+  },
+  streakPrice: {
+    fontSize: SIZES.font2XL,
+    color: COLORS.orange600,
+    marginBottom: SPACING.sm,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  streakPriceLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: SPACING.sm,
+  },
+  streakPriceLabelText: {
+    fontSize: SIZES.fontXS,
+    color: COLORS.orange700,
+  },
+  streakButton: {
+    backgroundColor: COLORS.orange500,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: SIZES.radiusLG,
   },
-  purchaseButtonText: { color: COLORS.white, fontSize: SIZES.fontSM, fontWeight: 'bold' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.md },
+  streakButtonText: {
+    color: COLORS.white,
+    fontSize: SIZES.fontSM,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
+
+  // Grid
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.md,
+  },
+
+  // Gold Card
   goldCard: {
     width: '48%',
-    backgroundColor: '#FEFCE8',
-    borderRadius: SIZES.radiusXL,
     padding: SPACING.base,
-    borderWidth: 2,
-    borderColor: '#FDE047',
+    borderWidth: SIZES.borderMedium,
+    borderColor: COLORS.yellow300,
+    backgroundColor: COLORS.yellow50,
+    borderRadius: SIZES.radiusXL,
+    position: 'relative',
+  },
+  cardContent: {
     alignItems: 'center',
   },
+  iconCircle: {
+    width: 48,
+    height: 48,
+    marginBottom: SPACING.sm,
+    borderRadius: SIZES.radiusFull,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goldAmount: {
+    fontSize: SIZES.font2XL,
+    color: COLORS.yellow700,
+    marginBottom: 4,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  goldLabel: {
+    fontSize: SIZES.fontXS,
+    color: COLORS.yellow600,
+    marginBottom: SPACING.md,
+  },
+  goldButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: COLORS.yellow600,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: SIZES.radiusLG,
+    width: '100%',
+  },
+  goldButtonText: {
+    color: COLORS.white,
+    fontSize: SIZES.fontSM,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
+
+  // Diamond Card
+  diamondCard: {
+    width: '48%',
+    padding: SPACING.base,
+    borderWidth: SIZES.borderMedium,
+    borderColor: COLORS.cyan200,
+    backgroundColor: COLORS.cyan50,
+    borderRadius: SIZES.radiusXL,
+    position: 'relative',
+  },
+  diamondAmount: {
+    fontSize: SIZES.font2XL,
+    color: COLORS.cyan700,
+    marginBottom: 4,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  diamondLabel: {
+    fontSize: SIZES.fontXS,
+    color: COLORS.cyan600,
+    marginBottom: SPACING.md,
+  },
+  diamondButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: COLORS.cyan600,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: SIZES.radiusLG,
+    width: '100%',
+  },
+  diamondButtonText: {
+    color: COLORS.white,
+    fontSize: SIZES.fontSM,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
+
+  // Badges
   bestBadge: {
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: '#DC2626',
+    backgroundColor: COLORS.red600,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: SIZES.radiusFull,
-  },
-  bestBadgeText: { color: COLORS.white, fontSize: 10, fontWeight: 'bold' },
-  goldIconCircle: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#FBBF24',
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.sm,
-  },
-  goldAmount: { fontSize: SIZES.font2XL, color: '#A16207', fontWeight: 'bold', marginBottom: 4 },
-  goldLabel: { fontSize: SIZES.fontXS, color: '#CA8A04', marginBottom: SPACING.md },
-  goldPriceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#CA8A04',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 6,
-    borderRadius: SIZES.radiusLG,
-  },
-  goldPriceText: { color: COLORS.white, fontSize: SIZES.fontXS, fontWeight: 'bold' },
-  diamondCard: {
-    width: '48%',
-    backgroundColor: '#ECFEFF',
-    borderRadius: SIZES.radiusXL,
-    padding: SPACING.base,
-    borderWidth: 2,
-    borderColor: '#A5F3FC',
-    alignItems: 'center',
+    zIndex: 1,
   },
   bonusBadge: {
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: '#9333EA',
+    backgroundColor: COLORS.purple600,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: SIZES.radiusFull,
+    zIndex: 1,
   },
-  bonusBadgeText: { color: COLORS.white, fontSize: 10, fontWeight: 'bold' },
-  diamondIconCircle: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#22D3EE',
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.sm,
+  badgeText: {
+    color: COLORS.white,
+    fontSize: 10,
+    fontWeight: FONT_WEIGHT.bold,
   },
-  diamondAmount: { fontSize: SIZES.font2XL, color: '#0E7490', fontWeight: 'bold', marginBottom: 4 },
-  diamondLabel: { fontSize: SIZES.fontXS, color: '#0891B2', marginBottom: SPACING.md },
-  diamondPriceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#0891B2',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 6,
-    borderRadius: SIZES.radiusLG,
+
+  // Disabled States
+  buttonDisabled: {
+    opacity: 0.5,
   },
-  diamondPriceText: { color: COLORS.white, fontSize: SIZES.fontXS, fontWeight: 'bold' },
+  cardDisabled: {
+    opacity: 0.6,
+  },
 });

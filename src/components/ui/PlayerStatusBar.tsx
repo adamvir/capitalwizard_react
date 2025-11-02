@@ -4,10 +4,38 @@
 // ============================================
 
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { COLORS, SIZES, SPACING, FONT_WEIGHT, SHADOWS } from '../../utils/styleConstants';
+import { Flame, Star, Sparkles, Zap } from 'lucide-react-native';
+
+// ============================================
+// CONSTANTS
+// ============================================
+
+const COLORS = {
+  white: '#FFFFFF',
+  gray400: '#9CA3AF',
+  shadowDark: 'rgba(0, 0, 0, 0.3)',
+  shadowMedium: 'rgba(0, 0, 0, 0.15)',
+};
+
+const SPACING = {
+  sm: 8,
+  md: 12,
+  base: 16,
+};
+
+const SIZES = {
+  fontXS: 10,
+  fontSM: 12,
+  fontBase: 14,
+  radiusFull: 9999,
+  radius2XL: 16,
+};
+
+// ============================================
+// TYPES
+// ============================================
 
 interface PlayerStatusBarProps {
   playerName: string;
@@ -19,6 +47,10 @@ interface PlayerStatusBarProps {
   onStreakClick?: () => void;
 }
 
+// ============================================
+// COMPONENT
+// ============================================
+
 export function PlayerStatusBar({
   playerName,
   subscriptionTier,
@@ -26,16 +58,29 @@ export function PlayerStatusBar({
   totalXp = 0,
   totalXpForNextLevel = 0,
   playerLevel = 0,
-  onStreakClick
+  onStreakClick,
 }: PlayerStatusBarProps) {
+  // ============================================
+  // COMPUTED VALUES
+  // ============================================
 
-  // ===== COMPUTED VALUES =====
   const xpProgress = totalXpForNextLevel > 0 ? (totalXp / totalXpForNextLevel) * 100 : 0;
+  const firstLetter = playerName ? playerName.charAt(0).toUpperCase() : '?';
 
-  // ===== EVENT HANDLERS =====
+  // Debug log
+  console.log('🔥 PlayerStatusBar received streak:', streak);
+
+  // ============================================
+  // EVENT HANDLERS
+  // ============================================
+
   const handleStreakClick = () => {
     onStreakClick?.();
   };
+
+  // ============================================
+  // RENDER
+  // ============================================
 
   return (
     <View style={styles.container}>
@@ -45,9 +90,11 @@ export function PlayerStatusBar({
         end={{ x: 1, y: 1 }}
         style={styles.card}
       >
-        {/* FELSŐ SOR: Avatar, Név, Badge-ek */}
+        {/* ============================================ */}
+        {/* TOP ROW: Avatar, Name, Badges */}
+        {/* ============================================ */}
         <View style={styles.topRow}>
-          {/* BAL OLDAL: Avatar és Név */}
+          {/* Left section: Avatar + Name */}
           <View style={styles.leftSection}>
             {/* Avatar */}
             <LinearGradient
@@ -56,50 +103,39 @@ export function PlayerStatusBar({
               end={{ x: 1, y: 1 }}
               style={styles.avatar}
             >
-              <Text style={styles.avatarText}>
-                {playerName ? playerName.charAt(0).toUpperCase() : '?'}
-              </Text>
+              <Text style={styles.avatarText}>{firstLetter}</Text>
             </LinearGradient>
-            {/* Név */}
+
+            {/* Name */}
             <View style={styles.nameSection}>
-              <Text style={styles.nameText}>
-                {playerName || 'Vendég'}
-              </Text>
+              <Text style={styles.nameText}>{playerName || 'Vendég'}</Text>
             </View>
           </View>
 
-          {/* JOBB OLDAL: Badge-ek */}
+          {/* Right section: Badges */}
           <View style={styles.rightSection}>
-            {/* Streak Badge (csak ha van streak) */}
-            {streak > 0 && (
-              <Pressable
-                onPress={handleStreakClick}
-                style={({ pressed }) => [
-                  styles.streakBadgeContainer,
-                  pressed && styles.badgePressed
-                ]}
+            {/* Streak Badge - Always visible */}
+            <TouchableOpacity onPress={handleStreakClick} activeOpacity={0.8}>
+              <LinearGradient
+                colors={['#EA580C', '#DC2626']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.streakBadge}
               >
-                <LinearGradient
-                  colors={['#EA580C', '#DC2626']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.streakBadge}
-                >
-                  <MaterialCommunityIcons name="fire" size={14} color={COLORS.white} />
-                  <Text style={styles.streakText}>{streak}</Text>
-                </LinearGradient>
-              </Pressable>
-            )}
+                <Flame size={14} color={COLORS.white} />
+                <Text style={styles.streakText}>{streak}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
 
-            {/* Előfizetési szint Badge */}
+            {/* Subscription tier Badge */}
             {subscriptionTier === 'master' ? (
               <LinearGradient
                 colors={['#9333EA', '#DB2777']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.tierBadge}
+                style={styles.masterBadge}
               >
-                <MaterialCommunityIcons name="shimmer" size={14} color={COLORS.white} />
+                <Sparkles size={14} color={COLORS.white} />
                 <Text style={styles.badgeText}>Master</Text>
               </LinearGradient>
             ) : subscriptionTier === 'pro' ? (
@@ -107,9 +143,9 @@ export function PlayerStatusBar({
                 colors={['#2563EB', '#06B6D4']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.tierBadge}
+                style={styles.proBadge}
               >
-                <MaterialCommunityIcons name="star" size={14} color={COLORS.white} />
+                <Star size={14} color={COLORS.white} />
                 <Text style={styles.badgeText}>Pro</Text>
               </LinearGradient>
             ) : (
@@ -120,13 +156,15 @@ export function PlayerStatusBar({
           </View>
         </View>
 
-        {/* ALSÓ SOR: XP Progresszió */}
+        {/* ============================================ */}
+        {/* BOTTOM ROW: XP Progression */}
+        {/* ============================================ */}
         {totalXpForNextLevel > 0 && (
           <View style={styles.xpSection}>
             {/* XP Label */}
             <View style={styles.xpLabelRow}>
               <View style={styles.xpLeft}>
-                <MaterialCommunityIcons name="flash" size={14} color="#22D3EE" />
+                <Zap size={14} color="#22D3EE" />
                 <Text style={styles.xpText}>
                   Szint {playerLevel} • {totalXp.toLocaleString('hu-HU')} XP
                 </Text>
@@ -136,7 +174,7 @@ export function PlayerStatusBar({
               </Text>
             </View>
 
-            {/* Progress Bar */}
+            {/* Progress bar */}
             <View style={styles.progressBarBg}>
               <LinearGradient
                 colors={['#06B6D4', '#3B82F6', '#9333EA']}
@@ -144,9 +182,12 @@ export function PlayerStatusBar({
                 end={{ x: 1, y: 0 }}
                 style={[
                   styles.progressBarFill,
-                  { width: `${Math.min(xpProgress, 100)}%` }
+                  { width: `${Math.min(xpProgress, 100)}%` },
                 ]}
-              />
+              >
+                {/* Pulse overlay (simplified) */}
+                <View style={styles.progressBarPulse} />
+              </LinearGradient>
             </View>
           </View>
         )}
@@ -154,6 +195,10 @@ export function PlayerStatusBar({
     </View>
   );
 }
+
+// ============================================
+// STYLES
+// ============================================
 
 const styles = StyleSheet.create({
   container: {
@@ -170,17 +215,28 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderWidth: 2,
     borderColor: 'rgba(71, 85, 105, 0.3)',
-    ...SHADOWS.xl,
+    // Shadow (iOS)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 25 },
+    shadowOpacity: 0.3,
+    shadowRadius: 50,
+    // Shadow (Android)
+    elevation: 10,
   },
+
+  // Top row
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 6,
   },
+
+  // Left section
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.sm,
   },
   avatar: {
     width: 36,
@@ -190,12 +246,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'rgba(34, 211, 238, 0.5)',
-    marginRight: SPACING.sm,
-    ...SHADOWS.medium,
+    // Shadow (iOS)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
   },
   avatarText: {
     color: COLORS.white,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: '700',
     fontSize: SIZES.fontSM,
   },
   nameSection: {
@@ -203,48 +262,78 @@ const styles = StyleSheet.create({
   },
   nameText: {
     color: COLORS.white,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: '700',
     fontSize: SIZES.fontBase,
   },
+
+  // Right section
   rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.sm,
   },
-  streakBadgeContainer: {
-    marginRight: SPACING.sm,
-  },
+
+  // Streak badge
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: SIZES.radiusFull,
     borderWidth: 1,
     borderColor: 'rgba(251, 146, 60, 0.3)',
-    ...SHADOWS.medium,
-  },
-  badgePressed: {
-    transform: [{ scale: 0.95 }],
+    // Shadow (iOS)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
   },
   streakText: {
     fontSize: SIZES.fontXS,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: '700',
     color: COLORS.white,
-    marginLeft: 4,
   },
-  tierBadge: {
+
+  // Master badge
+  masterBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: SIZES.radiusFull,
     borderWidth: 1,
     borderColor: 'rgba(192, 132, 252, 0.3)',
-    ...SHADOWS.medium,
+    // Shadow (iOS)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
   },
+
+  // Pro badge
+  proBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: SIZES.radiusFull,
+    borderWidth: 1,
+    borderColor: 'rgba(96, 165, 250, 0.3)',
+    // Shadow (iOS)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+  },
+
+  // Free badge
   freeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
     backgroundColor: 'rgba(51, 65, 85, 0.8)',
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -252,41 +341,45 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(71, 85, 105, 0.3)',
   },
+
+  // Badge texts
   badgeText: {
     fontSize: SIZES.fontXS,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: '700',
     color: COLORS.white,
-    marginLeft: 4,
   },
   freeBadgeText: {
     fontSize: SIZES.fontXS,
-    fontWeight: FONT_WEIGHT.semibold,
+    fontWeight: '600',
     color: '#CBD5E1',
   },
+
+  // XP section
   xpSection: {
-    flexDirection: 'column',
+    gap: 4,
   },
   xpLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
   },
   xpLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
   xpText: {
     fontSize: SIZES.fontXS,
-    fontWeight: FONT_WEIGHT.semibold,
+    fontWeight: '600',
     color: '#67E8F9',
-    marginLeft: 6,
   },
   xpTargetText: {
     fontSize: SIZES.fontXS,
-    fontWeight: FONT_WEIGHT.semibold,
+    fontWeight: '600',
     color: COLORS.gray400,
   },
+
+  // Progress bar
   progressBarBg: {
     position: 'relative',
     height: 8,
@@ -302,6 +395,20 @@ const styles = StyleSheet.create({
     left: 0,
     height: '100%',
     borderRadius: SIZES.radiusFull,
-    ...SHADOWS.medium,
+    // Shadow (iOS)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+  },
+  progressBarPulse: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    // Pulse animation (simplified - could use Animated API)
+    opacity: 0.7,
   },
 });

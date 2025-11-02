@@ -2,23 +2,23 @@
  * ============================================
  * ARENAPAGE - REACT NATIVE VERSION
  * ============================================
- * 
+ *
  * Teljes konverzió a Figma designból
  * - Magyar szövegek ✅
  * - Inline styles ✅
  * - Pixel-perfect layout ✅
  * - React Native kompatibilis ✅
- * 
+ *
  * HASZNÁLAT:
  * cp exports/ArenaPage.rn.tsx src/screens/ArenaPage.tsx
- * 
+ *
  * FÜGGŐSÉGEK:
  * npm install react-native-linear-gradient
  * npm install @react-native-community/slider
  * npm install react-native-reanimated
  * npm install lucide-react-native
  * npm install @react-native-async-storage/async-storage
- * 
+ *
  * iOS: cd ios && pod install
  */
 
@@ -32,7 +32,6 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Slider from '@react-native-community/slider';
 import Animated, {
@@ -60,13 +59,13 @@ import {
   X,
 } from 'lucide-react-native';
 
-// ============================================
-// TYPES & INTERFACES
-// ============================================
-
 // React Navigation types
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
+
+// ============================================
+// TYPES & INTERFACES
+// ============================================
 
 type ArenaScreenProps = NativeStackScreenProps<RootStackParamList, 'Arena'>;
 
@@ -200,6 +199,7 @@ const AnimatedSwordsIcon: React.FC = () => {
 export default function ArenaScreen({ navigation, route }: ArenaPageProps) {
   // Extract props from route params
   const { coins, onCoinsChange, subscriptionTier = 'free' } = route.params;
+
   // ============================================
   // STATE
   // ============================================
@@ -359,7 +359,7 @@ export default function ArenaScreen({ navigation, route }: ArenaPageProps) {
     const canStart = await canPlay();
 
     if (!canStart) {
-      // onLimitReached?.();  // Optional callback - not used for now
+      // onLimitReached?.(); // Optional callback
       return;
     }
 
@@ -453,7 +453,7 @@ export default function ArenaScreen({ navigation, route }: ArenaPageProps) {
     let coinsChange = 0;
     if (isWin) {
       coinsChange = betAmount * 2;
-      // onXpGain?.(50);  // Optional callbacks - not used for now
+      // onXpGain?.(50);
       // onStreakUpdate?.(1, true);
       // onStageAdvance?.();
     } else if (isDraw) {
@@ -939,34 +939,32 @@ export default function ArenaScreen({ navigation, route }: ArenaPageProps) {
   // ============================================
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={[]}>
-      <View style={styles.container}>
-        {/* Background Gradient */}
-        <LinearGradient
-          colors={['#0F172A', 'rgba(88, 28, 135, 0.2)', '#0F172A']}
-          style={styles.backgroundGradient}
-        />
+    <View style={styles.container}>
+      {/* Background Gradient */}
+      <LinearGradient
+        colors={['#0F172A', 'rgba(88, 28, 135, 0.2)', '#0F172A']}
+        style={styles.backgroundGradient}
+      />
 
-        {/* Crystal Decorations */}
-        <View style={styles.crystalContainer}>
-          <AnimatedCrystal delay={0} style={styles.crystal1} />
-          <AnimatedCrystal delay={500} style={styles.crystal2} />
-          <AnimatedCrystal delay={1000} style={styles.crystal3} />
-          <AnimatedCrystal delay={1500} style={styles.crystal4} />
-        </View>
-
-        {/* Header */}
-        {renderHeader()}
-
-        {/* Tabs (only in betting state) */}
-        {gameState === 'betting' && renderTabs()}
-
-        {/* Content based on game state */}
-        {gameState === 'betting' && renderBettingState()}
-        {gameState === 'playing' && renderPlayingState()}
-        {gameState === 'result' && renderResultState()}
+      {/* Crystal Decorations */}
+      <View style={styles.crystalContainer}>
+        <AnimatedCrystal delay={0} style={styles.crystal1} />
+        <AnimatedCrystal delay={500} style={styles.crystal2} />
+        <AnimatedCrystal delay={1000} style={styles.crystal3} />
+        <AnimatedCrystal delay={1500} style={styles.crystal4} />
       </View>
-    </SafeAreaView>
+
+      {/* Header */}
+      {renderHeader()}
+
+      {/* Tabs (only in betting state) */}
+      {gameState === 'betting' && renderTabs()}
+
+      {/* Content based on game state */}
+      {gameState === 'betting' && renderBettingState()}
+      {gameState === 'playing' && renderPlayingState()}
+      {gameState === 'result' && renderResultState()}
+    </View>
   );
 }
 
@@ -975,10 +973,6 @@ export default function ArenaScreen({ navigation, route }: ArenaPageProps) {
 // ============================================
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#0F172A',
-  },
   container: {
     flex: 1,
     backgroundColor: '#0F172A',
@@ -1045,8 +1039,7 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    paddingTop: 65, // Increased padding for better spacing from iPhone notch/camera
-    paddingBottom: 10,
+    paddingVertical: 10,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(168, 85, 247, 0.3)',
