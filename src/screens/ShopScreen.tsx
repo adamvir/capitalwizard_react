@@ -155,20 +155,9 @@ export default function ShopScreen({ navigation, route }: ShopScreenProps) {
   };
 
   const handleGoldPurchase = (amount: number, price: number) => {
-    Alert.alert(
-      'Vásárlás',
-      `${amount} arany vásárlása ${price.toLocaleString('hu-HU')} Ft-ért`,
-      [
-        { text: 'Mégse', style: 'cancel' },
-        {
-          text: 'Vásárlás',
-          onPress: () => {
-            onCoinsChange(gold + amount);
-            Alert.alert('Sikeres!', `${amount} arany hozzáadva!`);
-          },
-        },
-      ]
-    );
+    // Azonnal hozzáadjuk az aranyat
+    onCoinsChange(gold + amount);
+    Alert.alert('Sikeres!', `${amount} arany hozzáadva!`);
   };
 
   const handleDiamondPurchase = (amount: number, cost: number) => {
@@ -204,26 +193,26 @@ export default function ShopScreen({ navigation, route }: ShopScreenProps) {
         {/* Top spacer for iPhone notch/camera */}
         <View style={styles.topSpacer} />
 
+        {/* Header - FIXED POSITION */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+            <ArrowLeft size={SIZES.iconBase} color={COLORS.purple800} />
+          </TouchableOpacity>
+          <View style={styles.headerTextContainer}>
+            <View style={styles.headerTitle}>
+              <ShoppingBag size={SIZES.iconLG} color={COLORS.purple500} />
+              <Text style={styles.headerTitleText}>Bolt</Text>
+            </View>
+            <Text style={styles.headerSubtitle}>
+              Vásárolj erőforrásokat és bónuszokat
+            </Text>
+          </View>
+        </View>
+
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-              <ArrowLeft size={SIZES.iconBase} color={COLORS.purple800} />
-            </TouchableOpacity>
-            <View style={styles.headerTextContainer}>
-              <View style={styles.headerTitle}>
-                <ShoppingBag size={SIZES.iconLG} color={COLORS.purple500} />
-                <Text style={styles.headerTitleText}>Bolt</Text>
-              </View>
-              <Text style={styles.headerSubtitle}>
-                Vásárolj erőforrásokat és bónuszokat
-              </Text>
-            </View>
-          </View>
-
           {/* Current Balance */}
           <LinearGradient
             colors={[COLORS.purple500, COLORS.pink500]}
@@ -582,8 +571,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topSpacer: {
-    height: 48,
-    backgroundColor: 'transparent',
+    height: 10,
+    backgroundColor: COLORS.purple50,
   },
   scrollView: {
     flex: 1,
@@ -598,7 +587,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    marginBottom: SPACING.lg,
+    paddingTop: 50,
+    paddingHorizontal: SPACING.base,
+    paddingBottom: SPACING.md,
+    backgroundColor: COLORS.purple50,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(168, 85, 247, 0.15)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   backButton: {
     width: 40,

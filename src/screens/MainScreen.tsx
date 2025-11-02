@@ -2,7 +2,7 @@
  * ============================================
  * MAINSCREEN - REACT NATIVE VERSION
  * ============================================
- * 
+ *
  * Container komponens 7 alkomponenssel
  * - TopBar (resources: coins, gems, level)
  * - SideMenu (quick actions: lessons, shop)
@@ -11,10 +11,10 @@
  * - CharacterLineup (bottom navigation)
  * - PlayerStatusBar (player info: name, XP, streak)
  * - ProgressAnimation ("Továbbhaladás" button)
- * 
+ *
  * HASZNÁLAT:
  * cp exports/MainScreen.rn.tsx src/screens/MainScreen.tsx
- * 
+ *
  * FÜGGŐSÉGEK:
  * Az alkomponenseket is konvertálni kell React Native-re!
  * - TopBar.rn.tsx
@@ -27,7 +27,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Dimensions } from 'react-native';
 
 // Import alkomponensek
 import { TopBar } from '../components/ui/TopBar';
@@ -38,8 +38,6 @@ import { CharacterLineup } from '../components/ui/CharacterLineup';
 import { PlayerStatusBar } from '../components/ui/PlayerStatusBar';
 import { ProgressAnimation } from '../components/animations/ProgressAnimation';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BackgroundDecoration } from '../components/ui/BackgroundDecoration';
-import { useIsFocused } from '@react-navigation/native';
 
 // ============================================
 // CONSTANTS (styleConstants.ts equivalent)
@@ -55,7 +53,44 @@ const SPACING = {
   xl: 24,
   xxl: 32,
   xxxl: 48,
+  '2xl': 32,
+  '3xl': 48,
 };
+
+const SIZES = {
+  width12: 48,
+  width16: 64,
+  width20: 80,
+  width24: 96,
+  width32: 128,
+  width40: 160,
+  height16: 64,
+  height20: 80,
+  height24: 96,
+  height28: 112,
+  height32: 128,
+  height40: 160,
+  radiusLG: 12,
+  radiusFull: 9999,
+};
+
+const OPACITY = {
+  30: 0.3,
+  40: 0.4,
+  100: 1.0,
+};
+
+const Z_INDEX = {
+  base: 1,
+  overlay: 10,
+  content: 20,
+};
+
+const COLORS = {
+  transparent: 'transparent',
+};
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // ============================================
 // TYPES & INTERFACES
@@ -94,6 +129,9 @@ interface MainScreenProps {
 
   // Utils
   getTotalXpForNextLevel: (level: number) => number;
+
+  // Video background
+  hasVideoBackground?: boolean;
 }
 
 // ============================================
@@ -126,105 +164,142 @@ export default function MainScreen({
   onProgressClick,
   onJumpToLesson,
   getTotalXpForNextLevel,
+  hasVideoBackground = false,
 }: MainScreenProps) {
-  // Check if this screen is focused (needed for Arena modal)
-  const isFocused = useIsFocused();
+  // ===== COMPUTED VALUES =====
+  const totalXpForNextLevel = getTotalXpForNextLevel(playerLevel + 1);
+
+  // Dinamikus háttérszín - Videó jelenlététől függ
+  const containerBackgroundColor = hasVideoBackground
+    ? COLORS.transparent
+    : 'rgba(15, 23, 42, 1)';
+
+  // Dinamikus overlay opacity és z-index
+  const overlayOpacity = hasVideoBackground ? OPACITY[40] : OPACITY[100];
+  const overlayZIndex = hasVideoBackground ? Z_INDEX.overlay : Z_INDEX.base;
 
   // ============================================
   // RENDER
   // ============================================
 
   return (
-    <View style={styles.container}>
-      {/* Background gradient */}
-      <LinearGradient
-        colors={['#0f172a', 'rgba(88, 28, 135, 0.4)', '#0f172a']}
-        style={styles.background}
-      >
-        {/* Background decoration */}
-        <BackgroundDecoration />
+    <View style={[styles.container, { backgroundColor: containerBackgroundColor }]}>
+      {/* Háttér fantasy kristálybarlang téma overlay-el */}
+      <View style={[styles.backgroundOverlay, { opacity: overlayOpacity, zIndex: overlayZIndex }]}>
+        {/* Gradiens háttér - Radial és linear kombináció (approximation) */}
+        <LinearGradient
+          colors={[
+            'rgba(139, 92, 246, 0.24)', // 30% pozícióban purple
+            'rgba(15, 23, 42, 0.8)',     // középen
+            'rgba(88, 28, 135, 0.4)',    // alul
+          ]}
+          start={{ x: 0.3, y: 0.4 }}
+          end={{ x: 0.7, y: 0.6 }}
+          style={styles.gradientBackground}
+        />
 
-        {/* Only show UI elements when screen is focused */}
-        {isFocused && (
-          <View style={styles.content}>
-      {/* ============================================ */}
-      {/* TOP SECTION - TopBar */}
-      {/* ============================================ */}
-      {/* Shows player resources (coins, gems) and level */}
-      {/* NAVIGATION: Avatar megnyitása az App.tsx-ből */}
-      <TopBar
-        coins={coins}
-        gems={gems}
-        progressPosition={progressPosition}
-        playerLevel={playerLevel}
-        currentLesson={currentLesson}
-        onAvatarClick={onAvatarClick}
-        currentStageInSection={currentStageInSection}
-      />
+        {/* Kristály dekorációk - Sarkok */}
+        <LinearGradient
+          colors={['rgba(147, 51, 234, 0.4)', COLORS.transparent]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.crystalBottomLeft}
+        />
 
-      {/* ============================================ */}
-      {/* MIDDLE SECTION - Game World */}
-      {/* ============================================ */}
-      {/* Contains side menu and event cards */}
-      <View style={styles.gameWorldContainer}>
-        {/* Left side menu with quick actions */}
-        {/* NAVIGATION: LessonsPage, ShopPage megnyitása */}
-        <SideMenu onLessonsClick={onLessonsClick} onShopClick={onShopClick} />
+        <LinearGradient
+          colors={['rgba(37, 99, 235, 0.3)', COLORS.transparent]}
+          start={{ x: 1, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.crystalBottomRight}
+        />
 
-        {/* Center event cards showing current activities */}
-        {/* NAVIGATION: ArenaPage megnyitása */}
-        <EventCards onArenaClick={onArenaClick} subscriptionTier={subscriptionTier} />
+        <LinearGradient
+          colors={['rgba(168, 85, 247, 0.2)', COLORS.transparent]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.crystalTopLeftCenter}
+        />
+
+        <LinearGradient
+          colors={['rgba(236, 72, 153, 0.2)', COLORS.transparent]}
+          start={{ x: 1, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.crystalTopRightCenter}
+        />
+
+        {/* Barlang kristályok - Szétszórva alul */}
+        <LinearGradient
+          colors={['rgba(147, 51, 234, 0.5)', 'rgba(168, 85, 247, 0.3)']}
+          start={{ x: 0, y: 1 }}
+          end={{ x: 0, y: 0 }}
+          style={styles.caveCrystalBottomLeft1}
+        />
+
+        <LinearGradient
+          colors={['rgba(37, 99, 235, 0.4)', 'rgba(96, 165, 250, 0.2)']}
+          start={{ x: 0, y: 1 }}
+          end={{ x: 0, y: 0 }}
+          style={styles.caveCrystalBottomLeft2}
+        />
+
+        <LinearGradient
+          colors={['rgba(219, 39, 119, 0.4)', 'rgba(244, 114, 182, 0.2)']}
+          start={{ x: 0, y: 1 }}
+          end={{ x: 0, y: 0 }}
+          style={styles.caveCrystalBottomRight}
+        />
       </View>
 
-      {/* ============================================ */}
-      {/* TIP BAR */}
-      {/* ============================================ */}
-      {/* Shows helpful tips and guidance */}
-      {/* Nincs navigáció, csak info megjelenítés */}
-      <TipBar />
+      {/* Fő tartalom - Videó és kristály overlay felett */}
+      <View style={styles.mainContent}>
+        {/* Felső szekció - TopBar */}
+        <TopBar
+          coins={coins}
+          gems={gems}
+          progressPosition={progressPosition}
+          playerLevel={playerLevel}
+          currentLesson={currentLesson}
+          onAvatarClick={onAvatarClick}
+          currentStageInSection={currentStageInSection}
+        />
 
-      {/* ============================================ */}
-      {/* BOTTOM MENU - CharacterLineup */}
-      {/* ============================================ */}
-      {/* Main navigation bar with 5 sections */}
-      {/* NAVIGATION: University, Profile, Subscription, Manager */}
-      <CharacterLineup
-        onJumpToLesson={onJumpToLesson}
-        onUniversityClick={onUniversityClick}
-        onProfileClick={onProfileClick}
-        onSubscriptionClick={onSubscriptionClick}
-        onManagerClick={onManagerClick}
-      />
+        {/* Középső szekció - Játék világ (SideMenu + EventCards) */}
+        <View style={styles.middleSection}>
+          <SideMenu onLessonsClick={onLessonsClick} onShopClick={onShopClick} />
+          <EventCards onArenaClick={onArenaClick} subscriptionTier={subscriptionTier} />
+        </View>
 
-      {/* ============================================ */}
-      {/* PLAYER STATUS BAR */}
-      {/* ============================================ */}
-      {/* Shows player name, level, XP progress, and streak */}
-      {/* NAVIGATION: StreakPage megnyitása */}
-      <PlayerStatusBar
-        playerName={playerName}
-        subscriptionTier={subscriptionTier}
-        streak={currentStreak}
-        totalXp={totalXp}
-        totalXpForNextLevel={getTotalXpForNextLevel(playerLevel + 1)}
-        playerLevel={playerLevel}
-        onStreakClick={onStreakClick}
-      />
+        {/* Tipp sáv */}
+        <TipBar />
 
-      {/* ============================================ */}
-      {/* PROGRESS ANIMATION */}
-      {/* ============================================ */}
-      {/* "Továbbhaladás" button - main CTA for starting next lesson */}
-      {/* NAVIGATION: Következő lecke elindítása az App.tsx-ből */}
-      <ProgressAnimation
-        onClick={onProgressClick}
-        currentBookLessonIndex={currentBookLessonIndex}
-        currentGameType={currentGameType}
-        isFirstRound={isFirstRound}
-      />
-          </View>
-        )}
-      </LinearGradient>
+        {/* Alsó menü - Character lineup */}
+        <CharacterLineup
+          onJumpToLesson={onJumpToLesson}
+          onUniversityClick={onUniversityClick}
+          onProfileClick={onProfileClick}
+          onSubscriptionClick={onSubscriptionClick}
+          onManagerClick={onManagerClick}
+        />
+
+        {/* Játékos státusz sáv */}
+        <PlayerStatusBar
+          playerName={playerName}
+          subscriptionTier={subscriptionTier}
+          streak={currentStreak}
+          totalXp={totalXp}
+          totalXpForNextLevel={totalXpForNextLevel}
+          playerLevel={playerLevel}
+          onStreakClick={onStreakClick}
+        />
+
+        {/* Progress animáció - "Tovább" gomb */}
+        <ProgressAnimation
+          onClick={onProgressClick}
+          currentBookLessonIndex={currentBookLessonIndex}
+          currentGameType={currentGameType}
+          isFirstRound={isFirstRound}
+        />
+      </View>
     </View>
   );
 }
@@ -234,23 +309,122 @@ export default function MainScreen({
 // ============================================
 
 const styles = StyleSheet.create({
+  // Fő konténer - Teljes képernyő, overflow hidden
   container: {
-    flex: 1,
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
   },
-  background: {
+
+  // Háttér overlay - Fantasy kristálybarlang téma
+  backgroundOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+
+  // Gradiens háttér - Radial és linear gradiens kombinálva
+  gradientBackground: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    opacity: OPACITY[30],
+  },
+
+  // Kristály dekoráció - Bal alsó sarok
+  crystalBottomLeft: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: SIZES.width32,
+    height: SIZES.height40,
+    borderTopRightRadius: SIZES.radiusFull,
+  },
+
+  // Kristály dekoráció - Jobb alsó sarok
+  crystalBottomRight: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: SIZES.width40,
+    height: SIZES.height32,
+    borderTopLeftRadius: SIZES.radiusFull,
+  },
+
+  // Kristály dekoráció - Bal középső rész (forgatva)
+  crystalTopLeftCenter: {
+    position: 'absolute',
+    top: '33.333333%',
+    left: '25%',
+    width: SIZES.width24,
+    height: SIZES.height32,
+    transform: [{ rotate: '-12deg' }],
+  },
+
+  // Kristály dekoráció - Jobb középső rész (forgatva)
+  crystalTopRightCenter: {
+    position: 'absolute',
+    top: '50%',
+    right: '33.333333%',
+    width: SIZES.width20,
+    height: SIZES.height28,
+    transform: [{ rotate: '12deg' }],
+  },
+
+  // Barlang kristályok - Bal alsó scatter 1
+  caveCrystalBottomLeft1: {
+    position: 'absolute',
+    bottom: 192,
+    left: SPACING['2xl'],
+    width: SIZES.width16,
+    height: SIZES.height20,
+    borderTopLeftRadius: SIZES.radiusLG,
+    borderTopRightRadius: SIZES.radiusLG,
+    transform: [{ rotate: '12deg' }],
+  },
+
+  // Barlang kristályok - Bal alsó scatter 2
+  caveCrystalBottomLeft2: {
+    position: 'absolute',
+    bottom: 208,
+    left: 80,
+    width: SIZES.width12,
+    height: SIZES.height16,
+    borderTopLeftRadius: SIZES.radiusLG,
+    borderTopRightRadius: SIZES.radiusLG,
+    transform: [{ rotate: '-6deg' }],
+  },
+
+  // Barlang kristályok - Jobb alsó scatter
+  caveCrystalBottomRight: {
+    position: 'absolute',
+    bottom: 192,
+    right: SPACING['3xl'],
+    width: SIZES.width20,
+    height: SIZES.height24,
+    borderTopLeftRadius: SIZES.radiusLG,
+    borderTopRightRadius: SIZES.radiusLG,
+    transform: [{ rotate: '6deg' }],
+  },
+
+  // Fő tartalom konténer - Flex column layout
+  mainContent: {
+    position: 'relative',
+    height: '100%',
+    flexDirection: 'column',
+    paddingTop: SPACING.md,
+    zIndex: Z_INDEX.content,
+  },
+
+  // Középső szekció - Játék világ (flex-1)
+  middleSection: {
     flex: 1,
     position: 'relative',
-    overflow: 'visible',
-  },
-  content: {
-    flex: 1,
-    position: 'relative',
-    zIndex: 1,
-    overflow: 'visible',
-  },
-  gameWorldContainer: {
-    flex: 1,
-    position: 'relative',
-    paddingBottom: SPACING.xl,
+    paddingBottom: SPACING['2xl'],
   },
 });

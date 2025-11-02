@@ -2,9 +2,9 @@
  * ============================================
  * ARENAPAGE - REACT NATIVE VERSION
  * ============================================
- *
+ * 
  * VERSION: 3.0.0 - TELJES fight mód frissítés
- *
+ * 
  * ÚJ FUNKCIÓK ebben a verzióban:
  * ✅ Avatárok fight módban (player & AI)
  * ✅ VS ikon középen (narancs körrel)
@@ -12,12 +12,24 @@
  * ✅ "Kérdés X/10" badge a felső sorban
  * ✅ "Válaszod:" címke (nem "A te tipped:")
  * ✅ "Beküldés" gomb (nem "Beküld")
- *
+ * 
  * Teljes konverzió a Figma designból
  * - Magyar szövegek ✅
  * - Inline styles ✅
  * - Pixel-perfect layout ✅
  * - React Native kompatibilis ✅
+ * 
+ * HASZNÁLAT:
+ * cp exports/ArenaPage.rn.tsx src/screens/ArenaPage.tsx
+ * 
+ * FÜGGŐSÉGEK:
+ * npm install react-native-linear-gradient
+ * npm install @react-native-community/slider
+ * npm install react-native-reanimated
+ * npm install lucide-react-native
+ * npm install @react-native-async-storage/async-storage
+ * 
+ * iOS: cd ios && pod install
  */
 
 import React, { useState, useEffect } from 'react';
@@ -31,7 +43,7 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import Slider from '@react-native-community/slider';
 import Animated, {
   useSharedValue,
@@ -58,15 +70,21 @@ import {
   X,
 } from 'lucide-react-native';
 
-// React Navigation types
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../navigation/types';
-
 // ============================================
 // TYPES & INTERFACES
 // ============================================
 
-type ArenaScreenProps = NativeStackScreenProps<RootStackParamList, 'Arena'>;
+interface ArenaPageProps {
+  onClose: () => void;
+  coins: number;
+  onCoinsChange: (newCoins: number) => void;
+  subscriptionTier?: 'free' | 'pro' | 'master';
+  onLimitReached?: () => void;
+  onXpGain?: (xpAmount: number) => void;
+  onNavigateToLibrary?: () => void;
+  onStageAdvance?: () => void;
+  onStreakUpdate?: (newStreak: number, isFirstToday: boolean) => void;
+}
 
 interface RentedBook {
   title: string;
@@ -210,7 +228,17 @@ const AnimatedSword: React.FC = () => {
 // MAIN COMPONENT
 // ============================================
 
-export default function ArenaScreen({ navigation }: ArenaScreenProps) {
+const ArenaPage: React.FC<ArenaPageProps> = ({
+  onClose,
+  coins,
+  onCoinsChange,
+  subscriptionTier = 'free',
+  onLimitReached,
+  onXpGain,
+  onNavigateToLibrary,
+  onStageAdvance,
+  onStreakUpdate,
+}) => {
   // ============================================
   // STATE MANAGEMENT
   // ============================================
@@ -229,7 +257,6 @@ export default function ArenaScreen({ navigation }: ArenaScreenProps) {
   const [rentedBooks, setRentedBooks] = useState<RentedBook[]>([]);
   const [gamesPlayedToday, setGamesPlayedToday] = useState<number>(0);
   const [lastPlayedDate, setLastPlayedDate] = useState<string>('');
-  const [coins, setCoins] = useState<number>(1000);
 
   // Avatar URLs - replace with your actual avatar images
   const playerAvatarUrl = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop';
@@ -243,7 +270,6 @@ export default function ArenaScreen({ navigation }: ArenaScreenProps) {
   useEffect(() => {
     loadRentedBooks();
     loadPlayCount();
-    loadCoins();
   }, []);
 
   // Timer countdown during playing
@@ -264,26 +290,6 @@ export default function ArenaScreen({ navigation }: ArenaScreenProps) {
   // ============================================
   // ASYNC STORAGE FUNCTIONS
   // ============================================
-
-  const loadCoins = async () => {
-    try {
-      const stored = await AsyncStorage.getItem('userCoins');
-      if (stored) {
-        setCoins(parseInt(stored));
-      }
-    } catch (error) {
-      console.error('Error loading coins:', error);
-    }
-  };
-
-  const saveCoins = async (newCoins: number) => {
-    try {
-      setCoins(newCoins);
-      await AsyncStorage.setItem('userCoins', newCoins.toString());
-    } catch (error) {
-      console.error('Error saving coins:', error);
-    }
-  };
 
   const loadRentedBooks = async () => {
     try {
@@ -329,13 +335,14 @@ export default function ArenaScreen({ navigation }: ArenaScreenProps) {
   // ============================================
 
   const canPlayGame = (): boolean => {
-    // For now, always allow (can add subscription logic later)
+    if (subscriptionTier === 'master') return true;
+    if (subscriptionTier === 'pro') return true;
     return gamesPlayedToday < GAME_CONFIG.freeDailyArenaGames;
   };
 
   const startGame = () => {
     if (!canPlayGame()) {
-      // Show alert: "Elérted a napi limitet!"
+      if (onLimitReached) onLimitReached();
       return;
     }
 
@@ -345,7 +352,7 @@ export default function ArenaScreen({ navigation }: ArenaScreenProps) {
     }
 
     // Deduct bet amount
-    saveCoins(coins - betAmount);
+    onCoinsChange(coins - betAmount);
 
     // Generate 10 random questions
     const shuffled = [...MOCK_ARENA_QUESTIONS].sort(() => Math.random() - 0.5);
@@ -421,12 +428,20 @@ export default function ArenaScreen({ navigation }: ArenaScreenProps) {
 
     if (finalPlayerScore > finalAiScore) {
       // Player wins - return bet + winnings
-      saveCoins(coins + betAmount * 2);
+      onCoinsChange(coins + betAmount * 2);
+      if (onXpGain) onXpGain(50);
     } else {
       // Player loses - bet already deducted
+      if (onXpGain) onXpGain(10);
     }
 
     setGameState('result');
+
+    // Update streak if provided
+    if (onStreakUpdate) {
+      // This would normally call recordTaskCompletion
+      // For now, just a placeholder
+    }
   };
 
   const handleNewGame = () => {
@@ -452,7 +467,7 @@ export default function ArenaScreen({ navigation }: ArenaScreenProps) {
     >
       <View style={styles.headerContent}>
         <View style={styles.headerLeft}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Pressable onPress={onClose} style={styles.backButton}>
             <ChevronLeft size={SIZES.iconLG} color={COLORS.white} />
           </Pressable>
           <View style={styles.headerTitleContainer}>
@@ -470,134 +485,116 @@ export default function ArenaScreen({ navigation }: ArenaScreenProps) {
 
   const renderModeTabs = () => (
     <View style={styles.modeTabsContainer}>
-      <View style={styles.tabsRow}>
-        <Pressable
-          onPress={() => setSelectedMode('numbers')}
-          style={[
-            styles.modeTab,
-            selectedMode === 'numbers' ? styles.modeTabActive : styles.modeTabInactive,
-          ]}
-        >
-          <Flame
-            size={SIZES.iconSM}
-            color={selectedMode === 'numbers' ? COLORS.white : '#94A3B8'}
-          />
-          <Text
-            style={[
-              styles.modeTabText,
-              { color: selectedMode === 'numbers' ? COLORS.white : '#94A3B8' },
-            ]}
-          >
-            Számok
-          </Text>
-        </Pressable>
+      <Pressable
+        style={[styles.modeTab, selectedMode === 'numbers' && styles.modeTabActive]}
+        onPress={() => setSelectedMode('numbers')}
+      >
+        <Flame
+          size={SIZES.iconSM}
+          color={selectedMode === 'numbers' ? '#FBBF24' : '#64748B'}
+          fill={selectedMode === 'numbers' ? '#FBBF24' : 'transparent'}
+        />
+        <Text style={[styles.modeTabText, selectedMode === 'numbers' && styles.modeTabTextActive]}>
+          Számok
+        </Text>
+      </Pressable>
 
-        <Pressable disabled style={[styles.modeTab, styles.modeTabDisabled]}>
-          <TrendingUp size={SIZES.iconXS} color="#475569" />
-          <Text style={[styles.modeTabText, { color: '#475569' }]}>Hamarosan</Text>
-        </Pressable>
+      <Pressable style={[styles.modeTab, styles.modeTabDisabled]} disabled>
+        <TrendingUp size={SIZES.iconSM} color="#475569" />
+        <Text style={styles.modeTabTextDisabled}>Hamarosan</Text>
+      </Pressable>
 
-        <Pressable disabled style={[styles.modeTab, styles.modeTabDisabled]}>
-          <BarChart3 size={SIZES.iconXS} color="#475569" />
-          <Text style={[styles.modeTabText, { color: '#475569' }]}>Hamarosan</Text>
-        </Pressable>
-      </View>
+      <Pressable style={[styles.modeTab, styles.modeTabDisabled]} disabled>
+        <BarChart3 size={SIZES.iconSM} color="#475569" />
+        <Text style={styles.modeTabTextDisabled}>Hamarosan</Text>
+      </Pressable>
     </View>
   );
 
-  const renderBettingCard = () => {
-    const maxBet = Math.min(coins, GAME_CONFIG.maxBet);
+  const renderBettingCard = () => (
+    <LinearGradient
+      colors={['rgba(30, 41, 59, 0.9)', 'rgba(88, 28, 135, 0.3)']}
+      style={styles.bettingCard}
+    >
+      <Text style={styles.bettingTitle}>Válassz tétet</Text>
 
-    return (
-      <LinearGradient
-        colors={[
-          'rgba(30, 41, 59, 0.8)',
-          'rgba(88, 28, 135, 0.3)',
-          'rgba(30, 41, 59, 0.8)',
-        ]}
-        style={styles.bettingCard}
-      >
-        <View style={styles.bettingHeader}>
-          <Trophy size={SIZES.iconSM} color="#FBBF24" />
-          <Text style={styles.bettingTitle}>Válassz tétet</Text>
+      <View style={styles.betAmountContainer}>
+        <Text style={styles.betAmountLabel}>Tét összege</Text>
+        <View style={styles.betAmountDisplay}>
+          <Zap size={SIZES.iconBase} color="#FBBF24" fill="#FBBF24" />
+          <Text style={styles.betAmountText}>{betAmount}</Text>
         </View>
+      </View>
 
-        {/* Slider */}
-        <View style={styles.sliderContainer}>
-          <Slider
-            minimumValue={10}
-            maximumValue={maxBet}
-            step={10}
-            value={betAmount}
-            onValueChange={setBetAmount}
-            minimumTrackTintColor="#9333EA"
-            maximumTrackTintColor="rgba(51, 65, 85, 0.5)"
-            thumbTintColor="#A855F7"
-            style={styles.slider}
-          />
+      <Slider
+        style={styles.slider}
+        minimumValue={10}
+        maximumValue={GAME_CONFIG.maxBet}
+        step={10}
+        value={betAmount}
+        onValueChange={setBetAmount}
+        minimumTrackTintColor="#A855F7"
+        maximumTrackTintColor="#334155"
+        thumbTintColor="#C084FC"
+      />
 
-          <View style={styles.sliderLabels}>
-            <Text style={styles.sliderLabelText}>10</Text>
-            <Text style={styles.sliderLabelValue}>{Math.round(betAmount)}</Text>
-            <Text style={styles.sliderLabelText}>{maxBet}</Text>
-          </View>
-        </View>
+      <View style={styles.sliderLabels}>
+        <Text style={styles.sliderLabelText}>10</Text>
+        <Text style={styles.sliderLabelText}>{GAME_CONFIG.maxBet}</Text>
+      </View>
 
-        {/* Quick Bet Buttons */}
-        <View style={styles.quickBetGrid}>
-          {[50, 100, 200, maxBet].map((amount, index) => (
-            <Pressable
-              key={index}
-              onPress={() => setBetAmount(Math.min(amount, maxBet))}
-              style={styles.quickBetButton}
+      <View style={styles.quickBetRow}>
+        {[50, 100, 200, 500].map((amount) => (
+          <Pressable
+            key={amount}
+            style={[styles.quickBetButton, betAmount === amount && styles.quickBetButtonActive]}
+            onPress={() => setBetAmount(amount)}
+          >
+            <Text
+              style={[styles.quickBetText, betAmount === amount && styles.quickBetTextActive]}
             >
-              <Text style={styles.quickBetText}>{amount}</Text>
-            </Pressable>
-          ))}
+              {amount}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <Pressable style={styles.startGameButton} onPress={startGame}>
+        <Swords size={SIZES.iconSM} color={COLORS.white} />
+        <Text style={styles.startGameText}>Küzdelem kezdése</Text>
+      </Pressable>
+
+      {/* Rules Card */}
+      <View style={styles.rulesCard}>
+        <View style={styles.rulesHeader}>
+          <Star size={12} color="#C084FC" fill="#C084FC" />
+          <Text style={styles.rulesTitle}>Szabályok</Text>
         </View>
-
-        {/* Start Game Button */}
-        <Pressable onPress={startGame} style={styles.startGameButton}>
-          <Swords size={SIZES.iconSM} color={COLORS.white} />
-          <Text style={styles.startGameText}>Küzdelem kezdése</Text>
-        </Pressable>
-
-        {/* Rules Card (inside betting card) */}
-        <View style={styles.rulesCard}>
-          <View style={styles.rulesHeader}>
-            <Star size={SIZES.iconXS} color="#C084FC" />
-            <Text style={styles.rulesTitle}>Szabályok</Text>
+        <View style={styles.rulesList}>
+          <View style={styles.ruleItem}>
+            <View style={[styles.ruleDot, { backgroundColor: '#A855F7' }]} />
+            <Text style={styles.ruleText}>10 kérdés • Tippeld a számot</Text>
           </View>
-
-          <View style={styles.rulesList}>
-            <View style={styles.ruleItem}>
-              <View style={[styles.ruleDot, { backgroundColor: '#C084FC' }]} />
-              <Text style={styles.ruleText}>10 kérdés • Tippeld a számot</Text>
-            </View>
-
-            <View style={styles.ruleItem}>
-              <View style={[styles.ruleDot, { backgroundColor: '#C084FC' }]} />
-              <Text style={styles.ruleText}>Közelebb = nyersz</Text>
-            </View>
-
-            <View style={styles.ruleItem}>
-              <View style={[styles.ruleDot, { backgroundColor: '#4ADE80' }]} />
-              <Text style={[styles.ruleText, { color: '#86EFAC' }]}>
-                Győzelem: +{betAmount}
-              </Text>
-            </View>
-
-            <View style={styles.ruleItem}>
-              <View style={[styles.ruleDot, { backgroundColor: '#F87171' }]} />
-              <Text style={[styles.ruleText, { color: '#FCA5A5' }]}>
-                Vereség: -{betAmount}
-              </Text>
-            </View>
+          <View style={styles.ruleItem}>
+            <View style={[styles.ruleDot, { backgroundColor: '#A855F7' }]} />
+            <Text style={styles.ruleText}>Közelebb = nyersz</Text>
+          </View>
+          <View style={styles.ruleItem}>
+            <View style={[styles.ruleDot, { backgroundColor: '#22C55E' }]} />
+            <Text style={[styles.ruleText, { color: '#22C55E' }]}>
+              Győzelem: +{betAmount}
+            </Text>
+          </View>
+          <View style={styles.ruleItem}>
+            <View style={[styles.ruleDot, { backgroundColor: '#EF4444' }]} />
+            <Text style={[styles.ruleText, { color: '#EF4444' }]}>
+              Vereség: -{betAmount}
+            </Text>
           </View>
         </View>
-      </LinearGradient>
-    );
-  };
+      </View>
+    </LinearGradient>
+  );
 
   const renderBooksCard = () => {
     if (rentedBooks.length === 0) {
@@ -605,7 +602,7 @@ export default function ArenaScreen({ navigation }: ArenaScreenProps) {
         <View style={styles.noBooksCard}>
           <BookOpen size={SIZES.iconLG} color="#64748B" />
           <Text style={styles.noBooksText}>Nincs kölcsönzött könyv</Text>
-          <Pressable style={styles.goToLibraryButton} onPress={() => navigation.navigate('Library')}>
+          <Pressable style={styles.goToLibraryButton} onPress={onNavigateToLibrary}>
             <Text style={styles.goToLibraryText}>Irány a Könyvtár</Text>
           </Pressable>
         </View>
@@ -885,7 +882,7 @@ export default function ArenaScreen({ navigation }: ArenaScreenProps) {
       {renderContent()}
     </View>
   );
-}
+};
 
 // ============================================
 // STYLES
@@ -914,8 +911,7 @@ const styles = StyleSheet.create({
   // Header
   header: {
     paddingHorizontal: SPACING.md,
-    paddingTop: 65,
-    paddingBottom: SPACING.md,
+    paddingVertical: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(168, 85, 247, 0.3)',
     ...Platform.select({
@@ -967,46 +963,38 @@ const styles = StyleSheet.create({
 
   // Mode Tabs
   modeTabsContainer: {
-    padding: SPACING.md,
-    paddingBottom: 0,
-  },
-  tabsRow: {
     flexDirection: 'row',
-    gap: SPACING.sm,
+    backgroundColor: 'rgba(30, 41, 59, 0.5)',
+    borderRadius: SIZES.radiusLG,
+    padding: SPACING.xs,
+    marginBottom: SPACING.base,
+    gap: SPACING.xs,
   },
   modeTab: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: SIZES.radiusLG,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    borderWidth: 1,
+    paddingVertical: SPACING.sm,
+    borderRadius: SIZES.radiusBase,
   },
   modeTabActive: {
-    backgroundColor: '#9333EA',
-    borderColor: 'rgba(147, 51, 234, 0.3)',
-  },
-  modeTabInactive: {
-    backgroundColor: 'rgba(30, 41, 59, 0.5)',
-    borderColor: 'rgba(51, 65, 85, 0.3)',
+    backgroundColor: 'rgba(168, 85, 247, 0.3)',
   },
   modeTabDisabled: {
-    backgroundColor: 'rgba(30, 41, 59, 0.2)',
-    borderColor: 'rgba(51, 65, 85, 0.2)',
+    opacity: 0.5,
   },
   modeTabText: {
-    fontSize: SIZES.fontXS,
     color: '#64748B',
+    fontSize: SIZES.fontSM,
   },
   modeTabTextActive: {
     color: '#FBBF24',
   },
   modeTabTextDisabled: {
     color: '#475569',
-    fontSize: SIZES.fontXS,
+    fontSize: SIZES.fontSM,
   },
 
   // ScrollView
@@ -1025,18 +1013,32 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(168, 85, 247, 0.3)',
     marginBottom: SPACING.base,
   },
-  bettingHeader: {
+  bettingTitle: {
+    color: COLORS.white,
+    fontSize: SIZES.fontLG,
+    marginBottom: SPACING.base,
+  },
+  betAmountContainer: {
+    marginBottom: SPACING.sm,
+  },
+  betAmountLabel: {
+    color: '#94A3B8',
+    fontSize: SIZES.fontXS,
+    marginBottom: SPACING.xs,
+  },
+  betAmountDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-    marginBottom: SPACING.md,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    borderRadius: SIZES.radiusLG,
+    padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.3)',
   },
-  bettingTitle: {
-    color: COLORS.white,
-    fontSize: SIZES.fontSM,
-  },
-  sliderContainer: {
-    marginBottom: SPACING.base,
+  betAmountText: {
+    color: '#FBBF24',
+    fontSize: SIZES.fontXL,
   },
   slider: {
     width: '100%',
@@ -1045,37 +1047,36 @@ const styles = StyleSheet.create({
   sliderLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: SPACING.sm,
+    marginBottom: SPACING.base,
   },
   sliderLabelText: {
+    color: '#64748B',
     fontSize: SIZES.fontXS,
-    color: '#94A3B8',
   },
-  sliderLabelValue: {
-    fontSize: SIZES.fontXS,
-    color: '#FBBF24',
-  },
-  quickBetGrid: {
+  quickBetRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: SPACING.sm,
     marginBottom: SPACING.base,
   },
   quickBetButton: {
     flex: 1,
-    minWidth: '22%',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    backgroundColor: '#334155',
-    borderRadius: SIZES.radiusLG,
+    paddingVertical: SPACING.sm,
+    backgroundColor: 'rgba(71, 85, 105, 0.5)',
+    borderRadius: SIZES.radiusBase,
     borderWidth: 1,
-    borderColor: 'rgba(71, 85, 105, 0.5)',
+    borderColor: 'rgba(100, 116, 139, 0.5)',
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  quickBetButtonActive: {
+    backgroundColor: 'rgba(168, 85, 247, 0.3)',
+    borderColor: '#A855F7',
   },
   quickBetText: {
-    color: COLORS.white,
-    fontSize: SIZES.fontXS,
+    color: '#94A3B8',
+    fontSize: SIZES.fontSM,
+  },
+  quickBetTextActive: {
+    color: '#C084FC',
   },
   startGameButton: {
     width: '100%',
@@ -1543,3 +1544,5 @@ const styles = StyleSheet.create({
     fontSize: SIZES.fontSM,
   },
 });
+
+export default ArenaPage;

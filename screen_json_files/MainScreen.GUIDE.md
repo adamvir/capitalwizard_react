@@ -1,474 +1,474 @@
-# 🏠 MainScreen - React Native Útmutató
+# MainScreen - React Native Konverziós Útmutató
 
-**Container komponens 7 alkomponenssel**
+## 📱 Áttekintés
+
+A **MainScreen** komponens a teljes főoldal nézete, amely egyesíti az összes fő UI komponenst egy központi képernyőn. Ez a komponens felelős a fantasy kristálybarlang háttér megjelenítéséért, valamint az összes navigációs és státusz komponens koordinálásáért.
+
+### Tartalmazza:
+- ✅ **TopBar** - Játékos adatok (coins, gems, level, progress)
+- ✅ **SideMenu** - Bal oldali navigációs menü (Lessons, Shop)
+- ✅ **EventCards** - Esemény kártyák (Arena, Subscription)
+- ✅ **TipBar** - Tipp sáv a képernyő közepén
+- ✅ **CharacterLineup** - Alsó menüsor (University, Profile, Subscription, Manager)
+- ✅ **PlayerStatusBar** - Játékos státusz (név, streak, XP)
+- ✅ **ProgressAnimation** - "Tovább" gomb animáció
 
 ---
 
-## 🚀 GYORS HASZNÁLAT (5 perc)
+## 🚀 Használat
 
-### **1. Másold a fájlt:**
+### React Native projektbe telepítés:
+
 ```bash
-cp exports/MainScreen.rn.tsx src/screens/MainScreen.tsx
+# 1. Másold a konvertált fájlt a projektedbe
+cp exports/MainScreen.rn.tsx src/components/MainScreen.tsx
+
+# 2. Győződj meg róla, hogy a függőségek telepítve vannak
+npm install lucide-react motion/react
+
+# 3. Ellenőrizd, hogy a styleConstants.ts elérhető-e
+ls src/utils/styleConstants.ts
 ```
 
-### **2. Használd:**
-```tsx
-import { MainScreen } from './screens/MainScreen';
-
-<MainScreen
-  coins={1000}
-  gems={50}
-  playerLevel={5}
-  totalXp={2500}
-  progressPosition={15}
-  currentLesson={3}
-  currentStageInSection={2}
-  playerName="Játékos"
-  subscriptionTier="free"
-  currentStreak={7}
-  currentBookLessonIndex={10}
-  currentGameType="reading"
-  isFirstRound={true}
-  
-  onAvatarClick={() => navigation.navigate('Avatar')}
-  onLessonsClick={() => navigation.navigate('Lessons')}
-  onShopClick={() => navigation.navigate('Shop')}
-  onArenaClick={() => navigation.navigate('Arena')}
-  onUniversityClick={() => navigation.navigate('University')}
-  onProfileClick={() => navigation.navigate('Profile')}
-  onSubscriptionClick={() => navigation.navigate('Subscription')}
-  onManagerClick={() => navigation.navigate('Manager')}
-  onStreakClick={() => navigation.navigate('Streak')}
-  onProgressClick={() => handleStartNextLesson()}
-  onJumpToLesson={(lesson) => handleJumpToLesson(lesson)}
-  
-  getTotalXpForNextLevel={(level) => level * 500}
-/>
-```
-
-**KÉSZ! 🎉**
-
----
-
-## 📋 ALKOMPONENSEK (7 db)
-
-A MainScreen **NEM önálló komponens** - csak egy wrapper/container a 7 alkomponens számára!
-
-### **Struktúra:**
-
-```
-MainScreen (Container)
-├── 1. TopBar            → Resources (coins, gems, level)
-├── 2. SideMenu          → Quick actions (lessons, shop)
-├── 3. EventCards        → Activities (arena)
-├── 4. TipBar            → Helpful tips
-├── 5. CharacterLineup   → Bottom navigation (5 sections)
-├── 6. PlayerStatusBar   → Player info (name, XP, streak)
-└── 7. ProgressAnimation → "Továbbhaladás" button (main CTA)
-```
-
-### **Alkomponensek leírása:**
-
-| # | Komponens | Felelősség | Navigáció |
-|---|-----------|------------|-----------|
-| 1 | **TopBar** | Coins, gems, level megjelenítés | Avatar megnyitása |
-| 2 | **SideMenu** | Gyorsműveletek (leckék, bolt) | Lessons, Shop |
-| 3 | **EventCards** | Aktuális tevékenységek | Arena |
-| 4 | **TipBar** | Hasznos tippek | - |
-| 5 | **CharacterLineup** | Alsó navigáció (5 szekció) | University, Profile, Subscription, Manager |
-| 6 | **PlayerStatusBar** | Játékos info (név, XP, streak) | Streak |
-| 7 | **ProgressAnimation** | "Továbbhaladás" gomb | Következő lecke |
-
----
-
-## 🎯 PROPS INTERFÉSZ
+### Importálás és használat:
 
 ```tsx
-interface MainScreenProps {
-  // ============================================
-  // PLAYER STATS (9 prop)
-  // ============================================
-  coins: number;                    // Játékos pénze
-  gems: number;                     // Játékos gyémántjai
-  playerLevel: number;              // Játékos szintje
-  totalXp: number;                  // Összes XP
-  progressPosition: number;         // Progress pozíció (0-100)
-  currentLesson: number;            // Aktuális lecke száma
-  currentStageInSection: number;    // Aktuális szakasz
-  playerName: string;               // Játékos neve
-  subscriptionTier: 'free' | 'pro' | 'master'; // Előfizetés
-  currentStreak: number;            // Aktuális streak
-
-  // ============================================
-  // LESSON STATE (3 prop)
-  // ============================================
-  currentBookLessonIndex: number;   // Könyv lecke index
-  currentGameType: 'reading' | 'matching' | 'quiz'; // Játék típus
-  isFirstRound: boolean;            // Első kör?
-
-  // ============================================
-  // NAVIGATION CALLBACKS (11 prop)
-  // ============================================
-  onAvatarClick: () => void;        // Avatar megnyitása
-  onLessonsClick: () => void;       // Leckék oldal
-  onShopClick: () => void;          // Bolt oldal
-  onArenaClick: () => void;         // Arena oldal
-  onUniversityClick: () => void;    // Egyetem oldal
-  onProfileClick: () => void;       // Profil oldal
-  onSubscriptionClick: () => void;  // Előfizetés oldal
-  onManagerClick: () => void;       // Manager oldal
-  onStreakClick: () => void;        // Streak oldal
-  onProgressClick: () => void;      // Továbbhaladás gomb
-  onJumpToLesson: (lesson: number) => void; // Ugrás leckére
-
-  // ============================================
-  // UTILS (1 prop)
-  // ============================================
-  getTotalXpForNextLevel: (level: number) => number; // XP számítás
-}
-```
-
-**Összesen: 24 prop**
-
----
-
-## 📐 ALKOMPONENSEK PROP TOVÁBBÍTÁSA
-
-### **1. TopBar**
-```tsx
-<TopBar
-  coins={coins}                           // Player resources
-  gems={gems}
-  progressPosition={progressPosition}     // Progress bar
-  playerLevel={playerLevel}               // Current level
-  currentLesson={currentLesson}
-  onAvatarClick={onAvatarClick}           // Avatar selection
-  currentStageInSection={currentStageInSection}
-/>
-```
-
-### **2. SideMenu**
-```tsx
-<SideMenu
-  onLessonsClick={onLessonsClick}         // Navigate to Lessons
-  onShopClick={onShopClick}               // Navigate to Shop
-/>
-```
-
-### **3. EventCards**
-```tsx
-<EventCards
-  onArenaClick={onArenaClick}             // Navigate to Arena
-  subscriptionTier={subscriptionTier}     // Free/Pro/Master
-/>
-```
-
-### **4. TipBar**
-```tsx
-<TipBar />
-// Nincs props, csak helpful tips megjelenítés
-```
-
-### **5. CharacterLineup**
-```tsx
-<CharacterLineup
-  onJumpToLesson={onJumpToLesson}         // Jump to specific lesson
-  onUniversityClick={onUniversityClick}   // Navigate to University
-  onProfileClick={onProfileClick}         // Navigate to Profile
-  onSubscriptionClick={onSubscriptionClick} // Navigate to Subscription
-  onManagerClick={onManagerClick}         // Navigate to Manager
-/>
-```
-
-### **6. PlayerStatusBar**
-```tsx
-<PlayerStatusBar
-  playerName={playerName}                 // Player name display
-  subscriptionTier={subscriptionTier}     // Free/Pro/Master
-  streak={currentStreak}                  // Current streak count
-  totalXp={totalXp}                       // Total XP
-  totalXpForNextLevel={getTotalXpForNextLevel(playerLevel + 1)} // XP needed
-  playerLevel={playerLevel}               // Current level
-  onStreakClick={onStreakClick}           // Navigate to Streak
-/>
-```
-
-### **7. ProgressAnimation**
-```tsx
-<ProgressAnimation
-  onClick={onProgressClick}               // Start next lesson
-  currentBookLessonIndex={currentBookLessonIndex}
-  currentGameType={currentGameType}       // reading/matching/quiz
-  isFirstRound={isFirstRound}             // First round flag
-/>
-```
-
----
-
-## 🔄 NAVIGÁCIÓS FOLYAMATOK
-
-### **App.tsx → MainScreen → Alkomponensek**
-
-```
-App.tsx (State management)
-  │
-  ├─→ MainScreen (Container)
-  │     │
-  │     ├─→ TopBar
-  │     │     └─→ onAvatarClick() → App.tsx navigál Avatar-hoz
-  │     │
-  │     ├─→ SideMenu
-  │     │     ├─→ onLessonsClick() → App.tsx navigál Lessons-hoz
-  │     │     └─→ onShopClick() → App.tsx navigál Shop-hoz
-  │     │
-  │     ├─→ EventCards
-  │     │     └─→ onArenaClick() → App.tsx navigál Arena-hoz
-  │     │
-  │     ├─→ TipBar (nincs navigáció)
-  │     │
-  │     ├─→ CharacterLineup
-  │     │     ├─→ onJumpToLesson() → App.tsx ugrik leckére
-  │     │     ├─→ onUniversityClick() → App.tsx navigál University-hoz
-  │     │     ├─→ onProfileClick() → App.tsx navigál Profile-hoz
-  │     │     ├─→ onSubscriptionClick() → App.tsx navigál Subscription-hoz
-  │     │     └─→ onManagerClick() → App.tsx navigál Manager-hez
-  │     │
-  │     ├─→ PlayerStatusBar
-  │     │     └─→ onStreakClick() → App.tsx navigál Streak-hez
-  │     │
-  │     └─→ ProgressAnimation
-  │           └─→ onProgressClick() → App.tsx indítja következő leckét
-```
-
-### **Navigációs callback-ek összegzése:**
-
-| Callback | Melyik komponens használja? | Mit csinál? |
-|----------|------------------------------|-------------|
-| `onAvatarClick` | TopBar | Avatar választó megnyitása |
-| `onLessonsClick` | SideMenu | Leckék oldal megnyitása |
-| `onShopClick` | SideMenu | Bolt oldal megnyitása |
-| `onArenaClick` | EventCards | Arena oldal megnyitása |
-| `onUniversityClick` | CharacterLineup | Egyetem oldal megnyitása |
-| `onProfileClick` | CharacterLineup | Profil oldal megnyitása |
-| `onSubscriptionClick` | CharacterLineup | Előfizetés oldal megnyitása |
-| `onManagerClick` | CharacterLineup | Manager oldal megnyitása |
-| `onStreakClick` | PlayerStatusBar | Streak oldal megnyitása |
-| `onProgressClick` | ProgressAnimation | Következő lecke indítása |
-| `onJumpToLesson` | CharacterLineup | Ugrás adott leckére |
-
----
-
-## 📱 HASZNÁLATI PÉLDA (App.tsx-ben)
-
-```tsx
-import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native';
-import { MainScreen } from './screens/MainScreen';
-import { ArenaPage } from './screens/ArenaPage';
-import { LessonsPage } from './screens/LessonsPage';
-// ... többi import
+import { MainScreen } from './components/MainScreen';
 
 export default function App() {
-  // ============================================
-  // STATE
-  // ============================================
-  const [currentScreen, setCurrentScreen] = useState<string>('main');
-  const [coins, setCoins] = useState(1000);
-  const [gems, setGems] = useState(50);
-  const [playerLevel, setPlayerLevel] = useState(5);
-  const [totalXp, setTotalXp] = useState(2500);
-  const [playerName, setPlayerName] = useState('Játékos');
-  const [currentStreak, setCurrentStreak] = useState(7);
-  // ... többi state
+  const [coins, setCoins] = useState(680);
+  const [gems, setGems] = useState(25);
+  const [playerLevel, setPlayerLevel] = useState(2);
+  // ... további state-ek
 
-  // ============================================
-  // NAVIGATION HANDLERS
-  // ============================================
-  const handleAvatarClick = () => setCurrentScreen('avatar');
-  const handleLessonsClick = () => setCurrentScreen('lessons');
-  const handleShopClick = () => setCurrentScreen('shop');
-  const handleArenaClick = () => setCurrentScreen('arena');
-  const handleUniversityClick = () => setCurrentScreen('university');
-  const handleProfileClick = () => setCurrentScreen('profile');
-  const handleSubscriptionClick = () => setCurrentScreen('subscription');
-  const handleManagerClick = () => setCurrentScreen('manager');
-  const handleStreakClick = () => setCurrentScreen('streak');
-
-  const handleProgressClick = () => {
-    console.log('Starting next lesson...');
-    // Következő lecke indítása
-  };
-
-  const handleJumpToLesson = (lesson: number) => {
-    console.log(`Jumping to lesson ${lesson}`);
-    // Ugrás adott leckére
-  };
-
-  // ============================================
-  // UTILS
-  // ============================================
-  const getTotalXpForNextLevel = (level: number) => {
-    return level * 500; // Példa: szint * 500 XP
-  };
-
-  // ============================================
-  // RENDER
-  // ============================================
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      {currentScreen === 'main' && (
-        <MainScreen
-          coins={coins}
-          gems={gems}
-          playerLevel={playerLevel}
-          totalXp={totalXp}
-          progressPosition={15}
-          currentLesson={3}
-          currentStageInSection={2}
-          playerName={playerName}
-          subscriptionTier="free"
-          currentStreak={currentStreak}
-          currentBookLessonIndex={10}
-          currentGameType="reading"
-          isFirstRound={true}
-          
-          onAvatarClick={handleAvatarClick}
-          onLessonsClick={handleLessonsClick}
-          onShopClick={handleShopClick}
-          onArenaClick={handleArenaClick}
-          onUniversityClick={handleUniversityClick}
-          onProfileClick={handleProfileClick}
-          onSubscriptionClick={handleSubscriptionClick}
-          onManagerClick={handleManagerClick}
-          onStreakClick={handleStreakClick}
-          onProgressClick={handleProgressClick}
-          onJumpToLesson={handleJumpToLesson}
-          
-          getTotalXpForNextLevel={getTotalXpForNextLevel}
-        />
-      )}
-
-      {currentScreen === 'arena' && (
-        <ArenaPage
-          onClose={() => setCurrentScreen('main')}
-          coins={coins}
-          onCoinsChange={setCoins}
-          subscriptionTier="free"
-        />
-      )}
-
-      {/* ... többi screen */}
-    </SafeAreaView>
+    <MainScreen
+      // Top Bar props
+      coins={coins}
+      gems={gems}
+      progressPosition={3}
+      playerLevel={playerLevel}
+      currentLesson={7}
+      currentStageInSection={4}
+      onAvatarClick={() => navigateTo('avatar')}
+      
+      // Side Menu & Event Cards props
+      onLessonsClick={() => navigateTo('lessons')}
+      onShopClick={() => navigateTo('shop')}
+      onArenaClick={() => navigateTo('arena')}
+      subscriptionTier="free"
+      
+      // Character Lineup props
+      onJumpToLesson={() => navigateTo('lessons')}
+      onUniversityClick={() => navigateTo('university')}
+      onProfileClick={() => navigateTo('profile')}
+      onSubscriptionClick={() => navigateTo('subscription')}
+      onManagerClick={() => navigateTo('manager')}
+      
+      // Player Status Bar props
+      playerName="Játékos"
+      streak={5}
+      totalXp={1000}
+      onStreakClick={() => navigateTo('streak')}
+      
+      // Progress Animation props
+      onProgressClick={() => handleLessonContinue()}
+      currentBookLessonIndex={0}
+      currentGameType="reading"
+      isFirstRound={true}
+      
+      // Video background
+      hasVideoBackground={false}
+    />
   );
 }
 ```
 
 ---
 
-## ⚠️ FONTOS MEGJEGYZÉSEK
+## 📋 Props Interface
 
-### **1. Alkomponensek konverziója SZÜKSÉGES!**
+```tsx
+interface MainScreenProps {
+  // ===== TOP BAR =====
+  coins: number;                    // Játékos érméi
+  gems: number;                     // Játékos drágakövei
+  progressPosition: number;         // Progress pozíció (0-based)
+  playerLevel: number;              // Játékos szintje
+  currentLesson: number;            // Aktuális lecke száma
+  currentStageInSection: number;    // Aktuális szakasz a szekcióban
+  onAvatarClick: () => void;        // Avatar kattintás callback
+  
+  // ===== SIDE MENU & EVENT CARDS =====
+  onLessonsClick: () => void;       // Leckék menüpont callback
+  onShopClick: () => void;          // Bolt menüpont callback
+  onArenaClick: () => void;         // Aréna esemény callback
+  subscriptionTier: 'free' | 'pro' | 'master';  // Előfizetési szint
+  
+  // ===== CHARACTER LINEUP (Alsó menü) =====
+  onJumpToLesson: () => void;       // Ugrás lecke callback
+  onUniversityClick: () => void;    // Egyetem menüpont callback
+  onProfileClick: () => void;       // Profil menüpont callback
+  onSubscriptionClick: () => void;  // Előfizetés menüpont callback
+  onManagerClick: () => void;       // Manager menüpont callback
+  
+  // ===== PLAYER STATUS BAR =====
+  playerName: string;               // Játékos neve
+  streak: number;                   // Napi sorozat (streak)
+  totalXp: number;                  // Összes XP
+  onStreakClick: () => void;        // Streak kattintás callback
+  
+  // ===== PROGRESS ANIMATION =====
+  onProgressClick: () => void;      // "Tovább" gomb callback
+  currentBookLessonIndex: number;   // Aktuális lecke index
+  currentGameType: 'reading' | 'matching' | 'quiz';  // Játék típus
+  isFirstRound: boolean;            // Első kör flag
+  
+  // ===== VIDEO BACKGROUND =====
+  hasVideoBackground?: boolean;     // Videó háttér engedélyezése (opcionális)
+}
+```
 
-A MainScreen **csak egy container**, az alkomponenseket is konvertálni kell:
+---
+
+## 🎯 Navigációs Logika
+
+A MainScreen 11 különböző navigációs callback-et kezel:
+
+| Callback | Cél | Meghívó Komponens |
+|----------|-----|-------------------|
+| `onAvatarClick()` | Avatar választó oldal | TopBar |
+| `onLessonsClick()` | Leckék listája | SideMenu |
+| `onShopClick()` | Bolt oldal | SideMenu |
+| `onArenaClick()` | Aréna játék | EventCards |
+| `onJumpToLesson()` | Lecke folytatása | CharacterLineup |
+| `onUniversityClick()` | Egyetem oldal | CharacterLineup |
+| `onProfileClick()` | Profil oldal | CharacterLineup |
+| `onSubscriptionClick()` | Előfizetés oldal | CharacterLineup |
+| `onManagerClick()` | Manager oldal | CharacterLineup |
+| `onStreakClick()` | Streak statisztika | PlayerStatusBar |
+| `onProgressClick()` | Lecke folytatása | ProgressAnimation |
+
+**Minden callback void return type-ot vár**, tehát csak mellékhatásokat hajt végre (pl. navigáció, state változás).
+
+---
+
+## 🎨 Főbb Változások (Web → React Native)
+
+### 1. Tailwind → Inline Styles
+
+❌ **Előtte (Tailwind):**
+```tsx
+<div className="relative w-full h-full overflow-hidden">
+  <div className="absolute inset-0 opacity-30">
+    {/* ... */}
+  </div>
+</div>
+```
+
+✅ **Utána (Inline Styles):**
+```tsx
+<div style={styles.container}>
+  <div style={styles.gradientBackground}>
+    {/* ... */}
+  </div>
+</div>
+
+const styles = {
+  container: {
+    position: 'relative' as const,
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden' as const,
+  },
+  gradientBackground: {
+    position: 'absolute' as const,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    opacity: OPACITY[30],
+  },
+};
+```
+
+### 2. Hardcoded Értékek → styleConstants
+
+❌ **Előtte:**
+```tsx
+width: '128px',
+height: '160px',
+bottom: 192,
+```
+
+✅ **Utána:**
+```tsx
+width: SIZES.width32,
+height: SIZES.height40,
+bottom: 192,  // Egyedi érték, nincs a constants-ban
+```
+
+### 3. Gradiens Background Inline
+
+A komplex gradiens háttér megmaradt inline, mert dinamikus értékeket tartalmaz:
+
+```tsx
+background: `
+  radial-gradient(circle at 30% 40%, rgba(139, 92, 246, 0.3) 0%, transparent 50%),
+  radial-gradient(circle at 70% 60%, rgba(168, 85, 247, 0.2) 0%, transparent 50%),
+  linear-gradient(to bottom, rgba(15, 23, 42, 0.8), rgba(88, 28, 135, 0.4))
+`,
+```
+
+### 4. Dinamikus Style Objektumok
+
+A `hasVideoBackground` prop alapján dinamikusan változnak bizonyos style értékek:
+
+```tsx
+const containerBackgroundColor = hasVideoBackground 
+  ? COLORS.transparent 
+  : 'rgba(15, 23, 42, 1)';
+
+const overlayOpacity = hasVideoBackground ? OPACITY[40] : OPACITY[100];
+const overlayZIndex = hasVideoBackground ? Z_INDEX.overlay : Z_INDEX.base;
+```
+
+---
+
+## 🔧 React Native Specifikus Módosítások
+
+### 1. TypeScript `as const` Használata
+
+```tsx
+position: 'relative' as const,  // ✅ TypeScript strict mode
+overflow: 'hidden' as const,     // ✅ CSSProperties kompatibilitás
+flexDirection: 'column' as const, // ✅ Type narrowing
+```
+
+### 2. Style Objektumok Kombinálása
+
+```tsx
+<div style={{ 
+  ...styles.container, 
+  backgroundColor: containerBackgroundColor 
+}}>
+```
+
+### 3. Z-Index és Opacity Konstansok
+
+```tsx
+import { Z_INDEX, OPACITY } from '../utils/styleConstants';
+
+zIndex: Z_INDEX.content,  // 20
+opacity: OPACITY[30],     // '0.3'
+```
+
+### 4. Transform Stringek
+
+```tsx
+transform: 'rotate(-12deg)',  // ✅ CSS string formátum
+transform: 'rotate(6deg)',
+```
+
+---
+
+## 📦 Függőségek
+
+```json
+{
+  "dependencies": {
+    "react": "^18.0.0",
+    "lucide-react": "latest",
+    "motion/react": "latest"
+  }
+}
+```
+
+### Belső Függőségek (ugyanabban a projektben):
+
+```tsx
+import { TopBar } from './TopBar';
+import { SideMenu } from './SideMenu';
+import { EventCards } from './EventCards';
+import { TipBar } from './TipBar';
+import { CharacterLineup } from './CharacterLineup';
+import { PlayerStatusBar } from './PlayerStatusBar';
+import { ProgressAnimation } from './ProgressAnimation';
+import { getTotalXpForLevel } from '../utils/gameConfig';
+import { COLORS, SPACING, SIZES, OPACITY, Z_INDEX } from '../utils/styleConstants';
+```
+
+**FONTOS:** Ezeknek a komponenseknek is React Native-kompatibilisnek kell lenniük!
+
+---
+
+## 🎨 Design Jellemzők
+
+### Háttér Rendszer:
+- **Fantasy kristálybarlang téma** lila/pink/kék gradiens átmenetekkel
+- **Radial és linear gradiens kombináció**
+- **8 db kristály dekoráció** különböző pozíciókban és forgatásokkal
+- **Dinamikus opacity** videó háttér esetén (0.4 vs 1.0)
+
+### Layout Struktúra:
+```
+┌─────────────────────────────────┐
+│   TopBar (coins, gems, level)  │
+├─────────────────────────────────┤
+│                                 │
+│  ┌────┐  ┌──────────────┐      │
+│  │Side│  │ EventCards   │      │
+│  │Menu│  └──────────────┘      │
+│  └────┘                         │
+│                                 │
+├─────────────────────────────────┤
+│          TipBar                 │
+├─────────────────────────────────┤
+│   CharacterLineup (menü)       │
+├─────────────────────────────────┤
+│   PlayerStatusBar              │
+├─────────────────────────────────┤
+│   ProgressAnimation (Tovább)   │
+└─────────────────────────────────┘
+```
+
+### Spacing:
+- Fő konténer padding-top: `48px` (SPACING['3xl'])
+- Középső szekció padding-bottom: `32px` (SPACING['2xl'])
+
+---
+
+## ⚠️ Fontos Megjegyzések
+
+### 1. Video Background Funkció
+
+A `hasVideoBackground` prop lehetővé teszi a videó háttér integrálását:
+
+```tsx
+// Videó háttérrel
+<MainScreen hasVideoBackground={true} {...props} />
+
+// Videó nélkül (alapértelmezett)
+<MainScreen hasVideoBackground={false} {...props} />
+```
+
+**Hatása:**
+- `true`: Átlátszó háttér, 0.4 opacity overlay, Z-index 10
+- `false`: Sötét háttér, 1.0 opacity overlay, Z-index 1
+
+### 2. Komponens Függőségek
+
+A MainScreen **7 másik komponenst** importál. Ezeknek is React Native-kompatibilisnek kell lenniük!
+
+Ha hiányzik valamelyik, az alábbi hibát kapod:
+```
+Error: Cannot find module './TopBar'
+```
+
+**Megoldás:** Konvertáld az összes függőségi komponenst is!
+
+### 3. gameConfig Utility
+
+```tsx
+import { getTotalXpForLevel } from '../utils/gameConfig';
+```
+
+Ez a függvény kiszámítja a következő szinthez szükséges összes XP-t:
+
+```tsx
+const totalXpForNextLevel = getTotalXpForLevel(playerLevel + 1);
+```
+
+### 4. Pixel-Pontos Kristály Pozíciók
+
+A kristály dekorációk pontos pozíciói megmaradtak az eredeti designból:
+
+```tsx
+bottom: 192,     // caveCrystalBottomLeft1
+bottom: 208,     // caveCrystalBottomLeft2
+bottom: 192,     // caveCrystalBottomRight
+top: '33.333333%',  // crystalTopLeftCenter (1/3)
+top: '50%',         // crystalTopRightCenter (1/2)
+left: '25%',        // crystalTopLeftCenter (1/4)
+right: '33.333333%', // crystalTopRightCenter (1/3)
+```
+
+### 5. TypeScript Strict Mode
+
+Minden style objektum szigorúan típusos:
+
+```tsx
+const styles: Record<string, CSSProperties> = { ... };
+```
+
+Ha nem találja a CSSProperties típust:
 
 ```bash
-# Ezeket is át kell írni React Native-re:
-- TopBar.tsx → TopBar.rn.tsx
-- SideMenu.tsx → SideMenu.rn.tsx
-- EventCards.tsx → EventCards.rn.tsx
-- TipBar.tsx → TipBar.rn.tsx
-- CharacterLineup.tsx → CharacterLineup.rn.tsx
-- PlayerStatusBar.tsx → PlayerStatusBar.rn.tsx
-- ProgressAnimation.tsx → ProgressAnimation.rn.tsx
+npm install --save-dev @types/react
 ```
 
-### **2. Import útvonalak**
+---
 
+## 🔄 Verzió Információ
+
+- **Eredeti fájl:** `/components/MainScreen.tsx` (179 sor)
+- **Konvertált fájl:** `/exports/MainScreen.rn.tsx` (381 sor)
+- **Konverzió dátuma:** 2025-11-02
+- **Tailwind osztályok eltávolítva:** 12 db
+- **Inline style objektumok:** 12 db
+- **StyleConstants használat:** COLORS, SPACING, SIZES, OPACITY, Z_INDEX
+
+---
+
+## 📚 További Lépések
+
+1. ✅ **Konvertáld a függőségi komponenseket:**
+   - TopBar.tsx → TopBar.rn.tsx
+   - SideMenu.tsx → SideMenu.rn.tsx
+   - EventCards.tsx → EventCards.rn.tsx
+   - TipBar.tsx → TipBar.rn.tsx
+   - CharacterLineup.tsx → CharacterLineup.rn.tsx
+   - PlayerStatusBar.tsx → PlayerStatusBar.rn.tsx
+   - ProgressAnimation.tsx → ProgressAnimation.rn.tsx
+
+2. ✅ **Teszteld a komponenst React Native környezetben:**
+   ```bash
+   npm run ios
+   # vagy
+   npm run android
+   ```
+
+3. ✅ **Ellenőrizd a navigációs callback-eket:**
+   - Minden callback meghívódik-e?
+   - Helyes oldalra navigál-e?
+
+4. ✅ **Videó háttér integráció:**
+   - Ha használod, add hozzá a videó komponenst
+   - Állítsd be a `hasVideoBackground={true}` propot
+
+---
+
+## 🆘 Hibaelhárítás
+
+### Probléma: "Cannot find module './TopBar'"
+**Megoldás:** Konvertáld a TopBar komponenst is, vagy módosítsd az import útvonalat.
+
+### Probléma: "Property 'position' does not exist on type 'CSSProperties'"
+**Megoldás:** Használd az `as const` type assertion-t:
 ```tsx
-// Web verzió (React):
-import { TopBar } from './TopBar';
-
-// React Native verzió:
-import { TopBar } from '../components/TopBar';
-// VAGY
-import { TopBar } from './components/TopBar';
+position: 'relative' as const,
 ```
 
-Állítsd be az import útvonalakat a projekt struktúrádnak megfelelően!
+### Probléma: "COLORS is not defined"
+**Megoldás:** Ellenőrizd, hogy a styleConstants.ts elérhető-e és importálva van-e.
 
-### **3. Container styles**
-
-```tsx
-const styles = StyleSheet.create({
-  gameWorldContainer: {
-    flex: 1,
-    position: 'relative',  // ✅ RN támogatja
-    paddingBottom: 24,
-  },
-});
-```
-
-**Position: 'relative'** működik React Native-ben! ✅
+### Probléma: A kristályok nem jelennek meg
+**Megoldás:** Ellenőrizd, hogy a gradiens background stringek helyesen vannak-e formázva.
 
 ---
 
-## 🔄 ALKOMPONENSEK KONVERZIÓJÁNAK SORRENDJE
+## 📞 Kapcsolat
 
-**Javasolt sorrend** (egyszerűtől a bonyolultig):
+Ha további kérdésed van a konverzióval kapcsolatban, nézd meg a többi `.GUIDE.md` fájlt az `/exports/` mappában!
 
-1. ✅ **TipBar** - Egyszerű (csak text megjelenítés)
-2. **TopBar** - Közepes (resources megjelenítés)
-3. **SideMenu** - Egyszerű (2 gomb)
-4. **EventCards** - Közepes (card-ok megjelenítése)
-5. **PlayerStatusBar** - Közepes (player info + progress bar)
-6. **CharacterLineup** - Közepes (5 button)
-7. **ProgressAnimation** - Bonyolult (animáció + CTA button)
-
----
-
-## 📊 STATISZTIKÁK
-
-| Metric | Érték |
-|--------|-------|
-| **Container sor** | ~220 |
-| **Alkomponensek** | 7 |
-| **Props összesen** | 24 |
-| **Navigation callbacks** | 11 |
-| **Konverziós idő** | 2 perc |
-| **Komplexitás** | Alacsony (csak wrapper) |
-
----
-
-## 🎯 KONVERZIÓS ELLENŐRZŐ LISTA
-
-MainScreen konverziójához:
-
-- [x] MainScreen.rn.tsx létrehozva
-- [x] Props interfész átmásolva
-- [x] View container használva (div helyett)
-- [x] Inline styles (StyleSheet)
-- [x] Kommentek hozzáadva (navigáció jelölése)
-- [ ] **Alkomponensek konverziója (7 db)** ⚠️ EZT KELL MEGCSINÁLNI!
-
----
-
-## 🎉 KÉSZ!
-
-Most már van egy **teljes MainScreen React Native wrapper** komponensed!
-
-**Mit kaptál:**
-- ✅ Container komponens 7 alkomponenssel
-- ✅ 24 prop átadva
-- ✅ Világos kommentek minden alkomponensnél
-- ✅ Navigációs logika dokumentálva
-- ✅ Inline styles (StyleSheet)
-
-**Következő lépés:**
-→ Konvertáld az alkomponenseket is! (lásd a javasolt sorrendet)
-
----
-
-**Készült:** 2025-01-01  
-**Verzió:** 1.0.0  
-**Fájl:** `MainScreen.rn.tsx` (~220 sor)  
-**Komplexitás:** Container/Wrapper (alacsony)
+🎮 **Jó játékot!** 🚀

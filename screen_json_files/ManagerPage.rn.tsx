@@ -1,11 +1,39 @@
 /**
  * ManagerPage - REACT NATIVE VERSION (SIMPLIFIED)
- *
+ * 
  * Admin/settings panel játék beállítások kezeléséhez.
- *
+ * 
  * IMPORTANT: This is a SIMPLIFIED version for React Native.
  * The web version has 20+ setting sections with 50+ inputs.
  * This RN version includes only the MOST IMPORTANT settings.
+ * 
+ * Full settings included in web version (not all in RN):
+ * - Starting Gold
+ * - Library Prices (1-day, 30-day rental)
+ * - Arena Limits (min/max bet)
+ * - Daily Limits (lessons, arena games)
+ * - Subscription Prices (Pro, Master)
+ * - Lesson Rewards (XP + Gold by type)
+ * - Repeated Lessons Rewards
+ * - XP System (max level, base XP, growth %)
+ * - Arena XP (win XP, max books)
+ * - Matching/Quiz/Reading Game Settings
+ * - Stage/Milestone System
+ * - Shop Prices (streak freeze, gold, diamonds)
+ * - Data Export/Import (JSON)
+ * 
+ * RN version includes:
+ * - Starting Gold
+ * - Library/Arena/Daily Limits
+ * - Subscription Prices
+ * - Basic XP System
+ * - Save/Reset buttons
+ * 
+ * DEPENDENCIES:
+ * npm install lucide-react-native
+ * npm install react-native-linear-gradient
+ * 
+ * For full settings, use web version or implement AsyncStorage sync.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -18,7 +46,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import {
   ArrowLeft,
   Settings,
@@ -31,13 +59,7 @@ import {
   RotateCcw,
   AlertCircle,
   TrendingUp,
-  RefreshCw,
 } from 'lucide-react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/types';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CommonActions } from '@react-navigation/native';
-import { useCoins } from '../contexts/CoinsContext';
 
 // ============================================
 // CONSTANTS
@@ -112,7 +134,9 @@ const FONT_WEIGHT = {
 // TYPES
 // ============================================
 
-type ManagerScreenProps = NativeStackScreenProps<RootStackParamList, 'Manager'>;
+interface ManagerPageProps {
+  onBack: () => void;
+}
 
 interface GameConfig {
   initialGold: number;
@@ -152,8 +176,7 @@ const DEFAULT_CONFIG: GameConfig = {
 // COMPONENT
 // ============================================
 
-export default function ManagerScreen({ navigation }: ManagerScreenProps) {
-  const { reloadBalance } = useCoins();
+export function ManagerPage({ onBack }: ManagerPageProps) {
   const [config, setConfig] = useState<GameConfig>(DEFAULT_CONFIG);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -186,66 +209,6 @@ export default function ManagerScreen({ navigation }: ManagerScreenProps) {
             setConfig(DEFAULT_CONFIG);
             setHasChanges(false);
             Alert.alert('Siker', 'Alapértelmezett beállítások visszaállítva!');
-          },
-        },
-      ]
-    );
-  };
-
-  const handleResetData = async () => {
-    Alert.alert(
-      'Vissza az elejére',
-      'Biztosan vissza szeretnél állni az elejére? Ez törli:\n\n• Minden lecke progresst\n• Kölcsönzött könyveket\n• Avatárt\n• Game state-et\n\nÚj kezdés:\n• 1000 arany\n• 0 gyémánt\n• 1. szint',
-      [
-        { text: 'Mégse', style: 'cancel' },
-        {
-          text: 'Vissza az elejére',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('🗑️ Resetting all data...');
-
-              // Törlés az AsyncStorage-ból
-              await AsyncStorage.multiRemove([
-                'game_state',
-                'rentedBooks',
-                'lessonProgress',
-                'player_avatar',
-                'userCoins',
-                'userGems',
-              ]);
-
-              // Alapértelmezett értékek beállítása
-              await AsyncStorage.setItem('userCoins', '1000');
-              await AsyncStorage.setItem('userGems', '0');
-
-              console.log('✅ All data reset successfully!');
-
-              // Reload balance from AsyncStorage
-              await reloadBalance();
-
-              Alert.alert(
-                'Siker! ✅',
-                'Minden adat törölve lett!\n\nÚj kezdés:\n• 1000 arany 💰\n• 0 gyémánt 💎\n• 1. szint 🎓\n\nVisszalépsz a főoldalra...',
-                [
-                  {
-                    text: 'OK',
-                    onPress: () => {
-                      // Reset navigation stack to Home
-                      navigation.dispatch(
-                        CommonActions.reset({
-                          index: 0,
-                          routes: [{ name: 'Home' }],
-                        })
-                      );
-                    },
-                  },
-                ]
-              );
-            } catch (error) {
-              console.error('❌ Error resetting data:', error);
-              Alert.alert('Hiba', 'Nem sikerült törölni az adatokat.');
-            }
           },
         },
       ]
@@ -296,7 +259,7 @@ export default function ManagerScreen({ navigation }: ManagerScreenProps) {
         }}
         keyboardType="number-pad"
         placeholder="0"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={COLORS.secondary}
       />
       {helperText && <Text style={styles.helperText}>{helperText}</Text>}
     </View>
@@ -314,7 +277,7 @@ export default function ManagerScreen({ navigation }: ManagerScreenProps) {
         style={styles.header}
       >
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <TouchableOpacity onPress={onBack} style={styles.backButton}>
             <ArrowLeft size={SIZES.iconLG} color={COLORS.white} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
@@ -459,20 +422,6 @@ export default function ManagerScreen({ navigation }: ManagerScreenProps) {
           )}
         </View>
 
-        {/* Data Management */}
-        <View style={styles.dataManagementCard}>
-          <Text style={styles.dataManagementTitle}>Adatkezelés</Text>
-
-          <TouchableOpacity
-            onPress={handleResetData}
-            style={styles.resetDataButton}
-            activeOpacity={0.8}
-          >
-            <RefreshCw size={20} color={COLORS.red500} />
-            <Text style={styles.resetDataButtonText}>🔄 Vissza az elejére</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Bottom Spacer */}
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -492,7 +441,7 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    paddingTop: 50,
+    paddingTop: SPACING.base,
     paddingBottom: SPACING.base,
     paddingHorizontal: SPACING.base,
     // Shadow (iOS)
@@ -661,43 +610,5 @@ const styles = StyleSheet.create({
     fontSize: SIZES.fontXS,
     color: '#6B7280',
     marginTop: SPACING.xs,
-  },
-
-  // Data Management Card
-  dataManagementCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: SIZES.radiusXL,
-    padding: SPACING.base,
-    borderWidth: SIZES.borderMedium,
-    borderColor: '#E5E7EB',
-    gap: SPACING.md,
-    // Shadow (iOS)
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    // Shadow (Android)
-    elevation: 2,
-  },
-  dataManagementTitle: {
-    fontSize: SIZES.fontBase,
-    fontWeight: FONT_WEIGHT.bold,
-    color: '#1F2937',
-  },
-  resetDataButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-    paddingVertical: SPACING.md,
-    borderWidth: SIZES.borderMedium,
-    borderColor: '#FCA5A5',
-    backgroundColor: COLORS.white,
-    borderRadius: SIZES.radiusLG,
-  },
-  resetDataButtonText: {
-    color: COLORS.red500,
-    fontSize: SIZES.fontBase,
-    fontWeight: FONT_WEIGHT.semibold,
   },
 });
