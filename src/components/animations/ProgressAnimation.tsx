@@ -1,24 +1,66 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Animated, {
-  useSharedValue,
-  useAnimatedProps,
-  withTiming,
-  withRepeat,
-  withSequence,
-  Easing,
-  FadeIn,
-  ZoomIn,
-  withSpring,
-  useAnimatedStyle,
-} from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
-import MaskedView from '@react-native-masked-view/masked-view';
-import { BlurView } from 'expo-blur';
-import Svg, { Circle, Defs, RadialGradient as SvgRadialGradient, Stop, Rect } from 'react-native-svg';
+/**
+ * ============================================
+ * PROGRESSANIMATION - REACT NATIVE VERSION
+ * ============================================
+ *
+ * "Továbbhaladás" button with animated sparkles
+ * - Displays lesson number
+ * - Progress indicator
+ * - Sparkles animation
+ * - Gradient text
+ * - AsyncStorage book detection
+ *
+ * HASZNÁLAT:
+ * <ProgressAnimation
+ *   onClick={() => handleNextLesson()}
+ *   currentBookLessonIndex={10}
+ *   currentGameType="reading"
+ *   isFirstRound={true}
+ * />
+ *
+ * FÜGGŐSÉGEK:
+ * npm install expo-linear-gradient
+ * npm install lucide-react-native
+ * npm install @react-native-async-storage/async-storage
+ */
+
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS, SPACING, SIZES, FONT_WEIGHT } from '../../utils/styleConstants';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Sparkles, BookOpen } from 'lucide-react-native';
+
+// ============================================
+// CONSTANTS
+// ============================================
+
+const COLORS = {
+  white: '#FFFFFF',
+};
+
+const SPACING = {
+  sm: 8,
+  base: 16,
+  lg: 20,
+};
+
+const SIZES = {
+  fontSM: 12,
+  fontLG: 18,
+  font2XL: 24,
+  font4XL: 36,
+  radiusFull: 9999,
+};
+
+// ============================================
+// TYPES
+// ============================================
 
 interface ProgressAnimationProps {
   onClick?: () => void;
@@ -27,27 +69,87 @@ interface ProgressAnimationProps {
   isFirstRound?: boolean;
 }
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+// ============================================
+// COMPONENT
+// ============================================
 
 export function ProgressAnimation({
   onClick,
   currentBookLessonIndex = 0,
   currentGameType = 'reading',
-  isFirstRound = true
+  isFirstRound = true,
 }: ProgressAnimationProps) {
-  const [hasRentedBook, setHasRentedBook] = useState(false);
-  const [totalLessons] = useState(15); // Total lessons for Pénzügyi Alapismeretek
+  // ============================================
+  // ANIMATION
+  // ============================================
 
-  // Animation values
-  const scale = useSharedValue(1);
-  const rotation = useSharedValue(0);
-  const progress = useSharedValue(0);
+  const sparkle1 = useRef(new Animated.Value(0)).current;
+  const sparkle2 = useRef(new Animated.Value(0)).current;
+  const sparkle3 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Sparkle animations
+    const animations = [
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(sparkle1, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(sparkle1, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ])
+      ),
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(500),
+          Animated.timing(sparkle2, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(sparkle2, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ])
+      ),
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(1000),
+          Animated.timing(sparkle3, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(sparkle3, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ])
+      ),
+    ];
+
+    Animated.parallel(animations).start();
+  }, []);
+
+  // ============================================
+  // STATE & EFFECTS
+  // ============================================
+
+  const [hasRentedBook, setHasRentedBook] = useState(false);
 
   // Check if Pénzügyi Alapismeretek is rented
   useEffect(() => {
     const checkRentedBooks = async () => {
       try {
+        // For React Native, use AsyncStorage instead of localStorage
         const saved = await AsyncStorage.getItem('rentedBooks');
         if (saved) {
           const rentedBooks = JSON.parse(saved);
@@ -60,229 +162,173 @@ export function ProgressAnimation({
           setHasRentedBook(false);
         }
       } catch (error) {
-        console.error('Error checking rented books:', error);
         setHasRentedBook(false);
       }
     };
 
     checkRentedBooks();
+
+    // Poll every 3 seconds to check for changes
+    const interval = setInterval(checkRentedBooks, 3000);
+
+    return () => clearInterval(interval);
   }, []);
 
-  // Animate on mount
-  useEffect(() => {
-    // Scale animation - breathing effect
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.05, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1,
-      false
-    );
+  // ============================================
+  // COMPUTED VALUES
+  // ============================================
 
-    // Rotation animation for sparkles
-    rotation.value = withRepeat(
-      withTiming(360, { duration: 4000, easing: Easing.linear }),
-      -1,
-      false
-    );
-
-    // Progress bar animation
-    progress.value = withRepeat(
-      withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      false
-    );
-  }, []);
-
-  // Calculate current lesson number
+  // Calculate current lesson number (every game is a separate lesson)
   const lessonNumber = isFirstRound
-    ? currentBookLessonIndex * 3 +
-      (currentGameType === 'reading' ? 1 : currentGameType === 'matching' ? 2 : 3)
-    : totalLessons + currentBookLessonIndex + 1;
+    ? currentBookLessonIndex * 3 + (currentGameType === 'reading' ? 1 : currentGameType === 'matching' ? 2 : 3)
+    : 60 * 3 + currentBookLessonIndex + 1; // Assuming 60 pages in first round
 
-  // Animated styles
-  const animatedScale = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  // Progress percentage for progress bar
+  const progressPercentage =
+    currentGameType === 'reading' ? 0 : currentGameType === 'matching' ? 50 : 100;
 
-  const animatedRotation = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
-  }));
+  // ============================================
+  // EVENT HANDLERS
+  // ============================================
 
-  const animatedProgressProps = useAnimatedProps(() => ({
-    strokeDashoffset: 200 - 200 * progress.value,
-  }));
+  const handleClick = () => {
+    onClick?.();
+  };
 
-  // Don't show if no book is rented
+  // ============================================
+  // RENDER
+  // ============================================
+
+  // No book rented state
   if (!hasRentedBook) {
     return (
-      <View style={styles.container}>
-        <Animated.View style={styles.noBookContent} entering={ZoomIn.duration(600)}>
-          {/* Lamp-like glow effect - SVG Radial Gradient (static, non-interactive) */}
-          <View style={styles.lampGlow} pointerEvents="none">
-            <Svg width="900" height="900" style={styles.svgGlow}>
-              <Defs>
-                <SvgRadialGradient id="lampGradient" cx="50%" cy="50%">
-                  <Stop offset="0%" stopColor="#FDE047" stopOpacity="0.5" />
-                  <Stop offset="8%" stopColor="#FCD34D" stopOpacity="0.45" />
-                  <Stop offset="20%" stopColor="#FBBF24" stopOpacity="0.35" />
-                  <Stop offset="35%" stopColor="#FBBF24" stopOpacity="0.25" />
-                  <Stop offset="50%" stopColor="#FBBF24" stopOpacity="0.15" />
-                  <Stop offset="70%" stopColor="#FBBF24" stopOpacity="0.08" />
-                  <Stop offset="100%" stopColor="#FBBF24" stopOpacity="0" />
-                </SvgRadialGradient>
-              </Defs>
-              <Rect width="900" height="900" fill="url(#lampGradient)" />
-            </Svg>
-          </View>
+      <View style={styles.container} pointerEvents="none">
+        <View style={styles.noBookContent} pointerEvents="auto">
+          {/* Glow effect */}
+          <View style={styles.glowEffect} />
 
+          {/* Book icon */}
+          <BookOpen size={64} color="#FBBF24" style={{ marginBottom: SPACING.base }} />
+
+          {/* Text */}
           <View style={styles.noBookTextContainer}>
-            <Animated.View
-              style={[styles.bookIconWrapper, animatedScale]}
-              entering={FadeIn.delay(200).duration(400)}
-            >
-              <MaterialCommunityIcons
-                name="book-open-variant"
-                size={64}
-                color="#FBBF24"
-              />
-            </Animated.View>
-
-            <View style={styles.noBookTexts}>
-              <Text style={styles.noBookTitle}>Nincs kölcsönzött</Text>
-              <MaskedView
-                maskElement={
-                  <Text style={styles.noBookMainText}>tankönyv</Text>
-                }
+            <Text style={styles.noBookTitle}>Nincs kölcsönzött</Text>
+            <View style={styles.noBookMainTextContainer}>
+              <LinearGradient
+                colors={['#FCD34D', '#FDE047', '#FDBA74']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.gradientBackground}
               >
-                <LinearGradient
-                  colors={['#FCD34D', '#FDE047', '#FDBA74']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.gradientContainer}
-                >
-                  <Text style={[styles.noBookMainText, { opacity: 0 }]}>tankönyv</Text>
-                </LinearGradient>
-              </MaskedView>
-              <Text style={styles.noBookSubtitle}>
-                Kölcsönözz ki könyvet a könyvtárból!
-              </Text>
+                <Text style={styles.noBookGradientText}>tankönyv</Text>
+              </LinearGradient>
             </View>
+            <Text style={styles.noBookSubtitle}>Kölcsönözz ki könyvet a könyvtárból!</Text>
           </View>
-        </Animated.View>
+        </View>
       </View>
     );
   }
 
+  // Has book selected state
   return (
-    <View style={styles.container}>
-      <AnimatedTouchable
-        onPress={onClick}
+    <View style={styles.container} pointerEvents="none">
+      <TouchableOpacity
+        onPress={handleClick}
+        activeOpacity={0.8}
         style={styles.contentWrapper}
-        entering={ZoomIn.duration(600)}
-        activeOpacity={0.9}
+        pointerEvents="auto"
       >
-        {/* Sparkles around - 8 sparkles in circle */}
-        {[...Array(8)].map((_, i) => {
-          const angle = (i * Math.PI * 2) / 8;
-          const radius = 120;
-          const top = 50 + Math.cos(angle) * radius;
-          const left = Math.sin(angle) * radius;
-
-          return (
-            <Animated.View
-              key={i}
-              style={[
-                styles.sparkle,
-                { top, left },
-                animatedRotation,
-              ]}
-              entering={FadeIn.delay(i * 100).duration(400)}
-            >
-              <MaterialCommunityIcons
-                name="shimmer"
-                size={SIZES.iconLG}
-                color="#FBBF24"
-              />
-            </Animated.View>
-          );
-        })}
-
-        {/* Main text */}
+        {/* Sparkles */}
         <Animated.View
-          style={styles.textContainer}
-          entering={ZoomIn.delay(200).duration(600)}
+          style={[
+            styles.sparkle,
+            {
+              top: -20,
+              left: -30,
+              opacity: sparkle1,
+              transform: [{ scale: sparkle1 }],
+            },
+          ]}
         >
-          <Animated.View style={animatedScale}>
+          <Sparkles size={24} color="#FDE047" />
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.sparkle,
+            {
+              top: -15,
+              right: -40,
+              opacity: sparkle2,
+              transform: [{ scale: sparkle2 }],
+            },
+          ]}
+        >
+          <Sparkles size={20} color="#D8B4FE" />
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.sparkle,
+            {
+              bottom: 0,
+              right: -20,
+              opacity: sparkle3,
+              transform: [{ scale: sparkle3 }],
+            },
+          ]}
+        >
+          <Sparkles size={18} color="#F9A8D4" />
+        </Animated.View>
+
+        {/* Main Text */}
+        <View style={styles.textContainer}>
+          <View style={styles.textInner}>
+            {/* Glow effect */}
+            <View style={styles.textGlow} />
+
+            {/* Text content */}
             <View style={styles.textContent}>
               <Text style={styles.topLabel}>Tovább haladás</Text>
-              <LinearGradient
-                colors={['#FDE047', '#D8B4FE', '#F9A8D4']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.lessonNumberGradient}
-              >
-                <Text style={styles.lessonNumber}>{lessonNumber}. Lecke</Text>
-              </LinearGradient>
+
+              {/* Lesson number (gradient text) */}
+              <View style={styles.lessonNumberContainer}>
+                <LinearGradient
+                  colors={['#FDE047', '#D8B4FE', '#F9A8D4']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.lessonGradientBackground}
+                >
+                  <Text style={styles.lessonGradientText}>{lessonNumber}. Lecke</Text>
+                </LinearGradient>
+              </View>
+
               <Text style={styles.bottomLabel}>következik</Text>
             </View>
-          </Animated.View>
-        </Animated.View>
+          </View>
+        </View>
 
-        {/* Circular Progress Bar */}
-        <Animated.View
-          style={styles.progressContainer}
-          entering={FadeIn.delay(300).duration(500)}
-        >
-          <Svg width="100" height="100" style={styles.progressSvg}>
-            {/* Background circle */}
-            <Circle
-              cx="50"
-              cy="50"
-              r="32"
-              stroke="rgba(255, 255, 255, 0.2)"
-              strokeWidth="4"
-              fill="none"
-            />
-            {/* Progress circle */}
-            <AnimatedCircle
-              cx="50"
-              cy="50"
-              r="32"
-              stroke="#FDE047"
-              strokeWidth="4"
-              fill="none"
-              strokeDasharray="200"
-              strokeDashoffset={200}
-              strokeLinecap="round"
-              animatedProps={animatedProgressProps}
-            />
-          </Svg>
-        </Animated.View>
-
-        {/* Floating particles */}
-        {[...Array(12)].map((_, i) => {
-          const top = Math.random() * 200 - 100;
-          const left = Math.random() * 300 - 150;
-          const colors = ['#fbbf24', '#a855f7', '#ec4899'];
-          const color = colors[i % 3];
-
-          return (
-            <Animated.View
-              key={`particle-${i}`}
-              style={[
-                styles.particle,
-                { top, left, backgroundColor: color },
-              ]}
-              entering={FadeIn.delay(i * 50 + 400).duration(600)}
-            />
-          );
-        })}
-      </AnimatedTouchable>
+        {/* Progress bar */}
+        <View style={styles.progressBarContainer}>
+          <LinearGradient
+            colors={['#FDE047', '#C084FC', '#F9A8D4']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[
+              styles.progressBarFill,
+              { width: `${progressPercentage}%` },
+            ]}
+          />
+        </View>
+      </TouchableOpacity>
     </View>
   );
 }
+
+// ============================================
+// STYLES
+// ============================================
 
 const styles = StyleSheet.create({
   container: {
@@ -294,68 +340,56 @@ const styles = StyleSheet.create({
     zIndex: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    pointerEvents: 'box-none',
   },
 
   // No book view
   noBookContent: {
     position: 'relative',
     alignItems: 'center',
-    gap: SPACING.sm,
-    paddingHorizontal: 24,
-    paddingVertical: 32,
+    gap: SPACING.base,
+    paddingHorizontal: 32,
+    paddingVertical: 48,
   },
-  // Lamp-like radial glow - SVG based (centered on text)
-  lampGlow: {
+  glowEffect: {
     position: 'absolute',
-    top: '50%',
-    left: '50%',
-    width: 900,
-    height: 900,
-    marginTop: -450,
-    marginLeft: -450,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1,
-  },
-  svgGlow: {
-    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(245, 158, 11, 0.3)',
+    borderRadius: 9999,
+    transform: [{ scale: 1.5 }],
   },
   noBookTextContainer: {
     position: 'relative',
     alignItems: 'center',
-    zIndex: 10,
-  },
-  bookIconWrapper: {
-    marginBottom: SPACING.base,
-  },
-  noBookTexts: {
-    alignItems: 'center',
   },
   noBookTitle: {
     fontSize: SIZES.fontLG,
-    color: COLORS.white,
-    fontWeight: FONT_WEIGHT.normal,
     opacity: 0.9,
-    textAlign: 'center',
+    marginBottom: SPACING.sm,
+    color: COLORS.white,
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 8,
   },
-  gradientContainer: {
+  noBookMainTextContainer: {
     marginBottom: SPACING.sm,
   },
-  noBookMainText: {
+  gradientBackground: {
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  noBookGradientText: {
     fontSize: SIZES.font2XL,
-    fontWeight: FONT_WEIGHT.normal,
-    textAlign: 'center',
+    color: COLORS.white,
+    fontWeight: '700',
   },
   noBookSubtitle: {
     fontSize: SIZES.fontSM,
-    color: COLORS.white,
-    fontWeight: FONT_WEIGHT.normal,
     opacity: 0.75,
-    textAlign: 'center',
+    color: COLORS.white,
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 8,
@@ -379,45 +413,63 @@ const styles = StyleSheet.create({
   textContainer: {
     alignItems: 'center',
   },
+  textInner: {
+    position: 'relative',
+  },
+  textGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(168, 85, 247, 0.5)',
+    borderRadius: 9999,
+    transform: [{ scale: 1.5 }],
+  },
   textContent: {
     position: 'relative',
     alignItems: 'center',
   },
   topLabel: {
     fontSize: SIZES.fontSM,
-    color: COLORS.white,
     opacity: 0.9,
     marginBottom: SPACING.sm,
-  },
-  lessonNumberGradient: {
-    paddingHorizontal: SPACING.base,
-    borderRadius: SIZES.radiusLG,
-  },
-  lessonNumber: {
-    fontSize: SIZES.font4XL,
-    fontWeight: FONT_WEIGHT.bold,
     color: COLORS.white,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 8,
+  },
+  lessonNumberContainer: {
     marginBottom: SPACING.base,
+  },
+  lessonGradientBackground: {
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  lessonGradientText: {
+    fontSize: SIZES.font4XL,
+    color: COLORS.white,
+    fontWeight: '700',
   },
   bottomLabel: {
     fontSize: SIZES.fontSM,
-    color: COLORS.white,
     opacity: 0.9,
+    color: COLORS.white,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 8,
   },
 
   // Progress bar
-  progressContainer: {
-    marginTop: SPACING.base,
+  progressBarContainer: {
+    width: 200,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: SIZES.radiusFull,
+    overflow: 'hidden',
   },
-  progressSvg: {
-    transform: [{ rotate: '-90deg' }],
-  },
-
-  // Floating particles
-  particle: {
-    position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  progressBarFill: {
+    height: '100%',
   },
 });

@@ -15,9 +15,10 @@
  * FÜGGŐSÉGEK:
  * npm install react-native-linear-gradient
  * npm install lucide-react-native
+ * npm install @react-native-async-storage/async-storage
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -25,8 +26,9 @@ import {
   StyleSheet,
   Animated,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
-import { Sparkles } from 'lucide-react-native';
+import { Sparkles, BookOpen } from 'lucide-react-native';
 
 // ============================================
 // CONSTANTS
@@ -132,22 +134,52 @@ export function ProgressAnimation({
   }, []);
 
   // ============================================
+  // STATE & EFFECTS
+  // ============================================
+
+  const [hasRentedBook, setHasRentedBook] = useState(false);
+
+  // Check if Pénzügyi Alapismeretek is rented
+  useEffect(() => {
+    const checkRentedBooks = async () => {
+      try {
+        // For React Native, use AsyncStorage instead of localStorage
+        const saved = await AsyncStorage.getItem('rentedBooks');
+        if (saved) {
+          const rentedBooks = JSON.parse(saved);
+          const hasPenzugyiBook = rentedBooks.some(
+            (book: any) =>
+              book.title === 'Pénzügyi Alapismeretek' && book.rentedUntil > Date.now()
+          );
+          setHasRentedBook(hasPenzugyiBook);
+        } else {
+          setHasRentedBook(false);
+        }
+      } catch (error) {
+        setHasRentedBook(false);
+      }
+    };
+
+    checkRentedBooks();
+
+    // Poll every 3 seconds to check for changes
+    const interval = setInterval(checkRentedBooks, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // ============================================
   // COMPUTED VALUES
   // ============================================
 
-  const lessonNumber = currentBookLessonIndex + 1;
+  // Calculate current lesson number (every game is a separate lesson)
+  const lessonNumber = isFirstRound
+    ? currentBookLessonIndex * 3 + (currentGameType === 'reading' ? 1 : currentGameType === 'matching' ? 2 : 3)
+    : 60 * 3 + currentBookLessonIndex + 1; // Assuming 60 pages in first round
 
-  // Game type label
-  const gameTypeLabel =
-    currentGameType === 'reading'
-      ? 'Olvasás'
-      : currentGameType === 'matching'
-      ? 'Párosítás'
-      : 'Kvíz';
-
-  // Progress percentage (simple: 0%, 33%, 66%, 100%)
+  // Progress percentage for progress bar
   const progressPercentage =
-    currentGameType === 'reading' ? 0 : currentGameType === 'matching' ? 33 : 66;
+    currentGameType === 'reading' ? 0 : currentGameType === 'matching' ? 50 : 100;
 
   // ============================================
   // EVENT HANDLERS
@@ -161,28 +193,24 @@ export function ProgressAnimation({
   // RENDER
   // ============================================
 
-  // No book selected state (optional - simplified)
-  if (lessonNumber <= 0) {
+  // No book rented state
+  if (!hasRentedBook) {
     return (
       <View style={styles.container} pointerEvents="none">
         <View style={styles.noBookContent} pointerEvents="auto">
           {/* Glow effect */}
           <View style={styles.glowEffect} />
 
+          {/* Book icon */}
+          <BookOpen size={64} color="#FBBF24" style={{ marginBottom: SPACING.base }} />
+
           {/* Text */}
           <View style={styles.noBookTextContainer}>
-            <Text style={styles.noBookTitle}>Kezdés előtt</Text>
+            <Text style={styles.noBookTitle}>Nincs kölcsönzött</Text>
             <Text style={styles.noBookMainText}>
-              <LinearGradient
-                colors={['#FCD34D', '#FDE047', '#FDBA74']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{ borderRadius: 4 }}
-              >
-                <Text style={styles.noBookGradientText}>Válassz könyvet!</Text>
-              </LinearGradient>
+              <Text style={styles.noBookGradientText}>tankönyv</Text>
             </Text>
-            <Text style={styles.noBookSubtitle}>Az Egyetem menüben</Text>
+            <Text style={styles.noBookSubtitle}>Kölcsönözz ki könyvet a könyvtárból!</Text>
           </View>
         </View>
       </View>
@@ -249,7 +277,7 @@ export function ProgressAnimation({
 
             {/* Text content */}
             <View style={styles.textContent}>
-              <Text style={styles.topLabel}>Folytatás</Text>
+              <Text style={styles.topLabel}>Tovább haladás</Text>
 
               {/* Lesson number (gradient text) */}
               <Text style={styles.lessonNumber}>
@@ -259,26 +287,25 @@ export function ProgressAnimation({
                   end={{ x: 1, y: 0 }}
                   style={{ borderRadius: 4 }}
                 >
-                  <Text style={styles.lessonGradientText}>{lessonNumber}.</Text>
+                  <Text style={styles.lessonGradientText}>{lessonNumber}. Lecke</Text>
                 </LinearGradient>
               </Text>
 
-              <Text style={styles.bottomLabel}>{gameTypeLabel}</Text>
+              <Text style={styles.bottomLabel}>következik</Text>
             </View>
           </View>
         </View>
 
         {/* Progress bar */}
         <View style={styles.progressBarContainer}>
-          <LinearGradient
-            colors={['#FDE047', '#C084FC', '#F9A8D4']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[
-              styles.progressBarFill,
-              { width: `${progressPercentage}%` },
-            ]}
-          />
+          <View style={{ width: `${progressPercentage}%` }}>
+            <LinearGradient
+              colors={['#FDE047', '#C084FC', '#F9A8D4']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.progressBarFill}
+            />
+          </View>
         </View>
       </TouchableOpacity>
     </View>
