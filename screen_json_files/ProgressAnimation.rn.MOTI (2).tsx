@@ -1,18 +1,12 @@
 /**
  * ProgressAnimation - REACT NATIVE (MOTI)
- *
+ * 
  * FIXES (2025-01-02):
  * ✅ Blur effect → Shadow effect (CSS blur NEM működik RN-ben)
  * ✅ Gradient text → Solid color + text shadow (backgroundClip NEM működik RN-ben)
  * ✅ Font sizes javítva (48px lessonNumber)
  * ✅ Letter spacing hozzáadva
  * ✅ Simplified no-book state
- *
- * BABEL CONFIG (babel.config.js):
- * module.exports = {
- *   presets: ['babel-preset-expo'],
- *   plugins: ['react-native-reanimated/plugin'],
- * };
  */
 
 import React, { useEffect, useState } from 'react';
@@ -23,13 +17,9 @@ import {
   StyleSheet,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import { Sparkles, BookOpen } from 'lucide-react-native';
 import { MotiView } from 'moti';
-
-// ============================================
-// CONSTANTS
-// ============================================
 
 const COLORS = {
   white: '#FFFFFF',
@@ -54,10 +44,6 @@ const SIZES = {
 
 const TOTAL_LESSONS = 18;
 
-// ============================================
-// TYPES
-// ============================================
-
 interface ProgressAnimationProps {
   onClick?: () => void;
   currentBookLessonIndex?: number;
@@ -65,27 +51,14 @@ interface ProgressAnimationProps {
   isFirstRound?: boolean;
 }
 
-// ============================================
-// COMPONENT
-// ============================================
-
 export function ProgressAnimation({
   onClick,
   currentBookLessonIndex = 0,
   currentGameType = 'reading',
   isFirstRound = true,
 }: ProgressAnimationProps) {
-  // ============================================
-  // STATE
-  // ============================================
-
   const [hasRentedBook, setHasRentedBook] = useState(false);
 
-  // ============================================
-  // EFFECTS
-  // ============================================
-
-  // Check if Pénzügyi Alapismeretek is rented
   useEffect(() => {
     const checkRentedBooks = async () => {
       try {
@@ -110,19 +83,10 @@ export function ProgressAnimation({
     checkRentedBooks();
   }, []);
 
-  // ============================================
-  // CALCULATIONS
-  // ============================================
-
-  // Calculate current lesson number (every game is a separate lesson)
   const lessonNumber = isFirstRound
     ? currentBookLessonIndex * 3 +
       (currentGameType === 'reading' ? 1 : currentGameType === 'matching' ? 2 : 3)
     : TOTAL_LESSONS + currentBookLessonIndex + 1;
-
-  // ============================================
-  // RENDER - NO BOOK
-  // ============================================
 
   if (!hasRentedBook) {
     return (
@@ -165,10 +129,6 @@ export function ProgressAnimation({
     );
   }
 
-  // ============================================
-  // RENDER - HAS BOOK
-  // ============================================
-
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -176,7 +136,6 @@ export function ProgressAnimation({
         onPress={onClick}
         activeOpacity={0.9}
       >
-        {/* Sparkles around the center - 8 icons in a circle */}
         {[...Array(8)].map((_, i) => {
           const angle = (i * Math.PI * 2) / 8;
           const top = 50 + Math.cos(angle) * 120;
@@ -187,7 +146,7 @@ export function ProgressAnimation({
               key={i}
               style={[
                 styles.sparkleAbsolute,
-                { top, left: left + 150 }, // Offset for centering
+                { top, left: left + 150 },
               ]}
               animate={{
                 scale: [0, 1, 0],
@@ -206,7 +165,6 @@ export function ProgressAnimation({
           );
         })}
 
-        {/* Main text */}
         <MotiView
           from={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -241,7 +199,6 @@ export function ProgressAnimation({
           </MotiView>
         </MotiView>
 
-        {/* Progress bar */}
         <MotiView
           from={{ width: 0, opacity: 0 }}
           animate={{ width: 200, opacity: 1 }}
@@ -271,9 +228,8 @@ export function ProgressAnimation({
           </MotiView>
         </MotiView>
 
-        {/* Floating particles */}
         {[...Array(12)].map((_, i) => {
-          const top = Math.random() * 200 - 100 + 100; // Offset for centering
+          const top = Math.random() * 200 - 100 + 100;
           const left = Math.random() * 300 - 150 + 150;
           const colors = ['#fbbf24', '#a855f7', '#ec4899'];
           const color = colors[i % 3];
@@ -301,12 +257,7 @@ export function ProgressAnimation({
   );
 }
 
-// ============================================
-// STYLES
-// ============================================
-
 const styles = StyleSheet.create({
-  // Container
   container: {
     position: 'absolute',
     top: 0,
@@ -319,7 +270,6 @@ const styles = StyleSheet.create({
     pointerEvents: 'box-none',
   },
 
-  // No book view
   noBookContent: {
     position: 'relative',
     alignItems: 'center',
@@ -362,7 +312,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // Has book view
   contentWrapper: {
     position: 'relative',
     alignItems: 'center',
@@ -371,12 +320,10 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
   },
 
-  // Sparkles
   sparkleAbsolute: {
     position: 'absolute',
   },
 
-  // Main text
   textContainer: {
     alignItems: 'center',
   },
@@ -419,7 +366,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // Progress bar
   progressBarContainer: {
     height: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -434,7 +380,6 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radiusFull,
   },
 
-  // Floating particles
   particle: {
     position: 'absolute',
     width: 6,

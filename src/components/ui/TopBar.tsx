@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   playerInfoContainer: {
     position: 'absolute',
     left: 16, // Increased from 8 to 16 to prevent clipping
-    top: 60, // Increased from 48 to 60 to ensure full visibility
+    top: 68, // Increased from 60 to 68 for better spacing from top
     zIndex: 100,
   },
   playerCard: {
@@ -669,7 +669,7 @@ const styles = StyleSheet.create({
   stageProgressContainer: {
     position: 'absolute',
     right: 8,
-    top: 60, // Increased from 48 to 60 to align with playerInfoContainer
+    top: 68, // Increased from 60 to 68 to align with playerInfoContainer
     zIndex: 40,
   },
   stageCard: {
