@@ -939,7 +939,7 @@ export default function ArenaScreen({ navigation, route }: ArenaPageProps) {
   // ============================================
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <View style={styles.container}>
         {/* Background Gradient */}
         <LinearGradient
@@ -1045,7 +1045,8 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    paddingVertical: 10,
+    paddingTop: 65, // Increased padding for better spacing from iPhone notch/camera
+    paddingBottom: 10,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(168, 85, 247, 0.3)',

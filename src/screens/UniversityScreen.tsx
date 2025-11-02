@@ -502,7 +502,10 @@ const styles = StyleSheet.create({
 
   // ===== HEADER =====
   header: {
-    position: 'relative',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     zIndex: 30,
     paddingHorizontal: SPACING.base,
     paddingTop: 50, // Safe area padding for iPhone notch/camera
@@ -512,6 +515,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: SIZES.radiusLG,
+    // Shadow for better visibility
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   backButtonText: {
     color: COLORS.white,
@@ -587,7 +600,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 10,
     alignItems: 'center',
-    paddingTop: SPACING.sm,
+    paddingTop: 100, // Increased to move below iPhone camera/notch area
     paddingBottom: SPACING.base,
   },
   title: {

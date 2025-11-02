@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, StatusBar } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SPACING, SIZES } from '../utils/styleConstants';
@@ -41,7 +41,11 @@ export default function ShopScreen({ navigation, route }: ShopScreenProps) {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FAF5FF" translucent={false} />
       <LinearGradient colors={['#FAF5FF', '#FFFFFF']} style={styles.gradient}>
+        {/* Top spacer for iPhone notch/camera */}
+        <View style={styles.topSpacer} />
+
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -193,13 +197,16 @@ export default function ShopScreen({ navigation, route }: ShopScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#FAF5FF' },
   gradient: { flex: 1 },
+  topSpacer: {
+    height: 48,
+    backgroundColor: 'transparent',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    marginTop: 48,
     marginBottom: SPACING.lg,
     paddingHorizontal: SPACING.base,
   },

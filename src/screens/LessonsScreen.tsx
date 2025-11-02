@@ -5,11 +5,13 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInLeft, FadeInUp } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -135,8 +137,8 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
             // Add book with progress but not currently rented
             allBooks.push({
               title: bookTitle,
-              color: 'bg-gradient-to-br from-amber-600 to-orange-700',
-              textColor: 'text-white',
+              color: '#D97706', // amber-600
+              textColor: '#FFFFFF',
               isRented: false
             });
           }
@@ -227,18 +229,25 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
   if (!selectedBook) {
     // Book selection view
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.container}>
+      <View style={styles.outerContainer}>
+        <StatusBar barStyle="light-content" backgroundColor="#0F172A" translucent={false} />
+        <LinearGradient
+          colors={['#0F172A', '#581C87', '#0F172A']}
+          style={styles.gradient}
+        >
+          {/* Top spacer for iPhone notch/camera */}
+          <View style={styles.topSpacer} />
+
           {/* Header */}
           <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.white} />
-            <Text style={styles.backButtonText}>Vissza</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            >
+              <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.white} />
+              <Text style={styles.backButtonText}>Vissza</Text>
+            </TouchableOpacity>
+          </View>
 
         {/* Title */}
         <View style={styles.titleSection}>
@@ -283,7 +292,7 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
                       onPress={() => setSelectedBook(book.title)}
                       style={[
                         styles.bookCard,
-                        { backgroundColor: '#8B5CF6' } // Placeholder gradient
+                        { backgroundColor: book.color }
                       ]}
                       activeOpacity={0.8}
                     >
@@ -330,25 +339,32 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
             </View>
           )}
         </ScrollView>
-        </View>
-      </SafeAreaView>
+        </LinearGradient>
+      </View>
     );
   }
 
   // Lesson map view (Duolingo-style)
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.container}>
+    <View style={styles.outerContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#0F172A" translucent={false} />
+      <LinearGradient
+        colors={['#0F172A', '#581C87', '#0F172A']}
+        style={styles.gradient}
+      >
+        {/* Top spacer for iPhone notch/camera */}
+        <View style={styles.topSpacer} />
+
         {/* Header */}
         <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => setSelectedBook(null)}
-          style={styles.backButton}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.white} />
-          <Text style={styles.backButtonText}>Vissza a könyvekhez</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            onPress={() => setSelectedBook(null)}
+            style={styles.backButton}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.white} />
+            <Text style={styles.backButtonText}>Vissza a könyvekhez</Text>
+          </TouchableOpacity>
+        </View>
 
       {/* Title */}
       <View style={styles.lessonTitleSection}>
@@ -488,25 +504,27 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
           </View>
         </View>
       </ScrollView>
-      </View>
-    </SafeAreaView>
+      </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  outerContainer: {
     flex: 1,
     backgroundColor: '#0F172A',
   },
-  container: {
+  gradient: {
     flex: 1,
-    backgroundColor: '#0F172A',
+  },
+  topSpacer: {
+    height: 48,
+    backgroundColor: 'transparent',
   },
 
   // Header
   header: {
     paddingHorizontal: SPACING.base,
-    paddingTop: SPACING.sm,
     paddingBottom: SPACING.base,
     zIndex: 30,
   },
