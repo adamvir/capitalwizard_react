@@ -94,6 +94,8 @@ interface TopBarProps {
   currentLesson?: number;
   onAvatarClick?: () => void;
   currentStageInSection?: number; // 1-based (1-6)
+  currentGameType?: 'reading' | 'matching' | 'quiz'; // Játék típusa
+  currentBookLessonIndex?: number; // Könyv lecke index (0-based)
 }
 
 type DifficultyType = 'easy' | 'medium' | 'hard';
@@ -110,6 +112,8 @@ export function TopBar({
   currentLesson = 7,
   onAvatarClick,
   currentStageInSection = 1,
+  currentGameType = 'reading',
+  currentBookLessonIndex = 0,
 }: TopBarProps) {
   // ============================================
   // STATE
@@ -153,6 +157,25 @@ export function TopBar({
   // ============================================
   // HELPER FUNCTIONS
   // ============================================
+
+  // Játék típus emoji és szöveg lekérése
+  const getGameTypeInfo = () => {
+    switch (currentGameType) {
+      case 'reading':
+        return { emoji: '📖', text: 'Olvasás' };
+      case 'matching':
+        return { emoji: '🎴', text: 'Párosítás' };
+      case 'quiz':
+        return { emoji: '❓', text: 'Kvíz' };
+      default:
+        return { emoji: '📚', text: 'Lecke' };
+    }
+  };
+
+  const gameTypeInfo = getGameTypeInfo();
+  
+  // Aktuális lecke sorszáma (1-based display)
+  const displayLessonNumber = currentBookLessonIndex + 1;
 
   const getNextLessonDifficulty = (): DifficultyType => {
     const difficulty = LESSON_DIFFICULTIES[currentLesson] || 'Közepes';
@@ -343,17 +366,10 @@ export function TopBar({
 
           {/* Stage info */}
           <View style={styles.stageInfoRow}>
-            <View
-              style={[
-                styles.difficultyBadge,
-                {
-                  backgroundColor: getDifficultyBackgroundColor(),
-                  borderColor: getDifficultyBorderColor(),
-                },
-              ]}
-            >
-              <Text style={[styles.difficultyText, { color: getDifficultyTextColor() }]}>
-                Nehézség
+            <View style={styles.lessonInfoBadge}>
+              <Text style={styles.lessonEmoji}>{gameTypeInfo.emoji}</Text>
+              <Text style={styles.lessonInfoText}>
+                {displayLessonNumber}. {gameTypeInfo.text}
               </Text>
             </View>
             <Text style={styles.stageText}>Szakasz {currentStageInSection}/6</Text>
@@ -750,6 +766,27 @@ const styles = StyleSheet.create({
   difficultyText: {
     fontSize: SIZES.fontXS,
   },
+  
+  // Lecke info badge (új verzió)
+  lessonInfoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(6, 182, 212, 0.15)', // Cyan tint
+    borderColor: 'rgba(34, 211, 238, 0.3)',
+    borderRadius: SIZES.radiusXS,
+    borderWidth: 1,
+  },
+  lessonEmoji: {
+    fontSize: 12,
+  },
+  lessonInfoText: {
+    color: '#67E8F9', // Cyan text
+    fontSize: SIZES.fontXS,
+  },
+  
   stageText: {
     color: COLORS.white,
     fontSize: SIZES.fontXS,

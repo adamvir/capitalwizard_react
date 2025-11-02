@@ -151,17 +151,25 @@ export function ProgressAnimation({
       try {
         // For React Native, use AsyncStorage instead of localStorage
         const saved = await AsyncStorage.getItem('rentedBooks');
+        console.log('📚 Checking rented books:', saved);
+
         if (saved) {
           const rentedBooks = JSON.parse(saved);
+          console.log('📚 Rented books array:', rentedBooks);
+
           const hasPenzugyiBook = rentedBooks.some(
             (book: any) =>
               book.title === 'Pénzügyi Alapismeretek' && book.rentedUntil > Date.now()
           );
+
+          console.log('📚 Has Pénzügyi book?', hasPenzugyiBook);
           setHasRentedBook(hasPenzugyiBook);
         } else {
+          console.log('📚 No rented books found in AsyncStorage');
           setHasRentedBook(false);
         }
       } catch (error) {
+        console.error('📚 Error checking rented books:', error);
         setHasRentedBook(false);
       }
     };
@@ -192,6 +200,13 @@ export function ProgressAnimation({
   // ============================================
 
   const handleClick = () => {
+    console.log('🔥 ProgressAnimation clicked!', {
+      hasRentedBook,
+      currentBookLessonIndex,
+      currentGameType,
+      isFirstRound,
+      lessonNumber,
+    });
     onClick?.();
   };
 
@@ -225,12 +240,11 @@ export function ProgressAnimation({
 
   // Has book selected state
   return (
-    <View style={styles.container} pointerEvents="none">
+    <View style={styles.container} pointerEvents="box-none">
       <TouchableOpacity
         onPress={handleClick}
         activeOpacity={0.8}
         style={styles.contentWrapper}
-        pointerEvents="auto"
       >
         {/* Sparkles */}
         <Animated.View

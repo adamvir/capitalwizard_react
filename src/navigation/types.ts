@@ -17,6 +17,7 @@ export type RootStackParamList = {
     lessonIndex?: number;
     gameType?: 'reading' | 'matching' | 'quiz';
     isFirstRound?: boolean;
+    onLessonComplete?: () => void;
   };
   BookView: { bookTitle: string; content: string };
   Subscription: { subscriptionTier: 'free' | 'pro' | 'master'; onSubscriptionChange: (tier: 'free' | 'pro' | 'master') => void };

@@ -1,25 +1,73 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { CommonActions } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SPACING, SIZES } from '../utils/styleConstants';
+import { useCoins } from '../contexts/CoinsContext';
 
 interface ManagerScreenProps {
   navigation: any;
 }
 
 export default function ManagerScreen({ navigation }: ManagerScreenProps) {
-  const handleResetData = () => {
+  const { reloadBalance } = useCoins();
+  const handleResetData = async () => {
     Alert.alert(
-      'Adatok törlése',
-      'Biztosan törölni szeretnéd az összes mentett adatot?',
+      'Vissza az elejére',
+      'Biztosan vissza szeretnél állni az elejére? Ez törli:\n\n• Minden lecke progresst\n• Kölcsönzött könyveket\n• Avatárt\n• Game state-et\n\nÚj kezdés:\n• 1000 arany\n• 0 gyémánt\n• 1. szint',
       [
         { text: 'Mégse', style: 'cancel' },
         {
-          text: 'Törlés',
+          text: 'Vissza az elejére',
           style: 'destructive',
-          onPress: () => {
-            Alert.alert('Siker', 'Az adatok törölve lettek!');
+          onPress: async () => {
+            try {
+              console.log('🗑️ Resetting all data...');
+
+              // Törlés az AsyncStorage-ból
+              await AsyncStorage.multiRemove([
+                'game_state',
+                'rentedBooks',
+                'lessonProgress',
+                'player_avatar',
+                'userCoins',  // CoinsContext használja ezt a kulcsot
+                'userGems',   // CoinsContext használja ezt a kulcsot
+              ]);
+
+              // Alapértelmezett értékek beállítása
+              await AsyncStorage.setItem('userCoins', '1000');
+              await AsyncStorage.setItem('userGems', '0');
+
+              console.log('✅ All data reset successfully!');
+
+              // Reload balance from AsyncStorage
+              await reloadBalance();
+
+              Alert.alert(
+                'Siker! ✅',
+                'Minden adat törölve lett!\n\nÚj kezdés:\n• 1000 arany 💰\n• 0 gyémánt 💎\n• 1. szint 🎓\n\nVisszalépsz a főoldalra...',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      // Reset navigation stack to Home (this forces HomeScreen to remount)
+                      navigation.dispatch(
+                        CommonActions.reset({
+                          index: 0,
+                          routes: [{ name: 'Home' }],
+                        })
+                      );
+                    },
+                  },
+                ]
+              );
+            } catch (error) {
+              console.error('❌ Error resetting data:', error);
+              Alert.alert('Hiba', 'Nem sikerült törölni az adatokat.');
+            }
           },
         },
       ]
@@ -76,10 +124,11 @@ export default function ManagerScreen({ navigation }: ManagerScreenProps) {
   ];
 
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={['#6366F1', '#4F46E5', '#0F172A']} style={styles.gradient}>
-        {/* Header */}
-        <View style={styles.header}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.container}>
+        <LinearGradient colors={['#6366F1', '#4F46E5', '#0F172A']} style={styles.gradient}>
+          {/* Header */}
+          <View style={styles.header}>
           <LinearGradient colors={['rgba(29, 78, 216, 0.9)', 'rgba(30, 64, 175, 0.9)']} style={styles.headerGradient}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
               <MaterialCommunityIcons name="arrow-left" size={SIZES.iconBase} color={COLORS.white} />
@@ -151,8 +200,8 @@ export default function ManagerScreen({ navigation }: ManagerScreenProps) {
             </TouchableOpacity>
 
             <TouchableOpacity onPress={handleResetData} style={[styles.actionButton, styles.dangerButton]}>
-              <MaterialCommunityIcons name="delete" size={SIZES.iconBase} color="#EF4444" />
-              <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>Összes adat törlése</Text>
+              <MaterialCommunityIcons name="restart" size={SIZES.iconBase} color="#EF4444" />
+              <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>🔄 Vissza az elejére</Text>
             </TouchableOpacity>
           </View>
 
@@ -165,15 +214,17 @@ export default function ManagerScreen({ navigation }: ManagerScreenProps) {
             </Text>
           </View>
         </ScrollView>
-      </LinearGradient>
-    </View>
+        </LinearGradient>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#0F172A' },
   container: { flex: 1 },
   gradient: { flex: 1 },
-  header: { marginTop: 48 },
+  header: { marginTop: 0 },
   headerGradient: {
     flexDirection: 'row',
     alignItems: 'center',

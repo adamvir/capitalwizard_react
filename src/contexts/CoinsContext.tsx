@@ -33,6 +33,7 @@ interface CoinsContextType {
   subtractCoins: (amount: number) => void;
   addGems: (amount: number) => void;
   subtractGems: (amount: number) => void;
+  reloadBalance: () => Promise<void>;
 }
 
 // ============================================
@@ -93,20 +94,40 @@ export function CoinsProvider({ children }: CoinsProviderProps) {
     setGems(Math.max(0, gems - amount));
   };
 
+  // Load coins and gems from AsyncStorage
+  const loadBalance = async () => {
+    try {
+      const savedCoins = await AsyncStorage.getItem('userCoins');
+      const savedGems = await AsyncStorage.getItem('userGems');
+
+      if (savedCoins) {
+        setCoinsState(parseInt(savedCoins, 10));
+      } else {
+        // Ha nincs mentett adat, állítsuk 1000-re alapértelmezettként
+        setCoinsState(1000);
+        await AsyncStorage.setItem('userCoins', '1000');
+      }
+
+      if (savedGems) {
+        setGemsState(parseInt(savedGems, 10));
+      } else {
+        // Ha nincs mentett adat, állítsuk 0-ra alapértelmezettként
+        setGemsState(0);
+        await AsyncStorage.setItem('userGems', '0');
+      }
+    } catch (error) {
+      console.error('Failed to load balance:', error);
+    }
+  };
+
+  // Reload balance (public function for manual reload)
+  const reloadBalance = async () => {
+    console.log('🔄 Reloading balance from AsyncStorage...');
+    await loadBalance();
+  };
+
   // Load coins and gems from AsyncStorage on mount
   React.useEffect(() => {
-    const loadBalance = async () => {
-      try {
-        const savedCoins = await AsyncStorage.getItem('userCoins');
-        const savedGems = await AsyncStorage.getItem('userGems');
-
-        if (savedCoins) setCoinsState(parseInt(savedCoins, 10));
-        if (savedGems) setGemsState(parseInt(savedGems, 10));
-      } catch (error) {
-        console.error('Failed to load balance:', error);
-      }
-    };
-
     loadBalance();
   }, []);
 
@@ -121,6 +142,7 @@ export function CoinsProvider({ children }: CoinsProviderProps) {
         subtractCoins,
         addGems,
         subtractGems,
+        reloadBalance,
       }}
     >
       {children}

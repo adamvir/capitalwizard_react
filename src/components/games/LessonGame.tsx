@@ -36,6 +36,7 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ============================================
 // CONSTANTS
@@ -346,7 +347,8 @@ export function LessonGame({
   // Win screen
   if (gameStatus === 'won') {
     return (
-      <View style={styles.centerContainer}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.centerContainer}>
         <View style={styles.resultContent}>
           {/* Animated emoji (pointing up) */}
           <Animated.Text
@@ -376,14 +378,16 @@ export function LessonGame({
             <Text style={styles.continueButtonText}>TOVÁBB</Text>
           </TouchableOpacity>
         </View>
-      </View>
+        </View>
+      </SafeAreaView>
     );
   }
 
   // Lose screen
   if (gameStatus === 'lost') {
     return (
-      <View style={styles.centerContainer}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.centerContainer}>
         <View style={styles.resultContent}>
           {/* Animated emoji (pointing down) */}
           <Animated.Text
@@ -406,13 +410,15 @@ export function LessonGame({
             <Text style={styles.continueButtonText}>TOVÁBB</Text>
           </TouchableOpacity>
         </View>
-      </View>
+        </View>
+      </SafeAreaView>
     );
   }
 
   // Game playing screen
   return (
-    <View style={styles.gameContainer}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.gameContainer}>
       {/* ============================================ */}
       {/* HEADER */}
       {/* ============================================ */}
@@ -462,7 +468,8 @@ export function LessonGame({
           </View>
         </View>
       </ScrollView>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -471,6 +478,10 @@ export function LessonGame({
 // ============================================
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+  },
   // ===== RESULT SCREENS =====
   centerContainer: {
     flex: 1,

@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInLeft, FadeInUp } from 'react-native-reanimated';
@@ -226,9 +227,10 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
   if (!selectedBook) {
     // Book selection view
     return (
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.container}>
+          {/* Header */}
+          <View style={styles.header}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
@@ -328,15 +330,17 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
             </View>
           )}
         </ScrollView>
-      </View>
+        </View>
+      </SafeAreaView>
     );
   }
 
   // Lesson map view (Duolingo-style)
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
         <TouchableOpacity
           onPress={() => setSelectedBook(null)}
           style={styles.backButton}
@@ -484,11 +488,16 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
           </View>
         </View>
       </ScrollView>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+  },
   container: {
     flex: 1,
     backgroundColor: '#0F172A',

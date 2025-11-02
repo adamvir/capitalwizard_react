@@ -1,4 +1,15 @@
-# ✨ ProgressAnimation - React Native Útmutató
+# ⚠️ DEPRECATED - HASZNÁLD A MOTI VERZIÓT!
+
+**Ez a verzió Animated API-t használ → LIMITÁLT animációk!**
+
+👉 **ÚJ MOTI VERZIÓ:**
+- Fájl: `ProgressAnimation.rn.MOTI.tsx`
+- Guide: `ProgressAnimation.MOTI.GUIDE.md`
+- **Miért jobb:** Motion-szerű API, gazdagabb animációk, könnyebb maintenance
+
+---
+
+# ✨ ProgressAnimation - React Native Útmutató (DEPRECATED)
 
 **\"Továbbhaladás\" button with animated sparkles + No Book State**
 

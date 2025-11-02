@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Pressable, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { COLORS, SIZES, SPACING, FONT_WEIGHT, SHADOWS, Z_INDEX } from '../../utils/styleConstants';
+import { useCoins } from '../../contexts/CoinsContext';
 
 interface CharacterLineupProps {
   onJumpToLesson?: (lesson: number) => void;
@@ -20,6 +22,7 @@ export function CharacterLineup({
   onManagerClick
 }: CharacterLineupProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { reloadBalance } = useCoins();
 
   const characters = [
     {
@@ -97,6 +100,55 @@ export function CharacterLineup({
     // TODO: Implement lesson 12 state save using AsyncStorage
     Alert.alert('Mentés', '12. lecke állapot elmentve!');
     setMenuOpen(false);
+  };
+
+  const handleResetToStart = async () => {
+    Alert.alert(
+      'Vissza az elejére',
+      'Biztosan vissza szeretnél állni az elejére? Ez törli:\n\n• Minden lecke progresst\n• Kölcsönzött könyveket\n• Avatárt\n• Game state-et\n\nÚj kezdés:\n• 1000 arany\n• 0 gyémánt\n• 1. szint',
+      [
+        { text: 'Mégse', style: 'cancel' },
+        {
+          text: 'Vissza az elejére',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('🗑️ Dev Menu: Resetting all data...');
+
+              // Törlés az AsyncStorage-ból
+              await AsyncStorage.multiRemove([
+                'game_state',
+                'rentedBooks',
+                'lessonProgress',
+                'player_avatar',
+                'userCoins',
+                'userGems',
+              ]);
+
+              // Alapértelmezett értékek beállítása
+              await AsyncStorage.setItem('userCoins', '1000');
+              await AsyncStorage.setItem('userGems', '0');
+
+              console.log('✅ Dev Menu: All data reset successfully!');
+
+              // Reload balance
+              await reloadBalance();
+
+              setMenuOpen(false);
+
+              Alert.alert(
+                'Siker! ✅',
+                'Minden adat törölve lett!\n\n• 1000 arany 💰\n• 0 gyémánt 💎\n• 1. szint 🎓\n\nA főoldal automatikusan frissült!',
+                [{ text: 'OK' }]
+              );
+            } catch (error) {
+              console.error('❌ Dev Menu: Error resetting data:', error);
+              Alert.alert('Hiba', 'Nem sikerült törölni az adatokat.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -200,7 +252,7 @@ export function CharacterLineup({
                       <View style={styles.menuDivider} />
 
                       <TouchableOpacity
-                        onPress={() => handleLessonSelect(7)}
+                        onPress={handleResetToStart}
                         activeOpacity={0.8}
                       >
                         <LinearGradient

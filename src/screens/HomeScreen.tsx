@@ -167,12 +167,61 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     });
   };
 
+  const handleLessonComplete = () => {
+    console.log('✅ Lesson completed!', {
+      currentBookLessonIndex,
+      currentGameType,
+      isFirstRound
+    });
+
+    // Update progress based on current game type (following the LECKE_RENDSZER_MUKODES.md logic)
+    if (isFirstRound) {
+      if (currentGameType === 'reading') {
+        // Reading done -> next is Matching
+        setCurrentGameType('matching');
+      } else if (currentGameType === 'matching') {
+        // Matching done -> next is Quiz
+        setCurrentGameType('quiz');
+      } else {
+        // Quiz done -> next page, start with Reading
+        const nextPage = currentBookLessonIndex + 1;
+        if (nextPage >= 48) {
+          // First round complete -> start second round
+          setIsFirstRound(false);
+          setCurrentBookLessonIndex(0);
+          setCurrentGameType('reading');
+        } else {
+          setCurrentBookLessonIndex(nextPage);
+          setCurrentGameType('reading');
+        }
+      }
+    } else {
+      // Second round - only reading
+      const nextPage = currentBookLessonIndex + 1;
+      if (nextPage >= 48) {
+        // Book complete - restart
+        setCurrentBookLessonIndex(0);
+        setCurrentGameType('reading');
+        setIsFirstRound(true);
+      } else {
+        setCurrentBookLessonIndex(nextPage);
+      }
+    }
+  };
+
   const handleProgressClick = () => {
+    console.log('🎯 ProgressClick called!', {
+      lessonIndex: currentBookLessonIndex,
+      gameType: currentGameType,
+      isFirstRound,
+    });
+
     // Navigate to lesson game with current progress
     navigation.navigate('LessonGame', {
       lessonIndex: currentBookLessonIndex,
       gameType: currentGameType,
       isFirstRound,
+      onLessonComplete: handleLessonComplete,
     });
   };
 
@@ -187,6 +236,46 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     return level * 100;
   };
 
+  // Calculate current lesson number based on book progress
+  // Each page has 3 games: reading, matching, quiz
+  const calculateCurrentLesson = (): number => {
+    if (isFirstRound) {
+      // First round: reading=1, matching=2, quiz=3 for each page
+      return currentBookLessonIndex * 3 +
+        (currentGameType === 'reading' ? 1 : currentGameType === 'matching' ? 2 : 3);
+    } else {
+      // Second round: only reading, starting from lesson 145
+      return 144 + currentBookLessonIndex + 1;
+    }
+  };
+
+  // Calculate stage position within section (1-6)
+  // Each section = 6 lessons
+  const calculateCurrentStageInSection = (): number => {
+    const lessonNum = calculateCurrentLesson();
+    return ((lessonNum - 1) % 6) + 1;
+  };
+
+  // Calculate progress position for TopBar zigzag (0-5)
+  const calculateProgressPosition = (): number => {
+    const lessonNum = calculateCurrentLesson();
+    return (lessonNum - 1) % 6;
+  };
+
+  const dynamicCurrentLesson = calculateCurrentLesson();
+  const dynamicCurrentStageInSection = calculateCurrentStageInSection();
+  const dynamicProgressPosition = calculateProgressPosition();
+
+  // Debug log
+  console.log('📊 TopBar Progress:', {
+    currentBookLessonIndex,
+    currentGameType,
+    isFirstRound,
+    '→ Lesson #': dynamicCurrentLesson,
+    '→ Stage': `${dynamicCurrentStageInSection}/6`,
+    '→ Zigzag pos': dynamicProgressPosition,
+  });
+
   return (
     <View style={styles.container}>
       <MainScreen
@@ -194,9 +283,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         gems={gems}
         playerLevel={playerLevel}
         totalXp={totalXp}
-        progressPosition={progressPosition}
-        currentLesson={currentLesson}
-        currentStageInSection={currentStageInSection}
+        progressPosition={dynamicProgressPosition}
+        currentLesson={dynamicCurrentLesson}
+        currentStageInSection={dynamicCurrentStageInSection}
         playerName={playerName}
         subscriptionTier={subscriptionTier}
         currentStreak={currentStreak}

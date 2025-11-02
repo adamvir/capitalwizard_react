@@ -4,6 +4,8 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { COLORS } from '../utils/styleConstants';
 import { LessonGame } from '../components/games/LessonGame';
+import { ReadingGame } from '../components/games/ReadingGame';
+import { QuizGame } from '../components/games/QuizGame';
 import { RootStackParamList } from '../navigation/types';
 import { penzugyiAlapismeretkLessons, Lesson as LessonData } from '../data/penzugyiAlapismeretkLessons';
 
@@ -30,7 +32,12 @@ interface LessonGameScreenProps {
 
 export default function LessonGameScreen({ navigation, route }: LessonGameScreenProps) {
   // Get params from navigation
-  const { lessonIndex = 0, gameType = 'matching', isFirstRound = true } = route.params || {};
+  const {
+    lessonIndex = 0,
+    gameType = 'matching',
+    isFirstRound = true,
+    onLessonComplete
+  } = route.params || {};
 
   // Get lesson data from imported lessons
   const lessonData = useMemo(() => {
@@ -42,19 +49,18 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
       console.warn(`Lesson ${lessonIndex} not found, using default data`);
       return {
         id: lessonIndex + 1,
-        title: `${lessonIndex + 1}. Lecke`,
-        content: 'Lecke tartalma nem található',
+        reading: {
+          title: 'Lecke nem található',
+          content: '',
+          questions: [],
+        },
         matching: [],
+        quiz: [],
       };
     }
 
-    // Convert to the format expected by LessonGame component
-    return {
-      id: sourceLessonData.id,
-      title: sourceLessonData.reading.title,
-      content: sourceLessonData.reading.content,
-      matching: sourceLessonData.matching,
-    };
+    // Return the lesson data as-is (it already has reading, matching, quiz)
+    return sourceLessonData;
   }, [lessonIndex]);
 
   const lessonNumber = lessonIndex + 1;
@@ -65,8 +71,16 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
   };
 
   const handleWin = () => {
-    // TODO: Award coins/XP, update progress
-    console.log('Lesson completed!');
+    console.log('🎉 Lesson completed!', {
+      lessonIndex,
+      gameType,
+      isFirstRound
+    });
+
+    // Call the onLessonComplete callback to update HomeScreen state
+    if (onLessonComplete) {
+      onLessonComplete();
+    }
 
     // Navigate back to home after a short delay
     setTimeout(() => {
@@ -76,16 +90,37 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
 
   return (
     <View style={styles.container}>
-      <LessonGame
-        lessonNumber={lessonNumber}
-        lessonData={lessonData}
-        onWin={handleWin}
-        onBackToHome={handleBackToHome}
-        config={{
-          matchingTimeLimit: 60,
-          matchingPairsCount: lessonData?.matching?.length || 8,
-        }}
-      />
+      {/* Render the appropriate game based on gameType */}
+      {gameType === 'reading' && (
+        <ReadingGame
+          lessonNumber={lessonNumber}
+          readingData={lessonData.reading}
+          onWin={handleWin}
+          onBackToHome={handleBackToHome}
+        />
+      )}
+
+      {gameType === 'matching' && (
+        <LessonGame
+          lessonNumber={lessonNumber}
+          lessonData={lessonData}
+          onWin={handleWin}
+          onBackToHome={handleBackToHome}
+          config={{
+            matchingTimeLimit: 60,
+            matchingPairsCount: lessonData?.matching?.length || 8,
+          }}
+        />
+      )}
+
+      {gameType === 'quiz' && (
+        <QuizGame
+          lessonNumber={lessonNumber}
+          quizData={lessonData.quiz}
+          onWin={handleWin}
+          onBackToHome={handleBackToHome}
+        />
+      )}
     </View>
   );
 }
