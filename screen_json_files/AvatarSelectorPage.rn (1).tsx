@@ -1,6 +1,6 @@
 /**
- * AvatarSelectorScreen - REACT NATIVE VERSION (FIXED)
- *
+ * AvatarSelectorPage - REACT NATIVE VERSION (FIXED)
+ * 
  * Avatar választó képernyő - 3 tier (Free, Pro, Master)
  * - Emoji alapú avatarok
  * - Lock/unlock alapján subscription tier
@@ -17,14 +17,13 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
-  StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeft, Crown, Lock, Sparkles } from 'lucide-react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RouteProp } from '@react-navigation/native';
-import { RootStackParamList } from '../navigation/types';
+
+// NAVIGATION: React Navigation használata
+// import { useNavigation } from '@react-navigation/native';
 
 // ============================================
 // CONSTANTS
@@ -97,12 +96,9 @@ const FONT_WEIGHT = {
 // TYPES
 // ============================================
 
-type AvatarSelectorScreenNavigationProp = StackNavigationProp<RootStackParamList, 'AvatarSelector'>;
-type AvatarSelectorScreenRouteProp = RouteProp<RootStackParamList, 'AvatarSelector'>;
-
-interface AvatarSelectorScreenProps {
-  navigation: AvatarSelectorScreenNavigationProp;
-  route: AvatarSelectorScreenRouteProp;
+interface AvatarSelectorPageProps {
+  onBack: () => void;
+  subscriptionTier: 'free' | 'pro' | 'master';
 }
 
 interface Avatar {
@@ -173,9 +169,14 @@ const saveAvatar = async (emoji: string): Promise<void> => {
 // COMPONENT
 // ============================================
 
-export default function AvatarSelectorScreen({ navigation, route }: AvatarSelectorScreenProps) {
-  const subscriptionTier = route.params?.subscriptionTier || 'free';
+export function AvatarSelectorPage({
+  onBack,
+  subscriptionTier,
+}: AvatarSelectorPageProps) {
   const [selectedAvatar, setSelectedAvatar] = useState<string>('🧙‍♂️');
+
+  // NAVIGATION FIX - React Native:
+  // const navigation = useNavigation();
 
   // ============================================
   // LOAD AVATAR ON MOUNT
@@ -232,20 +233,25 @@ export default function AvatarSelectorScreen({ navigation, route }: AvatarSelect
   // ============================================
 
   const handleBack = () => {
-    navigation.goBack();
+    // NAVIGATION: navigation.goBack()
+    if (onBack) {
+      onBack();
+    }
   };
 
   const handleSelectAvatar = (emoji: string, isLocked: boolean) => {
     if (!isLocked) {
       setSelectedAvatar(emoji);
       saveAvatar(emoji);
+      // NOTE: In web version, this dispatches storage event
+      // In RN, use EventEmitter or Context/Redux for global state updates
     }
   };
 
   // ============================================
   // CALCULATE CARD SIZE
   // ============================================
-
+  
   // 3 columns: (screen width - padding - gaps) / 3
   const cardWidth = (SCREEN_WIDTH - SPACING.base * 2 - SPACING.md * 2) / 3;
 
@@ -267,7 +273,7 @@ export default function AvatarSelectorScreen({ navigation, route }: AvatarSelect
         style={{ width: cardWidth }}
       >
         <LinearGradient
-          colors={colors.gradient as [string, string]}
+          colors={colors.gradient}
           style={[
             styles.avatarButton,
             { borderColor: colors.border },
@@ -286,12 +292,12 @@ export default function AvatarSelectorScreen({ navigation, route }: AvatarSelect
                 </View>
               )}
             </View>
-
+            
             {/* Name */}
             <Text style={styles.avatarName} numberOfLines={1}>
               {avatar.name}
             </Text>
-
+            
             {/* Rarity */}
             <Text style={[styles.avatarRarity, { color: colors.text }]}>
               {avatar.rarity}
@@ -314,170 +320,164 @@ export default function AvatarSelectorScreen({ navigation, route }: AvatarSelect
   // ============================================
 
   return (
-    <View style={styles.outerContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" translucent={false} />
+    <LinearGradient
+      colors={[COLORS.slate900, COLORS.purple900, COLORS.slate900]}
+      style={styles.container}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      {/* Header */}
       <LinearGradient
-        colors={[COLORS.slate900, COLORS.purple900, COLORS.slate900]}
-        style={styles.container}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        colors={[`${COLORS.purple700}e6`, `${COLORS.purple800}e6`]}
+        style={styles.header}
       >
-        {/* Top Spacer for iPhone notch */}
-        <View style={styles.topSpacer} />
+        {/* Header Top */}
+        <View style={styles.headerTop}>
+          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+            <ArrowLeft size={SIZES.iconBase} color={COLORS.white} />
+          </TouchableOpacity>
 
-        {/* Header */}
-        <LinearGradient
-          colors={[`${COLORS.purple700}e6`, `${COLORS.purple800}e6`]}
-          style={styles.header}
-        >
-          {/* Header Top */}
-          <View style={styles.headerTop}>
-            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-              <ArrowLeft size={SIZES.iconBase} color={COLORS.white} />
-            </TouchableOpacity>
-
-            <View style={styles.headerTitleContainer}>
-              <Sparkles size={SIZES.iconLG} color={COLORS.white} />
-              <Text style={styles.headerTitle}>Avatar Választó</Text>
-            </View>
-
-            <View style={styles.spacer} />
+          <View style={styles.headerTitleContainer}>
+            <Sparkles size={SIZES.iconLG} color={COLORS.white} />
+            <Text style={styles.headerTitle}>Avatar Választó</Text>
           </View>
 
-          {/* Current Avatar Display */}
-          <View style={styles.currentAvatarSection}>
-            <LinearGradient
-              colors={[COLORS.purple600, COLORS.pink500]}
-              style={styles.currentAvatarCircle}
-            >
-              <Text style={styles.currentAvatarEmoji}>{selectedAvatar}</Text>
-            </LinearGradient>
-            <Text style={styles.currentAvatarLabel}>Kiválasztott Avatar</Text>
-          </View>
-        </LinearGradient>
+          <View style={styles.spacer} />
+        </View>
 
-        {/* Avatar Grid */}
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.gridContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Free Avatars */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Ingyenes Avatarok</Text>
-              <View
-                style={[
-                  styles.sectionBadge,
-                  { backgroundColor: COLORS.slate700 },
-                ]}
-              >
-                <Text style={[styles.sectionBadgeText, { color: COLORS.slate300 }]}>
-                  {avatars.free.length} db
-                </Text>
-              </View>
-            </View>
-            <View style={styles.avatarGrid}>
-              {avatars.free.map((avatar, index) => renderAvatarButton(avatar, index))}
-            </View>
-          </View>
-
-          {/* Pro Avatars */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Pro Avatarok</Text>
-              <Crown size={SIZES.iconBase} color={COLORS.blue400} />
-              <View
-                style={[
-                  styles.sectionBadge,
-                  { backgroundColor: `${COLORS.blue700}80` },
-                ]}
-              >
-                <Text style={[styles.sectionBadgeText, { color: COLORS.blue300 }]}>
-                  {avatars.pro.length} db
-                </Text>
-              </View>
-            </View>
-            <View style={styles.avatarGrid}>
-              {avatars.pro.map((avatar, index) => renderAvatarButton(avatar, index))}
-            </View>
-          </View>
-
-          {/* Master Avatars */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Master Avatarok</Text>
-              <Crown size={SIZES.iconBase} color={COLORS.purple400} />
-              <View
-                style={[
-                  styles.sectionBadge,
-                  { backgroundColor: `${COLORS.purple700}80` },
-                ]}
-              >
-                <Text style={[styles.sectionBadgeText, { color: COLORS.purple100 }]}>
-                  {avatars.master.length} db
-                </Text>
-              </View>
-            </View>
-            <View style={styles.avatarGrid}>
-              {avatars.master.map((avatar, index) => renderAvatarButton(avatar, index))}
-            </View>
-          </View>
-
-          {/* Info Card */}
+        {/* Current Avatar Display */}
+        <View style={styles.currentAvatarSection}>
           <LinearGradient
-            colors={[`${COLORS.blue800}66`, `${COLORS.blue900}66`]}
-            style={styles.infoCard}
+            colors={[COLORS.purple600, COLORS.pink500]}
+            style={styles.currentAvatarCircle}
           >
-            <View style={styles.infoCardContent}>
-              <Sparkles
-                size={SIZES.iconBase}
-                color={COLORS.blue400}
-                style={{ marginTop: 2 }}
-              />
-              <View style={styles.infoCardTextContainer}>
-                <Text style={styles.infoCardTitle}>Avatar Tier-ek</Text>
-                <View style={styles.infoCardList}>
-                  <View style={styles.infoCardItem}>
-                    <View
-                      style={[
-                        styles.tierDot,
-                        { backgroundColor: COLORS.slate500 },
-                      ]}
-                    />
-                    <Text style={styles.infoCardItemText}>
-                      Közönséges - Mindenki számára elérhető
-                    </Text>
-                  </View>
-                  <View style={styles.infoCardItem}>
-                    <View
-                      style={[
-                        styles.tierDot,
-                        { backgroundColor: COLORS.blue600 },
-                      ]}
-                    />
-                    <Text style={styles.infoCardItemText}>
-                      Ritka - Pro előfizetés szükséges
-                    </Text>
-                  </View>
-                  <View style={styles.infoCardItem}>
-                    <View
-                      style={[
-                        styles.tierDot,
-                        { backgroundColor: COLORS.purple600 },
-                      ]}
-                    />
-                    <Text style={styles.infoCardItemText}>
-                      Legendás - Master előfizetés szükséges
-                    </Text>
-                  </View>
+            <Text style={styles.currentAvatarEmoji}>{selectedAvatar}</Text>
+          </LinearGradient>
+          <Text style={styles.currentAvatarLabel}>Kiválasztott Avatar</Text>
+        </View>
+      </LinearGradient>
+
+      {/* Avatar Grid */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.gridContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Free Avatars */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Ingyenes Avatarok</Text>
+            <View
+              style={[
+                styles.sectionBadge,
+                { backgroundColor: COLORS.slate700 },
+              ]}
+            >
+              <Text style={[styles.sectionBadgeText, { color: COLORS.slate300 }]}>
+                {avatars.free.length} db
+              </Text>
+            </View>
+          </View>
+          <View style={styles.avatarGrid}>
+            {avatars.free.map((avatar, index) => renderAvatarButton(avatar, index))}
+          </View>
+        </View>
+
+        {/* Pro Avatars */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Pro Avatarok</Text>
+            <Crown size={SIZES.iconBase} color={COLORS.blue400} />
+            <View
+              style={[
+                styles.sectionBadge,
+                { backgroundColor: `${COLORS.blue700}80` },
+              ]}
+            >
+              <Text style={[styles.sectionBadgeText, { color: COLORS.blue300 }]}>
+                {avatars.pro.length} db
+              </Text>
+            </View>
+          </View>
+          <View style={styles.avatarGrid}>
+            {avatars.pro.map((avatar, index) => renderAvatarButton(avatar, index))}
+          </View>
+        </View>
+
+        {/* Master Avatars */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Master Avatarok</Text>
+            <Crown size={SIZES.iconBase} color={COLORS.purple400} />
+            <View
+              style={[
+                styles.sectionBadge,
+                { backgroundColor: `${COLORS.purple700}80` },
+              ]}
+            >
+              <Text style={[styles.sectionBadgeText, { color: COLORS.purple100 }]}>
+                {avatars.master.length} db
+              </Text>
+            </View>
+          </View>
+          <View style={styles.avatarGrid}>
+            {avatars.master.map((avatar, index) => renderAvatarButton(avatar, index))}
+          </View>
+        </View>
+
+        {/* Info Card */}
+        <LinearGradient
+          colors={[`${COLORS.blue800}66`, `${COLORS.blue900}66`]}
+          style={styles.infoCard}
+        >
+          <View style={styles.infoCardContent}>
+            <Sparkles
+              size={SIZES.iconBase}
+              color={COLORS.blue400}
+              style={{ marginTop: 2 }}
+            />
+            <View style={styles.infoCardTextContainer}>
+              <Text style={styles.infoCardTitle}>Avatar Tier-ek</Text>
+              <View style={styles.infoCardList}>
+                <View style={styles.infoCardItem}>
+                  <View
+                    style={[
+                      styles.tierDot,
+                      { backgroundColor: COLORS.slate500 },
+                    ]}
+                  />
+                  <Text style={styles.infoCardItemText}>
+                    Közönséges - Mindenki számára elérhető
+                  </Text>
+                </View>
+                <View style={styles.infoCardItem}>
+                  <View
+                    style={[
+                      styles.tierDot,
+                      { backgroundColor: COLORS.blue600 },
+                    ]}
+                  />
+                  <Text style={styles.infoCardItemText}>
+                    Ritka - Pro előfizetés szükséges
+                  </Text>
+                </View>
+                <View style={styles.infoCardItem}>
+                  <View
+                    style={[
+                      styles.tierDot,
+                      { backgroundColor: COLORS.purple600 },
+                    ]}
+                  />
+                  <Text style={styles.infoCardItemText}>
+                    Legendás - Master előfizetés szükséges
+                  </Text>
                 </View>
               </View>
             </View>
-          </LinearGradient>
-        </ScrollView>
-      </LinearGradient>
-    </View>
+          </View>
+        </LinearGradient>
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
@@ -486,15 +486,8 @@ export default function AvatarSelectorScreen({ navigation, route }: AvatarSelect
 // ============================================
 
 const styles = StyleSheet.create({
-  outerContainer: {
-    flex: 1,
-    backgroundColor: COLORS.slate900,
-  },
   container: {
     flex: 1,
-  },
-  topSpacer: {
-    height: 64,
   },
 
   // Header
@@ -602,7 +595,7 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
 
-  // Avatar Button (FIXED: aspectRatio + proper sizing)
+  // Avatar Button (FIXED: minHeight + proper aspect ratio)
   avatarButton: {
     aspectRatio: 1, // IMPORTANT: Makes it square
     borderRadius: SIZES.radiusXL,
@@ -631,7 +624,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: SPACING.xs,
   },
-
+  
   // Emoji Container
   avatarEmojiContainer: {
     position: 'relative',
@@ -654,7 +647,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: SIZES.radiusSM,
   },
-
+  
   // Name & Rarity
   avatarName: {
     fontSize: SIZES.fontXS,
@@ -667,7 +660,7 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.medium,
     textAlign: 'center',
   },
-
+  
   // Selected Badge
   selectedBadge: {
     position: 'absolute',

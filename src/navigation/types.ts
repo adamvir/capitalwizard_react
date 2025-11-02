@@ -12,6 +12,12 @@ export type RootStackParamList = {
   Profile: { playerLevel: number; coins: number; gems: number; subscriptionTier: 'free' | 'pro' | 'master' };
   Manager: undefined;
   Lessons: undefined;
+  LessonHeader: {
+    bookTitle?: string;
+    lessonIndex?: number;
+    gameType?: 'reading' | 'matching' | 'quiz';
+    isFirstRound?: boolean;
+  };
   LessonGame: {
     bookTitle?: string;
     lessonIndex?: number;

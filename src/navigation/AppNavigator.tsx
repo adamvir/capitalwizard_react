@@ -15,6 +15,7 @@ import LibraryScreen from '../screens/LibraryScreen';
 import ArenaScreen from '../screens/ArenaScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ManagerScreen from '../screens/ManagerScreen';
+import LessonHeaderScreen from '../screens/LessonHeaderScreen';
 import LessonGameScreen from '../screens/LessonGameScreen';
 import BookViewScreen from '../screens/BookViewScreen';
 import SubscriptionScreen from '../screens/SubscriptionScreen';
@@ -52,6 +53,13 @@ export function AppNavigator() {
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Manager" component={ManagerScreen} />
       <Stack.Screen name="Lessons" component={LessonsScreen} />
+      <Stack.Screen
+        name="LessonHeader"
+        component={LessonHeaderScreen}
+        options={{
+          cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
+        }}
+      />
       <Stack.Screen
         name="LessonGame"
         component={LessonGameScreen}

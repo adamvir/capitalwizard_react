@@ -237,11 +237,12 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
         gameType,
         expectedKey: `${pageIndex}-${gameType}`
       });
-      // NAVIGATION: Navigate to lesson game screen
-      navigation.navigate('LessonGame', {
+      // NAVIGATION: Navigate to lesson header screen first
+      navigation.navigate('LessonHeader', {
         bookTitle: selectedBook,
         lessonIndex: pageIndex,
         gameType: gameType,
+        isFirstRound: true,
       });
     }
   };
@@ -542,7 +543,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topSpacer: {
-    height: 48,
+    height: 75,
     backgroundColor: 'transparent',
   },
 
