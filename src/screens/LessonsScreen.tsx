@@ -12,7 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInLeft, FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { penzugyiAlapismeretkLessons } from '../data/penzugyiAlapismeretkLessons';
@@ -25,13 +25,13 @@ interface RentedBook {
   title: string;
   rentedUntil: number;
   daysRented: number;
-  color: string;
+  colors: string[];
   textColor: string;
 }
 
 interface AvailableBook {
   title: string;
-  color: string;
+  colors: string[];
   textColor: string;
   isRented: boolean;
   rentedUntil?: number;
@@ -66,10 +66,30 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
   const [lessonProgress, setLessonProgress] = useState<LessonProgress>({});
 
-  // Load rented books and books with progress
-  useEffect(() => {
-    loadAvailableBooks();
-  }, []);
+  // Load lesson progress from AsyncStorage
+  const loadLessonProgress = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('lessonProgress');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        console.log('📚 LessonsScreen: Loading progress from AsyncStorage:', parsed);
+        setLessonProgress(parsed);
+      } else {
+        console.log('📚 LessonsScreen: No progress found in AsyncStorage');
+      }
+    } catch (error) {
+      console.error('Error loading lesson progress:', error);
+    }
+  };
+
+  // Reload data when screen comes into focus (e.g., after completing a lesson)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('📚 LessonsScreen: Screen focused, reloading data...');
+      loadAvailableBooks();
+      loadLessonProgress();
+    }, [])
+  );
 
   // Debug selected book progress
   useEffect(() => {
@@ -82,26 +102,6 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
       });
     }
   }, [selectedBook, lessonProgress]);
-
-  // Load lesson progress from AsyncStorage
-  useEffect(() => {
-    const loadProgress = async () => {
-      try {
-        const saved = await AsyncStorage.getItem('lessonProgress');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          console.log('📚 LessonsScreen: Loading progress from AsyncStorage:', parsed);
-          setLessonProgress(parsed);
-        } else {
-          console.log('📚 LessonsScreen: No progress found in AsyncStorage');
-        }
-      } catch (error) {
-        console.error('Error loading lesson progress:', error);
-      }
-    };
-
-    loadProgress();
-  }, []);
 
   const loadAvailableBooks = async () => {
     try {
@@ -117,7 +117,7 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
         active.forEach(book => {
           allBooks.push({
             title: book.title,
-            color: book.color,
+            colors: book.colors,
             textColor: book.textColor,
             isRented: true,
             rentedUntil: book.rentedUntil
@@ -137,7 +137,7 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
             // Add book with progress but not currently rented
             allBooks.push({
               title: bookTitle,
-              color: '#D97706', // amber-600
+              colors: ['#D97706', '#B45309'], // amber gradient
               textColor: '#FFFFFF',
               isRented: false
             });
@@ -159,17 +159,37 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
     return isCompleted;
   };
 
+  // Find the first incomplete lesson for a book
+  const findFirstIncompleteLesson = (bookTitle: string): { pageIndex: number; gameType: 'reading' | 'matching' | 'quiz' } | null => {
+    const bookProgress = lessonProgress[bookTitle] || {};
+
+    // Check all pages in order
+    for (let pageIndex = 0; pageIndex < penzugyiAlapismeretkLessons.length; pageIndex++) {
+      // Check each game type in order: reading, matching, quiz
+      for (const gameType of ['reading', 'matching', 'quiz'] as const) {
+        const lessonKey = `${pageIndex}-${gameType}`;
+        if (!bookProgress[lessonKey]) {
+          return { pageIndex, gameType };
+        }
+      }
+    }
+
+    return null; // All lessons completed
+  };
+
   // Get lesson status for styling
   const getLessonStatus = (bookTitle: string, pageIndex: number, gameType: 'reading' | 'matching' | 'quiz'): 'completed' | 'current' | 'locked' | 'available' => {
     const isCompleted = isLessonCompleted(bookTitle, pageIndex, gameType);
 
     if (isCompleted) return 'completed';
 
-    // For Pénzügyi Alapismeretek, check if it's the current lesson
-    if (bookTitle === 'Pénzügyi Alapismeretek') {
-      if (isFirstRound && pageIndex === currentBookLessonIndex && gameType === currentGameType) {
-        return 'current';
-      }
+    // Find the first incomplete lesson
+    const firstIncomplete = findFirstIncompleteLesson(bookTitle);
+
+    if (firstIncomplete &&
+        firstIncomplete.pageIndex === pageIndex &&
+        firstIncomplete.gameType === gameType) {
+      return 'current';
     }
 
     // All lessons are available - no locking!
@@ -290,48 +310,52 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
                   >
                     <TouchableOpacity
                       onPress={() => setSelectedBook(book.title)}
-                      style={[
-                        styles.bookCard,
-                        { backgroundColor: book.color }
-                      ]}
+                      style={styles.bookCardContainer}
                       activeOpacity={0.8}
                     >
-                      <View style={styles.bookCardTop}>
-                        <View style={styles.bookCardTextContainer}>
-                          <Text style={styles.bookTitle}>{book.title}</Text>
-                          {book.isRented ? (
-                            <Text style={styles.bookRentalInfo}>
-                              Kölcsönözve még {daysLeft} napig
-                            </Text>
-                          ) : (
-                            <Text style={styles.bookRentalInfo}>
-                              📚 Előző haladásod elérhető
-                            </Text>
-                          )}
-                        </View>
-                        <MaterialCommunityIcons name="book-open-variant" size={32} color="rgba(255, 255, 255, 0.8)" />
-                      </View>
-
-                      {/* Progress Bar */}
-                      {totalLessons > 0 && (
-                        <View style={styles.progressSection}>
-                          <View style={styles.progressHeader}>
-                            <Text style={styles.progressLabel}>Haladás</Text>
-                            <Text style={styles.progressText}>
-                              {completedLessons}/{totalLessons} lecke ({progressPercentage}%)
-                            </Text>
+                      <LinearGradient
+                        colors={book.colors as [string, string]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.bookCard}
+                      >
+                        <View style={styles.bookCardTop}>
+                          <View style={styles.bookCardTextContainer}>
+                            <Text style={styles.bookTitle}>{book.title}</Text>
+                            {book.isRented ? (
+                              <Text style={styles.bookRentalInfo}>
+                                Kölcsönözve még {daysLeft} napig
+                              </Text>
+                            ) : (
+                              <Text style={styles.bookRentalInfo}>
+                                📚 Előző haladásod elérhető
+                              </Text>
+                            )}
                           </View>
-                          <View style={styles.progressBarBg}>
-                            <View style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} />
-                          </View>
+                          <MaterialCommunityIcons name="book-open-variant" size={32} color="rgba(255, 255, 255, 0.8)" />
                         </View>
-                      )}
 
-                      {!book.isRented && (
-                        <View style={styles.warningBox}>
-                          <Text style={styles.warningText}>⚠️ Könyv nincs kölcsönözve - csak megtekintés</Text>
-                        </View>
-                      )}
+                        {/* Progress Bar */}
+                        {totalLessons > 0 && (
+                          <View style={styles.progressSection}>
+                            <View style={styles.progressHeader}>
+                              <Text style={styles.progressLabel}>Haladás</Text>
+                              <Text style={styles.progressText}>
+                                {completedLessons}/{totalLessons} lecke ({progressPercentage}%)
+                              </Text>
+                            </View>
+                            <View style={styles.progressBarBg}>
+                              <View style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} />
+                            </View>
+                          </View>
+                        )}
+
+                        {!book.isRented && (
+                          <View style={styles.warningBox}>
+                            <Text style={styles.warningText}>⚠️ Könyv nincs kölcsönözve - csak megtekintés</Text>
+                          </View>
+                        )}
+                      </LinearGradient>
                     </TouchableOpacity>
                   </Animated.View>
                 );
@@ -584,10 +608,17 @@ const styles = StyleSheet.create({
   },
 
   // Book Card
+  bookCardContainer: {
+    marginBottom: SPACING.base,
+  },
   bookCard: {
     borderRadius: SIZES.radiusXL,
     padding: SPACING.base,
-    marginBottom: SPACING.base,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   bookCardTop: {
     flexDirection: 'row',

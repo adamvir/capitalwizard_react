@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../utils/styleConstants';
 import { LessonGame } from '../components/games/LessonGame';
 import { ReadingGame } from '../components/games/ReadingGame';
@@ -33,6 +34,7 @@ interface LessonGameScreenProps {
 export default function LessonGameScreen({ navigation, route }: LessonGameScreenProps) {
   // Get params from navigation
   const {
+    bookTitle = 'Pénzügyi Alapismeretek',
     lessonIndex = 0,
     gameType = 'matching',
     isFirstRound = true,
@@ -70,21 +72,46 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
     navigation.navigate('Home');
   };
 
-  const handleWin = () => {
+  const handleWin = async () => {
     console.log('🎉 Lesson completed!', {
+      bookTitle,
       lessonIndex,
       gameType,
       isFirstRound
     });
+
+    // Save lesson progress to AsyncStorage
+    try {
+      const saved = await AsyncStorage.getItem('lessonProgress');
+      const progress = saved ? JSON.parse(saved) : {};
+
+      // Initialize book progress if it doesn't exist
+      if (!progress[bookTitle]) {
+        progress[bookTitle] = {};
+      }
+
+      // Mark this lesson as completed
+      const lessonKey = `${lessonIndex}-${gameType}`;
+      progress[bookTitle][lessonKey] = true;
+
+      await AsyncStorage.setItem('lessonProgress', JSON.stringify(progress));
+      console.log('✅ Lesson progress saved:', {
+        bookTitle,
+        lessonKey,
+        allProgress: progress
+      });
+    } catch (error) {
+      console.error('❌ Error saving lesson progress:', error);
+    }
 
     // Call the onLessonComplete callback to update HomeScreen state
     if (onLessonComplete) {
       onLessonComplete();
     }
 
-    // Navigate back to home after a short delay
+    // Navigate back to lessons screen after a short delay
     setTimeout(() => {
-      navigation.navigate('Home');
+      navigation.goBack();
     }, 2000);
   };
 

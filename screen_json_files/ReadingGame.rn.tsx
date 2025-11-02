@@ -1,6 +1,6 @@
 /**
  * ReadingGame - REACT NATIVE VERSION
- *
+ * 
  * Olvasás játék (1/3 lecke típus)
  * - 3 state: reading → questions → result
  * - Szöveg olvasás
@@ -18,9 +18,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  Animated,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeft, BookOpen, CheckCircle, XCircle } from 'lucide-react-native';
+
+// NAVIGATION: React Navigation használata
+// import { useNavigation } from '@react-navigation/native';
 
 // ============================================
 // CONSTANTS
@@ -91,18 +95,10 @@ interface ReadingGameProps {
   onBackToHome?: () => void;
   onWin?: () => void;
   lessonNumber?: number;
-  readingData?: ReadingContent;
+  lessonData?: Lesson;
 }
 
-interface ReadingContent {
-  title: string;
-  content: string;
-  questions: Array<{
-    question: string;
-    answer: string;
-    keywords: string[];
-  }>;
-}
+type GameState = 'reading' | 'questions' | 'result';
 
 interface Question {
   question: string;
@@ -110,7 +106,29 @@ interface Question {
   keywords: string[]; // Keywords for flexible matching
 }
 
-type GameState = 'reading' | 'questions' | 'result';
+interface Lesson {
+  id: string;
+  pageNumber: number;
+  reading: {
+    title: string;
+    content: string;
+    questions: Array<{
+      question: string;
+      answer: string;
+      keywords: string[];
+    }>;
+  };
+  matching: {
+    pairs: Array<{ term: string; definition: string }>;
+  };
+  quiz: {
+    questions: Array<{
+      question: string;
+      options: string[];
+      correctAnswer: number;
+    }>;
+  };
+}
 
 // ============================================
 // COMPONENT
@@ -120,7 +138,7 @@ export function ReadingGame({
   onBackToHome,
   onWin,
   lessonNumber = 1,
-  readingData,
+  lessonData,
 }: ReadingGameProps) {
   const [gameState, setGameState] = useState<GameState>('reading');
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
@@ -128,13 +146,16 @@ export function ReadingGame({
   const [results, setResults] = useState<boolean[]>([]);
   const [score, setScore] = useState(0);
 
+  // NAVIGATION FIX - React Native:
+  // const navigation = useNavigation();
+
   // Use lessonData from penzugyiAlapismeretkLessons
-  const readingContent = readingData?.content || '';
-  const readingTitle = readingData?.title || '';
+  const readingContent = lessonData?.reading.content || '';
+  const readingTitle = lessonData?.reading.title || '';
 
   console.log('📖 ReadingGame mounted/updated:', {
     lessonNumber,
-    hasReadingData: !!readingData,
+    hasLessonData: !!lessonData,
   });
 
   // ============================================
@@ -142,8 +163,8 @@ export function ReadingGame({
   // ============================================
 
   useEffect(() => {
-    if (readingData && readingData.questions) {
-      const allQuestions: Question[] = readingData.questions.map((q) => ({
+    if (lessonData && lessonData.reading.questions) {
+      const allQuestions: Question[] = lessonData.reading.questions.map((q) => ({
         question: q.question,
         answer: q.answer,
         keywords: q.keywords,
@@ -156,7 +177,7 @@ export function ReadingGame({
       setSelectedQuestions(selectedQs);
       setAnswers(Array(selectedQs.length).fill(''));
     }
-  }, [readingData]);
+  }, [lessonData]);
 
   // ============================================
   // HANDLERS
@@ -206,14 +227,17 @@ export function ReadingGame({
 
     if (onWin && correctCount >= minRequired) {
       console.log('✅ ReadingGame calling onWin!');
+      // NAVIGATION: navigation.goBack() or pass completion data
       onWin();
     } else if (onBackToHome) {
       console.log('⬅️ ReadingGame calling onBackToHome');
+      // NAVIGATION: navigation.goBack()
       onBackToHome();
     }
   };
 
   const handleBack = () => {
+    // NAVIGATION: navigation.goBack()
     if (onBackToHome) {
       onBackToHome();
     }
@@ -239,9 +263,6 @@ export function ReadingGame({
           colors={[COLORS.slate900, '#581C87', COLORS.slate900]}
           style={styles.gradientContainer}
         >
-          {/* Top Spacer for iPhone notch */}
-          <View style={styles.topSpacer} />
-
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -304,9 +325,6 @@ export function ReadingGame({
           colors={[COLORS.slate900, '#581C87', COLORS.slate900]}
           style={styles.gradientContainer}
         >
-          {/* Top Spacer for iPhone notch */}
-          <View style={styles.topSpacer} />
-
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -375,9 +393,6 @@ export function ReadingGame({
         colors={[COLORS.slate900, '#581C87', COLORS.slate900]}
         style={styles.gradientContainer}
       >
-        {/* Top Spacer for iPhone notch */}
-        <View style={styles.topSpacer} />
-
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -499,9 +514,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xl,
     paddingTop: SPACING.base,
     paddingBottom: SPACING.xl,
-  },
-  topSpacer: {
-    height: 48,
   },
 
   // Header

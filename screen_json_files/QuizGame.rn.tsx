@@ -1,6 +1,6 @@
 /**
  * QuizGame - REACT NATIVE VERSION
- *
+ * 
  * Kvíz játék (3/3 lecke típus)
  * - Feleletválasztós kérdések
  * - Azonnali visszajelzés (helyes/helytelen)
@@ -15,8 +15,9 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Animated,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -24,6 +25,9 @@ import {
   Trophy,
   ThumbsDown,
 } from 'lucide-react-native';
+
+// NAVIGATION: React Navigation használata
+// import { useNavigation } from '@react-navigation/native';
 
 // ============================================
 // CONSTANTS
@@ -147,6 +151,9 @@ export function QuizGame({
   const [gameFinished, setGameFinished] = useState(false);
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
 
+  // NAVIGATION FIX - React Native:
+  // const navigation = useNavigation();
+
   console.log('❓ QuizGame mounted/updated:', {
     lessonNumber,
     hasLessonData: !!lessonData,
@@ -221,14 +228,17 @@ export function QuizGame({
 
     if (isWin && onWin) {
       console.log('✅ QuizGame calling onWin!');
+      // NAVIGATION: navigation.goBack() or pass completion data
       onWin();
     } else if (onBackToHome) {
       console.log('⬅️ QuizGame calling onBackToHome');
+      // NAVIGATION: navigation.goBack()
       onBackToHome();
     }
   };
 
   const handleBack = () => {
+    // NAVIGATION: navigation.goBack()
     if (onBackToHome) {
       onBackToHome();
     }
@@ -259,9 +269,6 @@ export function QuizGame({
         colors={[COLORS.slate900, '#581C87', COLORS.slate900]}
         style={styles.container}
       >
-        {/* Top Spacer for iPhone notch */}
-        <View style={styles.topSpacer} />
-
         <View style={styles.resultContainer}>
           {isWin ? (
             <>
@@ -317,9 +324,6 @@ export function QuizGame({
       colors={[COLORS.slate900, '#581C87', COLORS.slate900]}
       style={styles.container}
     >
-      {/* Top Spacer for iPhone notch */}
-      <View style={styles.topSpacer} />
-
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerRow}>
@@ -459,9 +463,6 @@ export function QuizGame({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  topSpacer: {
-    height: 48,
   },
   centerContainer: {
     flex: 1,
