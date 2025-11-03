@@ -15,14 +15,13 @@
  * };
  */
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Sparkles, BookOpen } from 'lucide-react-native';
 import { MotiView } from 'moti';
@@ -63,6 +62,7 @@ interface ProgressAnimationProps {
   currentBookLessonIndex?: number;
   currentGameType?: 'reading' | 'matching' | 'quiz';
   isFirstRound?: boolean;
+  hasRentedBook?: boolean; // ✅ Új prop - Supabase-ből jön
 }
 
 // ============================================
@@ -74,41 +74,8 @@ export function ProgressAnimation({
   currentBookLessonIndex = 0,
   currentGameType = 'reading',
   isFirstRound = true,
+  hasRentedBook = false, // ✅ Prop-ból jön (Supabase)
 }: ProgressAnimationProps) {
-  // ============================================
-  // STATE
-  // ============================================
-
-  const [hasRentedBook, setHasRentedBook] = useState(false);
-
-  // ============================================
-  // EFFECTS
-  // ============================================
-
-  // Check if Pénzügyi Alapismeretek is rented
-  useEffect(() => {
-    const checkRentedBooks = async () => {
-      try {
-        const saved = await AsyncStorage.getItem('rentedBooks');
-        if (saved) {
-          const rentedBooks = JSON.parse(saved);
-          const hasPenzugyiBook = rentedBooks.some(
-            (book: any) =>
-              book.title === 'Pénzügyi Alapismeretek' &&
-              book.rentedUntil > Date.now()
-          );
-          setHasRentedBook(hasPenzugyiBook);
-        } else {
-          setHasRentedBook(false);
-        }
-      } catch (error) {
-        console.error('Error checking rented books:', error);
-        setHasRentedBook(false);
-      }
-    };
-
-    checkRentedBooks();
-  }, []);
 
   // ============================================
   // CALCULATIONS

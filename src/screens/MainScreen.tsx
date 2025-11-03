@@ -115,6 +115,7 @@ interface MainScreenProps {
   currentBookLessonIndex: number;
   currentGameType: 'reading' | 'matching' | 'quiz';
   isFirstRound: boolean;
+  hasRentedBook: boolean;
 
   // Navigation callbacks
   onAvatarClick: () => void;
@@ -156,6 +157,7 @@ export default function MainScreen({
   currentBookLessonIndex,
   currentGameType,
   isFirstRound,
+  hasRentedBook,
   onAvatarClick,
   onLessonsClick,
   onShopClick,
@@ -318,6 +320,7 @@ export default function MainScreen({
           currentBookLessonIndex={currentBookLessonIndex}
           currentGameType={currentGameType}
           isFirstRound={isFirstRound}
+          hasRentedBook={hasRentedBook}
         />
       </View>
     </View>

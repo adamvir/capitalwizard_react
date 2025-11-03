@@ -20,6 +20,7 @@ type DailyLimit = Database['public']['Tables']['daily_limits']['Row'];
 
 /**
  * Új játékos létrehozása
+ * ✅ A streak AUTOMATIKUSAN létrejön egy Supabase trigger által!
  */
 export async function createPlayer(data: PlayerInsert): Promise<Player | null> {
   try {
@@ -37,6 +38,10 @@ export async function createPlayer(data: PlayerInsert): Promise<Player | null> {
       console.error('Error creating player:', error);
       return null;
     }
+
+    // ✅ A streak automatikusan létrejön a database trigger által
+    // Lásd: supabase-complete-setup.sql -> trigger_initialize_new_player
+    console.log('✅ New player created:', player.id, '(streak auto-created by trigger)');
 
     return player;
   } catch (error) {

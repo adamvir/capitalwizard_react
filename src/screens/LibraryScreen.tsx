@@ -45,6 +45,7 @@ import {
   X,
 } from 'lucide-react-native';
 import { useCoins } from '../contexts/CoinsContext';
+import { useRentedBooks } from '../hooks';
 
 // ============================================
 // TYPES
@@ -203,10 +204,17 @@ const SHELVES: Book[][] = [
 
 export default function LibraryScreen({ navigation }: LibraryScreenProps) {
   // ============================================
-  // GLOBAL STATE (CoinsContext)
+  // GLOBAL STATE (CoinsContext + Supabase)
   // ============================================
 
   const { coins, setCoins } = useCoins();
+  const {
+    rentedBooks: supabaseRentedBooks,
+    loading: rentedBooksLoading,
+    rentNewBook,
+    returnBookById,
+    refreshRentedBooks,
+  } = useRentedBooks();
 
   // ============================================
   // LOCAL STATE
@@ -216,10 +224,18 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
   const [showRentalPanel, setShowRentalPanel] = useState(false);
   const [bookToRent, setBookToRent] = useState<Book | null>(null);
   const [rentalDays, setRentalDays] = useState(7);
-  const [rentedBooks, setRentedBooks] = useState<RentedBook[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successBookTitle, setSuccessBookTitle] = useState('');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+
+  // ✅ Convert Supabase rented_books to local RentedBook format
+  const rentedBooks: RentedBook[] = supabaseRentedBooks.map(book => ({
+    title: book.book_title,
+    rentedUntil: new Date(book.rented_until).getTime(),
+    daysRented: Math.ceil((new Date(book.rented_until).getTime() - new Date(book.rented_at).getTime()) / (1000 * 60 * 60 * 24)),
+    colors: ['#D97706', '#B45309'], // Default colors
+    textColor: '#FFFFFF',
+  }));
 
   // ============================================
   // ANIMATIONS
@@ -230,11 +246,6 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
   // ============================================
   // EFFECTS
   // ============================================
-
-  // Load rented books from AsyncStorage
-  useEffect(() => {
-    loadRentedBooks();
-  }, []);
 
   // Rental panel animation
   useEffect(() => {
@@ -247,40 +258,10 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
   }, [showRentalPanel]);
 
   // ============================================
-  // ASYNCSTORAGE FUNCTIONS
-  // ============================================
-
-  const loadRentedBooks = async () => {
-    try {
-      const saved = await AsyncStorage.getItem('rentedBooks');
-      if (saved) {
-        const parsed: RentedBook[] = JSON.parse(saved);
-        // Filter out expired rentals
-        const active = parsed.filter(book => book.rentedUntil > Date.now());
-        setRentedBooks(active);
-        if (active.length !== parsed.length) {
-          await AsyncStorage.setItem('rentedBooks', JSON.stringify(active));
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load rented books:', error);
-    }
-  };
-
-  const saveRentedBooks = async (books: RentedBook[]) => {
-    try {
-      setRentedBooks(books);
-      await AsyncStorage.setItem('rentedBooks', JSON.stringify(books));
-    } catch (error) {
-      console.error('Failed to save rented books:', error);
-    }
-  };
-
-  // ============================================
   // EVENT HANDLERS
   // ============================================
 
-  const handleRentBook = () => {
+  const handleRentBook = async () => {
     if (!bookToRent) return;
 
     const price = calculateRentalPrice(rentalDays);
@@ -302,16 +283,31 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
     // Deduct coins
     setCoins(coins - price);
 
-    // Add to rented books
-    const newRental: RentedBook = {
-      title: bookToRent.title,
-      rentedUntil: Date.now() + (rentalDays * 24 * 60 * 60 * 1000),
-      daysRented: rentalDays,
-      colors: bookToRent.colors,
-      textColor: bookToRent.textColor,
-    };
+    // ✅ ELŐSZÖR töröld az ÖSSZES lesson progress-t (MIELŐTT kölcsönzöd a könyvet!)
+    // FONTOS: Törölünk MINDENT, nem csak ezt a könyvet, hogy biztosan tiszta legyen
+    try {
+      const savedBefore = await AsyncStorage.getItem('lessonProgress');
+      console.log(`🔍 AsyncStorage BEFORE clearing (ALL BOOKS):`, savedBefore);
 
-    saveRentedBooks([...rentedBooks, newRental]);
+      // ✨ Reset to COMPLETELY EMPTY - fresh start for this book
+      const freshProgress = {
+        [bookToRent.title]: {} // Only this book exists, all lessons incomplete
+      };
+      console.log(`🔍 Fresh progress (ONLY this book):`, freshProgress);
+
+      await AsyncStorage.setItem('lessonProgress', JSON.stringify(freshProgress));
+
+      // Verify it was written
+      const savedAfter = await AsyncStorage.getItem('lessonProgress');
+      console.log(`✅ AsyncStorage AFTER clearing:`, savedAfter);
+      console.log(`🗑️ COMPLETE WIPE: All old progress deleted, only ${bookToRent.title} exists now (empty)`);
+    } catch (error) {
+      console.error('❌ Error clearing lesson progress:', error);
+    }
+
+    // ✅ MAJD rent book in Supabase (ez trigger-eli a LessonsScreen-t, ami már tiszta adatokat lát)
+    await rentNewBook(bookToRent.title, rentalDays);
+    console.log(`📚 Book rented: ${bookToRent.title} for ${rentalDays} days`);
 
     // Close rental modal and show success modal
     setSuccessBookTitle(bookToRent.title);
@@ -319,7 +315,7 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
     setShowSuccessModal(true);
   };
 
-  const handleReturnBook = (bookTitle: string) => {
+  const handleReturnBook = async (bookTitle: string) => {
     const book = rentedBooks.find(b => b.title === bookTitle);
     if (!book) return;
 
@@ -340,8 +336,9 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
       console.log('SUCCESS: Könyv visszaadva!');
     }
 
-    const updatedBooks = rentedBooks.filter(b => b.title !== bookTitle);
-    saveRentedBooks(updatedBooks);
+    // ✅ Return book in Supabase
+    await returnBookById(bookTitle);
+    console.log(`📚 Book returned: ${bookTitle}`);
   };
 
   const isBookRented = (bookTitle: string) => {
@@ -354,7 +351,16 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
   };
 
   const handleOpenBookView = (bookTitle: string) => {
-    navigation.navigate('BookView', { bookTitle });
+    // Import book content based on title
+    let content = '';
+
+    if (bookTitle === 'Pénzügyi Alapismeretek') {
+      // Dynamically import the book content
+      const { penzugyiAlapismeretkBookFullContent } = require('../data/penzugyiAlapismeretkBookContent');
+      content = penzugyiAlapismeretkBookFullContent;
+    }
+
+    navigation.navigate('BookView', { bookTitle, content });
   };
 
   // ============================================

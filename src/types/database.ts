@@ -147,6 +147,44 @@ export interface Database {
           updated_at?: string
         }
       }
+      rented_books: {
+        Row: {
+          id: string
+          player_id: string
+          book_title: string
+          rented_at: string
+          rented_until: string
+          current_lesson_index: number
+          current_game_type: 'reading' | 'matching' | 'quiz'
+          is_first_round: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          player_id: string
+          book_title: string
+          rented_at?: string
+          rented_until: string
+          current_lesson_index?: number
+          current_game_type?: 'reading' | 'matching' | 'quiz'
+          is_first_round?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          player_id?: string
+          book_title?: string
+          rented_at?: string
+          rented_until?: string
+          current_lesson_index?: number
+          current_game_type?: 'reading' | 'matching' | 'quiz'
+          is_first_round?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

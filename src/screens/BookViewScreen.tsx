@@ -100,6 +100,19 @@ export default function BookViewScreen({ route, navigation }: BookViewScreenProp
   // CONTENT PROCESSING
   // ============================================
 
+  // Safety check: if no content provided, show error message
+  if (!content) {
+    console.error('❌ BookViewScreen: No content provided for book:', bookTitle);
+    return (
+      <View style={[styles.overlay, { justifyContent: 'center' }]}>
+        <Text style={{ color: '#DC2626', fontSize: 18, textAlign: 'center', padding: 20 }}>
+          Hiba: A könyv tartalma nem található.{'\n'}
+          Kérjük, próbálja újra később.
+        </Text>
+      </View>
+    );
+  }
+
   // Split content into pages by '\n\n\n' delimiter
   const pages = content.split('\n\n\n').filter((p: string) => p.trim());
 
@@ -402,7 +415,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   pageContentInner: {
-    padding: SPACING['2xl'],
+    padding: SPACING.xxl,
     maxWidth: 768,
     alignSelf: 'center',
     width: '100%',
@@ -417,7 +430,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: BOOK_COLORS.slate[800],
     marginBottom: SPACING.lg,
-    marginTop: SPACING['2xl'],
+    marginTop: SPACING.xxl,
     textAlign: 'center',
     borderBottomWidth: 2,
     borderBottomColor: BOOK_COLORS.amber[600],
@@ -445,7 +458,7 @@ const styles = StyleSheet.create({
   },
   pageNumber: {
     textAlign: 'center',
-    marginTop: SPACING['3xl'],
+    marginTop: SPACING.xxxl,
     color: BOOK_COLORS.slate[500],
     fontSize: SIZES.fontSM,
     fontFamily: 'Georgia',

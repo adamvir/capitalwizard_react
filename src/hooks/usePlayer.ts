@@ -57,9 +57,9 @@ export function usePlayer(): UsePlayerReturn {
         const newPlayer = await createPlayer({
           username: null,
           avatar_id: 1,
-          level: 1,
+          level: 0,
           xp: 0,
-          coins: 0,
+          coins: 1000,
           diamonds: 0,
           subscription_type: 'free',
           streak_freezes: 0,
@@ -107,9 +107,9 @@ export function usePlayer(): UsePlayerReturn {
         const newPlayer = await createPlayer({
           username: null,
           avatar_id: 1,
-          level: 1,
+          level: 0,
           xp: 0,
-          coins: 0,
+          coins: 1000,
           diamonds: 0,
           subscription_type: 'free',
           streak_freezes: 0,

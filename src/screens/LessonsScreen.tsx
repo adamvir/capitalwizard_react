@@ -17,6 +17,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { penzugyiAlapismeretkLessons } from '../data/penzugyiAlapismeretkLessons';
 import { COLORS, SPACING, SIZES } from '../utils/styleConstants';
+import { useRentedBooks } from '../hooks';
 
 // NAVIGATION: Navigáció típusa
 type NavigationProp = NativeStackNavigationProp<any>;
@@ -61,24 +62,37 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
   const currentGameType = route?.params?.currentGameType ?? 'reading';
   const isFirstRound = route?.params?.isFirstRound ?? true;
 
-  const [rentedBooks, setRentedBooks] = useState<RentedBook[]>([]);
-  const [availableBooks, setAvailableBooks] = useState<AvailableBook[]>([]);
+  // ✅ Supabase Hook
+  const {
+    rentedBooks: supabaseRentedBooks,
+    loading: rentedBooksLoading,
+  } = useRentedBooks();
+
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
   const [lessonProgress, setLessonProgress] = useState<LessonProgress>({});
+
+  // ✅ Convert Supabase rented_books to local format
+  const availableBooks: AvailableBook[] = supabaseRentedBooks.map(book => ({
+    title: book.book_title,
+    colors: ['#D97706', '#B45309'], // Default colors
+    textColor: '#FFFFFF',
+    isRented: new Date(book.rented_until).getTime() > Date.now(),
+    rentedUntil: new Date(book.rented_until).getTime(),
+  }));
 
   // Load lesson progress from AsyncStorage
   const loadLessonProgress = async () => {
     try {
+      console.log('🔄 LessonsScreen: loadLessonProgress() called');
       const saved = await AsyncStorage.getItem('lessonProgress');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        console.log('📚 LessonsScreen: Loading progress from AsyncStorage:', parsed);
-        setLessonProgress(parsed);
-      } else {
-        console.log('📚 LessonsScreen: No progress found in AsyncStorage');
-      }
+      console.log('🔍 LessonsScreen: AsyncStorage raw data:', saved);
+      const parsed = saved ? JSON.parse(saved) : {};
+      console.log('📚 LessonsScreen: Parsed lesson progress:', parsed);
+      console.log('📊 LessonsScreen: Setting lessonProgress state to:', parsed);
+      setLessonProgress(parsed);
     } catch (error) {
-      console.error('Error loading lesson progress:', error);
+      console.error('❌ LessonsScreen: Error loading lesson progress:', error);
+      setLessonProgress({}); // Reset to empty on error
     }
   };
 
@@ -86,10 +100,15 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
   useFocusEffect(
     React.useCallback(() => {
       console.log('📚 LessonsScreen: Screen focused, reloading data...');
-      loadAvailableBooks();
       loadLessonProgress();
     }, [])
   );
+
+  // Also reload when rentedBooks change (e.g., when a new book is rented)
+  useEffect(() => {
+    console.log('📚 LessonsScreen: Rented books changed, reloading progress...');
+    loadLessonProgress();
+  }, [supabaseRentedBooks]);
 
   // Debug selected book progress
   useEffect(() => {
@@ -102,54 +121,6 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
       });
     }
   }, [selectedBook, lessonProgress]);
-
-  const loadAvailableBooks = async () => {
-    try {
-      const saved = await AsyncStorage.getItem('rentedBooks');
-      const allBooks: AvailableBook[] = [];
-
-      if (saved) {
-        const parsed: RentedBook[] = JSON.parse(saved);
-        const active = parsed.filter(book => book.rentedUntil > Date.now());
-        setRentedBooks(active);
-
-        // Add rented books
-        active.forEach(book => {
-          allBooks.push({
-            title: book.title,
-            colors: book.colors,
-            textColor: book.textColor,
-            isRented: true,
-            rentedUntil: book.rentedUntil
-          });
-        });
-      }
-
-      // Check if there are books with progress that aren't currently rented
-      const progressData = await AsyncStorage.getItem('lessonProgress');
-      if (progressData) {
-        const progress = JSON.parse(progressData);
-        Object.keys(progress).forEach(bookTitle => {
-          const hasProgress = Object.keys(progress[bookTitle]).length > 0;
-          const alreadyAdded = allBooks.some(b => b.title === bookTitle);
-
-          if (hasProgress && !alreadyAdded) {
-            // Add book with progress but not currently rented
-            allBooks.push({
-              title: bookTitle,
-              colors: ['#D97706', '#B45309'], // amber gradient
-              textColor: '#FFFFFF',
-              isRented: false
-            });
-          }
-        });
-      }
-
-      setAvailableBooks(allBooks);
-    } catch (error) {
-      console.error('Error loading available books:', error);
-    }
-  };
 
   // Check if a lesson is completed
   const isLessonCompleted = (bookTitle: string, pageIndex: number, gameType: 'reading' | 'matching' | 'quiz'): boolean => {

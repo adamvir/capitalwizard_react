@@ -30,7 +30,12 @@ export function StreakCelebration({ newStreak, onContinue }: StreakCelebrationPr
 
   // Counter animation effect
   useEffect(() => {
-    if (newStreak === 0) return;
+    console.log('🔥 StreakCelebration: newStreak =', newStreak);
+
+    if (newStreak === 0) {
+      console.warn('⚠️ StreakCelebration: newStreak is 0, skipping counter animation');
+      return;
+    }
 
     // Start counting after initial animations (0.8s delay)
     const startDelay = 800;
@@ -38,13 +43,18 @@ export function StreakCelebration({ newStreak, onContinue }: StreakCelebrationPr
     // Calculate how long each step should take
     const stepDuration = newStreak <= 5 ? 50 : newStreak <= 20 ? 40 : 30;
 
+    console.log('⏱️ StreakCelebration: Starting counter in', startDelay, 'ms, step duration:', stepDuration);
+
     const timeout = setTimeout(() => {
+      console.log('🔢 StreakCelebration: Counter started');
       let currentNumber = 0;
       const interval = setInterval(() => {
         currentNumber += 1;
         setDisplayedNumber(currentNumber);
+        console.log('🔢 Counter:', currentNumber, '/', newStreak);
 
         if (currentNumber >= newStreak) {
+          console.log('✅ StreakCelebration: Counter finished at', currentNumber);
           clearInterval(interval);
         }
       }, stepDuration);
@@ -132,6 +142,7 @@ export function StreakCelebration({ newStreak, onContinue }: StreakCelebrationPr
 
   useEffect(() => {
     if (displayedNumber === newStreak && newStreak > 0) {
+      console.log('🎯 StreakCelebration: Counter reached target! Button should be clickable now.');
       counterScale.value = withSequence(
         withSpring(1.2, { damping: 5, stiffness: 100 }),
         withSpring(1, { damping: 10, stiffness: 100 })
@@ -246,7 +257,10 @@ export function StreakCelebration({ newStreak, onContinue }: StreakCelebrationPr
 
         {/* Continue button */}
         <AnimatedTouchable
-          onPress={onContinue}
+          onPress={() => {
+            console.log('🔘 Continue button pressed!');
+            onContinue();
+          }}
           style={[
             styles.continueButtonWrapper,
             {

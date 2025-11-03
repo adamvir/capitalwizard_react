@@ -12,7 +12,7 @@ import MainScreen from './MainScreen';
 import { COLORS } from '../utils/styleConstants';
 import { RootStackParamList } from '../navigation/types';
 import { useCoins } from '../contexts/CoinsContext';
-import { usePlayer, useStreak } from '../hooks';
+import { usePlayer, useStreak, useRentedBooks } from '../hooks';
 import { penzugyiAlapismeretkLessons } from '../data/penzugyiAlapismeretkLessons';
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
@@ -31,7 +31,7 @@ interface LessonProgress {
 // Default initial state
 // NOTE: coins, gems, streak, and player data are now managed by Supabase
 const DEFAULT_STATE = {
-  playerLevel: 1,
+  playerLevel: 0,
   totalXp: 0,
   progressPosition: 0,
   currentLesson: 1,
@@ -50,6 +50,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   // ============================================
   const { player, loading: playerLoading, refreshPlayer } = usePlayer();
   const { streak } = useStreak();
+  const { rentedBooks, loading: rentedBooksLoading, refreshRentedBooks } = useRentedBooks();
 
   // Global state (CoinsContext) - Sync with Supabase
   const { coins, gems, setCoins, setGems, setCoinsLocal, setGemsLocal } = useCoins();
@@ -100,69 +101,63 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   );
 
   // ============================================
-  // REFRESH player data when screen comes into focus
+  // REFRESH player and rented books data when screen comes into focus
   // ============================================
   useFocusEffect(
     useCallback(() => {
-      console.log('🔄 HomeScreen focused - refreshing player data...');
+      console.log('🔄 HomeScreen focused - refreshing player data and rented books...');
       if (refreshPlayer) {
         refreshPlayer();
       }
-    }, [refreshPlayer])
+      if (refreshRentedBooks) {
+        refreshRentedBooks();
+      }
+    }, [refreshPlayer, refreshRentedBooks])
   );
 
   // ============================================
-  // SYNC LESSON PROGRESS - Auto-update current lesson based on completed lessons
+  // SYNC LESSON PROGRESS - Get current lesson from Supabase rented_books table
+  // ✅ SUPABASE SOURCE OF TRUTH - Directly from rented_books.current_lesson_index
   // ============================================
   useFocusEffect(
     useCallback(() => {
       const syncLessonProgress = async () => {
         try {
-          console.log('📚 HomeScreen: Syncing lesson progress...');
+          console.log('📚 HomeScreen: Syncing lesson progress from Supabase...');
 
-          // Load lesson progress from AsyncStorage
-          const saved = await AsyncStorage.getItem('lessonProgress');
-          if (!saved) {
-            console.log('📚 No lesson progress found');
+          // ✅ ELLENŐRIZZÜK: Van-e kölcsönzött könyv?
+          if (!rentedBooks || rentedBooks.length === 0) {
+            console.log('⚠️ No rented books found - resetting to defaults');
+            setCurrentBookLessonIndex(0);
+            setCurrentGameType('reading');
+            setIsFirstRound(true);
             return;
           }
 
-          const lessonProgress: LessonProgress = JSON.parse(saved);
-          const bookTitle = 'Pénzügyi Alapismeretek';
-          const bookProgress = lessonProgress[bookTitle] || {};
+          // ✅ Take the first rented book's progress (Supabase source of truth)
+          const firstBook = rentedBooks[0];
+          const lessonIndex = firstBook.current_lesson_index;
+          const gameType = firstBook.current_game_type as 'reading' | 'matching' | 'quiz';
+          const isFirstRound = firstBook.is_first_round;
 
-          // Find first incomplete lesson (same logic as LessonsScreen)
-          let foundIncomplete = false;
-          for (let pageIndex = 0; pageIndex < penzugyiAlapismeretkLessons.length; pageIndex++) {
-            for (const gameType of ['reading', 'matching', 'quiz'] as const) {
-              const lessonKey = `${pageIndex}-${gameType}`;
-              if (!bookProgress[lessonKey]) {
-                // Found first incomplete lesson!
-                console.log(`📚 First incomplete lesson: page ${pageIndex}, ${gameType}`);
-                setCurrentBookLessonIndex(pageIndex);
-                setCurrentGameType(gameType);
-                setIsFirstRound(true);
-                foundIncomplete = true;
-                break;
-              }
-            }
-            if (foundIncomplete) break;
-          }
+          console.log(`📚 Supabase lesson progress:`, {
+            bookTitle: firstBook.book_title,
+            lessonIndex,
+            gameType,
+            isFirstRound,
+          });
 
-          // If all lessons in first round are complete, start second round
-          if (!foundIncomplete) {
-            console.log('📚 All first round lessons complete! Starting second round...');
-            setCurrentBookLessonIndex(0);
-            setCurrentGameType('reading');
-            setIsFirstRound(false);
-          }
+          // Update local state
+          setCurrentBookLessonIndex(lessonIndex);
+          setCurrentGameType(gameType);
+          setIsFirstRound(isFirstRound);
         } catch (error) {
           console.error('Error syncing lesson progress:', error);
         }
       };
 
       syncLessonProgress();
-    }, [])
+    }, [rentedBooks])
   );
 
   const loadGameState = async () => {
@@ -322,7 +317,16 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       lessonIndex: currentBookLessonIndex,
       gameType: currentGameType,
       isFirstRound,
+      hasRentedBooks: rentedBooks.length > 0,
     });
+
+    // ✅ ELLENŐRZÉS: Van-e kölcsönzött könyv?
+    if (!rentedBooks || rentedBooks.length === 0) {
+      console.log('⚠️ No rented books - navigating to Lessons screen');
+      // Navigate to Lessons screen to rent a book
+      navigation.navigate('Lessons');
+      return;
+    }
 
     // Navigate to lesson game with current progress
     navigation.navigate('LessonGame', {
@@ -400,6 +404,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     );
   }
 
+  // ============================================
+  // CALCULATE RENTED BOOK STATUS
+  // ============================================
+
+  // ✅ Check if player has any rented books (for ProgressAnimation)
+  const hasRentedBook = rentedBooks && rentedBooks.length > 0;
+
   return (
     <View style={styles.container}>
       <MainScreen
@@ -417,6 +428,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         currentGameType={currentGameType}
         isFirstRound={isFirstRound}
         playerAvatar={playerAvatar}
+        hasRentedBook={hasRentedBook}
         onAvatarClick={handleAvatarClick}
         onLessonsClick={handleLessonsClick}
         onShopClick={handleShopClick}

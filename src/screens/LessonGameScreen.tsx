@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
@@ -7,6 +7,7 @@ import { COLORS } from '../utils/styleConstants';
 import { LessonGame } from '../components/games/LessonGame';
 import { ReadingGame } from '../components/games/ReadingGame';
 import { QuizGame } from '../components/games/QuizGame';
+import { StreakCelebration } from '../components/animations/StreakCelebration';
 import { RootStackParamList } from '../navigation/types';
 import { penzugyiAlapismeretkLessons, Lesson as LessonData } from '../data/penzugyiAlapismeretkLessons';
 import { usePlayer, useStreak, useLessonProgress } from '../hooks';
@@ -33,6 +34,10 @@ interface LessonGameScreenProps {
 }
 
 export default function LessonGameScreen({ navigation, route }: LessonGameScreenProps) {
+  // Celebration state
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [celebrationStreak, setCelebrationStreak] = useState(0);
+
   // Supabase hooks
   const { player, addPlayerXP, addCoins } = usePlayer();
   const { streak, recordActivity } = useStreak();
@@ -80,6 +85,24 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
 
   // Navigation handlers
   const handleBackToHome = () => {
+    navigation.navigate('Home');
+  };
+
+  const handleCelebrationContinue = () => {
+    console.log('🎉 handleCelebrationContinue called');
+
+    // Hide celebration
+    setShowStreakCelebration(false);
+    console.log('✅ Celebration hidden');
+
+    // Call the onLessonComplete callback
+    if (onLessonComplete) {
+      console.log('📞 Calling onLessonComplete callback');
+      onLessonComplete();
+    }
+
+    // Navigate back to home
+    console.log('🏠 Navigating to Home screen');
     navigation.navigate('Home');
   };
 
@@ -137,11 +160,17 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
         await addCoins(streakBonus);
         streakMessage = `\n\n🔥 ${newStreak} napos sorozat!\n+${streakBonus} Bónusz Érme`;
         console.log(`🔥 Streak increased from ${previousStreak} to ${newStreak}! Bonus: ${streakBonus} coins`);
+
+        // Show streak celebration animation!
+        setCelebrationStreak(newStreak);
+        setShowStreakCelebration(true);
+        // Don't show alert yet - it will be shown after celebration
+        return;
       } else {
         console.log(`🔥 Streak stayed at ${newStreak} (same day, no bonus)`);
       }
 
-      // 7. Show success message with all rewards
+      // 7. Show success message with all rewards (only if no streak celebration)
       const baseRewards = `+${earnedXP} XP\n+${earnedCoins} Érme`;
       const rewardMessage = leveledUp
         ? `Szintlépés! 🎉\nElérted a ${player?.level}. szintet!\n\n${baseRewards}${streakMessage}`
@@ -221,6 +250,14 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
           quizData={lessonData.quiz}
           onWin={handleWin}
           onBackToHome={handleBackToHome}
+        />
+      )}
+
+      {/* Streak Celebration Overlay */}
+      {showStreakCelebration && (
+        <StreakCelebration
+          newStreak={celebrationStreak}
+          onContinue={handleCelebrationContinue}
         />
       )}
     </View>
