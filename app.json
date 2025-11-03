@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ReactN_CW",
-    "slug": "ReactN_CW",
+    "name": "CapitalWizard",
+    "slug": "capital-wizard",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.ReactN-CW",
+      "bundleIdentifier": "com.capitalwizard.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -24,7 +24,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.ReactNCW"
+      "package": "com.capitalwizard.app"
     },
     "web": {
       "output": "static",

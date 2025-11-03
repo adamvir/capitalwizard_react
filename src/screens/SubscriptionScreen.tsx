@@ -43,6 +43,7 @@ import {
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
+import { usePlayer } from '../hooks';
 
 // ============================================
 // CONSTANTS
@@ -237,7 +238,7 @@ const plans: Plan[] = [
 
 export default function SubscriptionScreen({ navigation, route }: SubscriptionScreenProps) {
   const subscriptionTier = route.params?.subscriptionTier || 'free';
-  const onSubscriptionChange = route.params?.onSubscriptionChange;
+  const { updatePlayerData } = usePlayer();
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('yearly');
 
   // ============================================
@@ -258,13 +259,12 @@ export default function SubscriptionScreen({ navigation, route }: SubscriptionSc
       };
       const newTier = tierMap[planId];
 
-      // Save to AsyncStorage
+      // Save to AsyncStorage (legacy, keeping for backwards compatibility)
       await AsyncStorage.setItem('subscriptionTier', newTier);
 
-      // Update parent component via callback
-      if (onSubscriptionChange) {
-        onSubscriptionChange(newTier);
-      }
+      // Update Supabase
+      await updatePlayerData({ subscription_type: newTier });
+      console.log('✅ Subscription updated to:', newTier);
 
       // Get plan name for confirmation
       const plan = plans.find(p => p.id === planId);

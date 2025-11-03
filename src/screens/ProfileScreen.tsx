@@ -21,6 +21,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -39,8 +40,10 @@ import {
   TrendingUp,
 } from 'lucide-react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RouteProp } from '@react-navigation/native';
+import { RouteProp, useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
+import { usePlayer } from '../hooks';
+import { useCallback } from 'react';
 
 // ============================================
 // CONSTANTS
@@ -169,10 +172,22 @@ const saveProfile = async (profile: UserProfile): Promise<void> => {
 // ============================================
 
 export default function ProfileScreen({ navigation, route }: ProfileScreenProps) {
-  const { playerLevel, coins, gems = 0, subscriptionTier = 'free' } = route.params;
+  // Supabase integration
+  const { player, loading: playerLoading, updatePlayerData, refreshPlayer } = usePlayer();
+
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [editedProfile, setEditedProfile] = useState<UserProfile>(DEFAULT_PROFILE);
+
+  // Refresh player data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔄 ProfileScreen focused - refreshing player data...');
+      if (refreshPlayer) {
+        refreshPlayer();
+      }
+    }, [refreshPlayer])
+  );
 
   // ============================================
   // LOAD PROFILE ON MOUNT
@@ -216,11 +231,16 @@ export default function ProfileScreen({ navigation, route }: ProfileScreenProps)
   };
 
   // ============================================
-  // XP CALCULATION
+  // XP CALCULATION (from Supabase)
   // ============================================
 
+  const playerLevel = player?.level || 1;
+  const currentXp = player?.xp || 0;
+  const coins = player?.coins || 0;
+  const gems = player?.diamonds || 0;
+  const subscriptionTier = player?.subscription_type || 'free';
+
   const xpForCurrentLevel = playerLevel * 1000;
-  const currentXp = 650; // This should come from props in real implementation
   const xpProgress = Math.min((currentXp / xpForCurrentLevel) * 100, 100);
 
   // ============================================
@@ -248,6 +268,19 @@ export default function ProfileScreen({ navigation, route }: ProfileScreenProps)
   };
 
   const tierColors = getTierColors(subscriptionTier);
+
+  // ============================================
+  // LOADING STATE
+  // ============================================
+
+  if (playerLoading) {
+    return (
+      <View style={[styles.outerContainer, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={COLORS.blue500} />
+        <Text style={styles.loadingText}>Betöltés...</Text>
+      </View>
+    );
+  }
 
   // ============================================
   // RENDER
@@ -594,6 +627,15 @@ const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
     backgroundColor: COLORS.slate900,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: SPACING.base,
+    color: COLORS.slate400,
+    fontSize: SIZES.fontBase,
   },
   container: {
     flex: 1,

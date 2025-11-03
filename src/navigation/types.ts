@@ -26,7 +26,7 @@ export type RootStackParamList = {
     onLessonComplete?: () => void;
   };
   BookView: { bookTitle: string; content: string };
-  Subscription: { subscriptionTier: 'free' | 'pro' | 'master'; onSubscriptionChange: (tier: 'free' | 'pro' | 'master') => void };
+  Subscription: { subscriptionTier: 'free' | 'pro' | 'master' };
   Shop: { coins: number; gems: number; onCoinsChange: (coins: number) => void; onGemsChange: (gems: number) => void };
   Streak: { currentStreak: number; coins: number; onCoinsChange: (coins: number) => void };
   AvatarSelector: { subscriptionTier?: 'free' | 'pro' | 'master' };

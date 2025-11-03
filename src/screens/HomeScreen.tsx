@@ -4,7 +4,7 @@
 // ============================================
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -12,6 +12,8 @@ import MainScreen from './MainScreen';
 import { COLORS } from '../utils/styleConstants';
 import { RootStackParamList } from '../navigation/types';
 import { useCoins } from '../contexts/CoinsContext';
+import { usePlayer, useStreak } from '../hooks';
+import { penzugyiAlapismeretkLessons } from '../data/penzugyiAlapismeretkLessons';
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -19,8 +21,15 @@ interface HomeScreenProps {
   navigation: HomeScreenNavigationProp;
 }
 
+// Lesson progress type (matches LessonsScreen)
+interface LessonProgress {
+  [bookTitle: string]: {
+    [lessonKey: string]: boolean; // lessonKey: "0-reading", "0-matching", "0-quiz", etc.
+  };
+}
+
 // Default initial state
-// NOTE: coins and gems are now managed by CoinsContext
+// NOTE: coins, gems, streak, and player data are now managed by Supabase
 const DEFAULT_STATE = {
   playerLevel: 1,
   totalXp: 0,
@@ -30,26 +39,41 @@ const DEFAULT_STATE = {
   playerName: 'Vendég',
   subscriptionTier: 'free' as 'free' | 'pro' | 'master',
   currentStreak: 0,
-  lastCompletionDate: null as string | null,
   currentBookLessonIndex: 0,
   currentGameType: 'reading' as 'reading' | 'matching' | 'quiz',
   isFirstRound: true,
 };
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
-  // Global state (CoinsContext)
-  const { coins, gems, setCoins, setGems } = useCoins();
+  // ============================================
+  // SUPABASE HOOKS
+  // ============================================
+  const { player, loading: playerLoading, refreshPlayer } = usePlayer();
+  const { streak } = useStreak();
 
-  // Game state
-  const [playerLevel, setPlayerLevel] = useState(DEFAULT_STATE.playerLevel);
-  const [totalXp, setTotalXp] = useState(DEFAULT_STATE.totalXp);
+  // Global state (CoinsContext) - Sync with Supabase
+  const { coins, gems, setCoins, setGems, setCoinsLocal, setGemsLocal } = useCoins();
+
+  // Sync CoinsContext with Supabase player data (local only to avoid infinite loop)
+  useEffect(() => {
+    if (player) {
+      setCoinsLocal(player.coins);
+      setGemsLocal(player.diamonds);
+    }
+  }, [player?.coins, player?.diamonds]);
+
+  // Game state (some still from AsyncStorage, some from Supabase)
+  const playerLevel = player?.level || DEFAULT_STATE.playerLevel;
+  const totalXp = player?.xp || DEFAULT_STATE.totalXp;
+  const playerName = player?.username || DEFAULT_STATE.playerName;
+  const subscriptionTier = player?.subscription_type || DEFAULT_STATE.subscriptionTier;
+  const currentStreak = streak?.current_streak || DEFAULT_STATE.currentStreak;
+
+  // Local state (still using AsyncStorage for now)
   const [progressPosition, setProgressPosition] = useState(DEFAULT_STATE.progressPosition);
   const [currentLesson, setCurrentLesson] = useState(DEFAULT_STATE.currentLesson);
   const [currentStageInSection, setCurrentStageInSection] = useState(DEFAULT_STATE.currentStageInSection);
-  const [playerName, setPlayerName] = useState(DEFAULT_STATE.playerName);
-  const [subscriptionTier, setSubscriptionTier] = useState(DEFAULT_STATE.subscriptionTier);
-  const [currentStreak, setCurrentStreak] = useState(DEFAULT_STATE.currentStreak);
-  const [lastCompletionDate, setLastCompletionDate] = useState<string | null>(DEFAULT_STATE.lastCompletionDate);
+  // NOTE: lastCompletionDate removed - now handled by Supabase (streaks table)
   const [currentBookLessonIndex, setCurrentBookLessonIndex] = useState(DEFAULT_STATE.currentBookLessonIndex);
   const [currentGameType, setCurrentGameType] = useState(DEFAULT_STATE.currentGameType);
   const [isFirstRound, setIsFirstRound] = useState(DEFAULT_STATE.isFirstRound);
@@ -75,49 +99,89 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }, [])
   );
 
+  // ============================================
+  // REFRESH player data when screen comes into focus
+  // ============================================
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔄 HomeScreen focused - refreshing player data...');
+      if (refreshPlayer) {
+        refreshPlayer();
+      }
+    }, [refreshPlayer])
+  );
+
+  // ============================================
+  // SYNC LESSON PROGRESS - Auto-update current lesson based on completed lessons
+  // ============================================
+  useFocusEffect(
+    useCallback(() => {
+      const syncLessonProgress = async () => {
+        try {
+          console.log('📚 HomeScreen: Syncing lesson progress...');
+
+          // Load lesson progress from AsyncStorage
+          const saved = await AsyncStorage.getItem('lessonProgress');
+          if (!saved) {
+            console.log('📚 No lesson progress found');
+            return;
+          }
+
+          const lessonProgress: LessonProgress = JSON.parse(saved);
+          const bookTitle = 'Pénzügyi Alapismeretek';
+          const bookProgress = lessonProgress[bookTitle] || {};
+
+          // Find first incomplete lesson (same logic as LessonsScreen)
+          let foundIncomplete = false;
+          for (let pageIndex = 0; pageIndex < penzugyiAlapismeretkLessons.length; pageIndex++) {
+            for (const gameType of ['reading', 'matching', 'quiz'] as const) {
+              const lessonKey = `${pageIndex}-${gameType}`;
+              if (!bookProgress[lessonKey]) {
+                // Found first incomplete lesson!
+                console.log(`📚 First incomplete lesson: page ${pageIndex}, ${gameType}`);
+                setCurrentBookLessonIndex(pageIndex);
+                setCurrentGameType(gameType);
+                setIsFirstRound(true);
+                foundIncomplete = true;
+                break;
+              }
+            }
+            if (foundIncomplete) break;
+          }
+
+          // If all lessons in first round are complete, start second round
+          if (!foundIncomplete) {
+            console.log('📚 All first round lessons complete! Starting second round...');
+            setCurrentBookLessonIndex(0);
+            setCurrentGameType('reading');
+            setIsFirstRound(false);
+          }
+        } catch (error) {
+          console.error('Error syncing lesson progress:', error);
+        }
+      };
+
+      syncLessonProgress();
+    }, [])
+  );
+
   const loadGameState = async () => {
     try {
       const saved = await AsyncStorage.getItem('game_state');
       if (saved) {
         const state = JSON.parse(saved);
 
-        // Check if streak should be reset before loading (timestamp-based)
-        const lastTimestampStr = state.lastCompletionDate;
-        const currentStreakValue = state.currentStreak || 0;
-        let streakToSet = currentStreakValue;
-        let lastTimestampToSet = state.lastCompletionDate || DEFAULT_STATE.lastCompletionDate;
-
-        if (lastTimestampStr && currentStreakValue > 0) {
-          const now = new Date().getTime();
-          const lastTimestamp = parseInt(lastTimestampStr);
-          const timeDiff = now - lastTimestamp;
-          const hoursDiff = timeDiff / (1000 * 60 * 60);
-
-          if (hoursDiff > 48) {
-            // More than 48 hours - reset streak
-            console.log('⚠️ Streak broken! (>48h) Resetting to 0');
-            streakToSet = 0;
-            lastTimestampToSet = null;
-          } else {
-            console.log(`✅ Streak valid (${hoursDiff.toFixed(2)}h ago)`);
-          }
-        }
-
-        // NOTE: coins and gems are now managed by CoinsContext
-        setPlayerLevel(state.playerLevel || DEFAULT_STATE.playerLevel);
-        setTotalXp(state.totalXp || DEFAULT_STATE.totalXp);
+        // NOTE: Player data (level, xp, name, subscription) now comes from Supabase
+        // Streak data also from Supabase (streaks table)
+        // Only load local game state (progress, lessons, etc.)
         setProgressPosition(state.progressPosition || DEFAULT_STATE.progressPosition);
         setCurrentLesson(state.currentLesson || DEFAULT_STATE.currentLesson);
         setCurrentStageInSection(state.currentStageInSection || DEFAULT_STATE.currentStageInSection);
-        setPlayerName(state.playerName || DEFAULT_STATE.playerName);
-        setSubscriptionTier(state.subscriptionTier || DEFAULT_STATE.subscriptionTier);
-        setCurrentStreak(streakToSet);
-        setLastCompletionDate(lastTimestampToSet);
         setCurrentBookLessonIndex(state.currentBookLessonIndex || DEFAULT_STATE.currentBookLessonIndex);
         setCurrentGameType(state.currentGameType || DEFAULT_STATE.currentGameType);
         setIsFirstRound(state.isFirstRound !== undefined ? state.isFirstRound : DEFAULT_STATE.isFirstRound);
 
-        console.log('✅ Loaded game state. Streak:', streakToSet);
+        console.log('✅ Loaded local game state (progress, lessons)');
       }
     } catch (error) {
       console.error('Error loading game state:', error);
@@ -127,16 +191,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const saveGameState = async () => {
     try {
       const state = {
-        // NOTE: coins and gems are now managed by CoinsContext (separate AsyncStorage)
-        playerLevel,
-        totalXp,
+        // NOTE: Player data (level, xp, etc.) and streak now in Supabase
+        // Only save local game state (lesson progress)
         progressPosition,
         currentLesson,
         currentStageInSection,
-        playerName,
-        subscriptionTier,
-        currentStreak,
-        lastCompletionDate,
         currentBookLessonIndex,
         currentGameType,
         isFirstRound,
@@ -147,11 +206,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }
   };
 
-  // Save state whenever it changes
+  // Save state whenever it changes (only local game state, not Supabase data)
   useEffect(() => {
     saveGameState();
-  }, [playerLevel, totalXp, progressPosition, currentLesson, currentStageInSection,
-      playerName, subscriptionTier, currentStreak, lastCompletionDate, currentBookLessonIndex, currentGameType, isFirstRound]);
+  }, [progressPosition, currentLesson, currentStageInSection,
+      currentBookLessonIndex, currentGameType, isFirstRound]);
 
   // Navigation handlers
   const handleAvatarClick = () => {
@@ -197,7 +256,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const handleSubscriptionClick = () => {
     navigation.navigate('Subscription', {
       subscriptionTier,
-      onSubscriptionChange: setSubscriptionTier,
+      // NOTE: No callback needed - Supabase auto-refresh will update subscriptionTier
     });
   };
 
@@ -220,40 +279,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       isFirstRound
     });
 
-    console.log('🔥 BEFORE STREAK UPDATE - Current streak:', currentStreak, 'Last timestamp:', lastCompletionDate);
-
-    // Update streak tracking - using timestamp (24-hour window)
-    const now = new Date().getTime(); // Current timestamp in milliseconds
-    console.log('🔥 Current timestamp:', now);
-
-    if (lastCompletionDate) {
-      const lastTimestamp = parseInt(lastCompletionDate);
-      const timeDiff = now - lastTimestamp;
-      const hoursDiff = timeDiff / (1000 * 60 * 60); // Convert to hours
-
-      console.log('🔥 Hours since last completion:', hoursDiff.toFixed(2));
-
-      if (hoursDiff < 24) {
-        // Less than 24 hours - don't update streak
-        console.log('🔥 Less than 24 hours, streak stays at:', currentStreak);
-      } else if (hoursDiff >= 24 && hoursDiff < 48) {
-        // Between 24-48 hours - increase streak
-        const newStreak = currentStreak + 1;
-        setCurrentStreak(newStreak);
-        setLastCompletionDate(now.toString());
-        console.log('🔥 Streak increased to:', newStreak);
-      } else {
-        // More than 48 hours - reset streak to 1
-        setCurrentStreak(1);
-        setLastCompletionDate(now.toString());
-        console.log('🔥 More than 48 hours, streak reset to 1');
-      }
-    } else {
-      // First completion ever
-      setCurrentStreak(1);
-      setLastCompletionDate(now.toString());
-      console.log('🔥 First streak! Set to 1, timestamp:', now);
-    }
+    // NOTE: Streak tracking is handled in LessonGameScreen (via Supabase)
+    // This function only handles lesson progress navigation
 
     // Update progress based on current game type (following the LECKE_RENDSZER_MUKODES.md logic)
     if (isFirstRound) {
@@ -357,8 +384,21 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     '→ Zigzag pos': dynamicProgressPosition,
   });
 
-  // Debug streak (timestamp-based)
-  console.log('🔥 Current Streak:', currentStreak, 'Last Completion timestamp:', lastCompletionDate);
+  // Debug streak (from Supabase)
+  console.log('🔥 Current Streak:', currentStreak, 'Last Activity Date:', streak?.last_activity_date || 'N/A');
+
+  // ============================================
+  // LOADING STATE
+  // ============================================
+
+  if (playerLoading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Betöltés...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -399,5 +439,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.bgDark,
+  },
+  loadingText: {
+    marginTop: 16,
+    color: COLORS.textLight,
+    fontSize: 16,
   },
 });

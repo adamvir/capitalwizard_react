@@ -17,8 +17,10 @@
  *    const { coins, gems, setCoins, setGems, addCoins, subtractCoins } = useCoins();
  */
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { updateCoins as updateCoinsSupabase, updateDiamonds as updateDiamondsSupabase } from '../services/playerService';
+import { storage, STORAGE_KEYS } from '../utils/storage';
 
 // ============================================
 // TYPES
@@ -29,6 +31,8 @@ interface CoinsContextType {
   gems: number;
   setCoins: (amount: number) => void;
   setGems: (amount: number) => void;
+  setCoinsLocal: (amount: number) => void; // Local only (no Supabase sync)
+  setGemsLocal: (amount: number) => void; // Local only (no Supabase sync)
   addCoins: (amount: number) => void;
   subtractCoins: (amount: number) => void;
   addGems: (amount: number) => void;
@@ -54,21 +58,84 @@ export function CoinsProvider({ children }: CoinsProviderProps) {
   const [coins, setCoinsState] = useState(680); // Initial coins
   const [gems, setGemsState] = useState(50); // Initial gems
 
-  // Set coins (with AsyncStorage persistence)
-  const setCoins = async (amount: number) => {
+  // Refs to avoid stale closure issues
+  const coinsRef = useRef(coins);
+  const gemsRef = useRef(gems);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    coinsRef.current = coins;
+  }, [coins]);
+
+  useEffect(() => {
+    gemsRef.current = gems;
+  }, [gems]);
+
+  // Set coins LOCAL ONLY (no Supabase sync) - use this when syncing FROM Supabase
+  const setCoinsLocal = async (amount: number) => {
     setCoinsState(amount);
     try {
       await AsyncStorage.setItem('userCoins', amount.toString());
+    } catch (error) {
+      console.error('Failed to save coins locally:', error);
+    }
+  };
+
+  // Set coins (with AsyncStorage and Supabase persistence)
+  const setCoins = async (amount: number) => {
+    let delta = 0;
+
+    // Update state and calculate delta
+    setCoinsState((prevCoins) => {
+      delta = amount - prevCoins;
+      return amount;
+    });
+
+    try {
+      // Save to AsyncStorage
+      await AsyncStorage.setItem('userCoins', amount.toString());
+
+      // Save to Supabase
+      const playerId = await storage.getItem<string>(STORAGE_KEYS.PLAYER_DATA);
+      if (playerId) {
+        await updateCoinsSupabase(playerId, delta);
+        console.log('💰 Coins synced to Supabase:', amount);
+      }
     } catch (error) {
       console.error('Failed to save coins:', error);
     }
   };
 
-  // Set gems (with AsyncStorage persistence)
-  const setGems = async (amount: number) => {
+  // Set gems LOCAL ONLY (no Supabase sync) - use this when syncing FROM Supabase
+  const setGemsLocal = async (amount: number) => {
     setGemsState(amount);
     try {
       await AsyncStorage.setItem('userGems', amount.toString());
+    } catch (error) {
+      console.error('Failed to save gems locally:', error);
+    }
+  };
+
+  // Set gems (with AsyncStorage and Supabase persistence)
+  const setGems = async (amount: number) => {
+    let delta = 0;
+
+    // Update state and calculate delta
+    setGemsState((prevGems) => {
+      delta = amount - prevGems;
+      return amount;
+    });
+
+    try {
+      // Save to AsyncStorage
+      await AsyncStorage.setItem('userGems', amount.toString());
+
+      // Save to Supabase
+      const playerId = await storage.getItem<string>(STORAGE_KEYS.PLAYER_DATA);
+      if (playerId) {
+        await updateDiamondsSupabase(playerId, delta);
+        console.log('💎 Gems synced to Supabase:', amount);
+      }
     } catch (error) {
       console.error('Failed to save gems:', error);
     }
@@ -76,22 +143,22 @@ export function CoinsProvider({ children }: CoinsProviderProps) {
 
   // Add coins
   const addCoins = (amount: number) => {
-    setCoins(coins + amount);
+    setCoins(coinsRef.current + amount);
   };
 
   // Subtract coins
   const subtractCoins = (amount: number) => {
-    setCoins(Math.max(0, coins - amount));
+    setCoins(Math.max(0, coinsRef.current - amount));
   };
 
   // Add gems
   const addGems = (amount: number) => {
-    setGems(gems + amount);
+    setGems(gemsRef.current + amount);
   };
 
   // Subtract gems
   const subtractGems = (amount: number) => {
-    setGems(Math.max(0, gems - amount));
+    setGems(Math.max(0, gemsRef.current - amount));
   };
 
   // Load coins and gems from AsyncStorage
@@ -138,6 +205,8 @@ export function CoinsProvider({ children }: CoinsProviderProps) {
         gems,
         setCoins,
         setGems,
+        setCoinsLocal,
+        setGemsLocal,
         addCoins,
         subtractCoins,
         addGems,

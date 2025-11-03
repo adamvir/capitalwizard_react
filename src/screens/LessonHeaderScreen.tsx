@@ -23,7 +23,12 @@ export default function LessonHeaderScreen({ navigation, route }: LessonHeaderSc
     isFirstRound = true,
   } = route.params || {};
 
-  const lessonNumber = lessonIndex + 1;
+  // Calculate correct lesson number based on page index and game type
+  // Each page has 3 lessons: reading (1), matching (2), quiz (3)
+  // Example: page 0 reading = lesson 1, page 0 matching = lesson 2, page 1 reading = lesson 4
+  const lessonNumber = isFirstRound
+    ? lessonIndex * 3 + (gameType === 'reading' ? 1 : gameType === 'matching' ? 2 : 3)
+    : 144 + lessonIndex + 1; // Second round starts at lesson 145
 
   const handleBack = () => {
     navigation.goBack();

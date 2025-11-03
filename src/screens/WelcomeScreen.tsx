@@ -219,6 +219,11 @@ export default function WelcomeScreen({
   const navigation = useNavigation<WelcomeScreenNavigationProp>();
 
   // ============================================
+  // NOTE: Streak only updates when completing lessons!
+  // No automatic daily login rewards - must play to earn streak
+  // ============================================
+
+  // ============================================
   // ANIMATIONS
   // ============================================
 

@@ -1,5 +1,5 @@
 {
-  "name": "reactn_cw",
+  "name": "capital-wizard",
   "main": "node_modules/expo/AppEntry.js",
   "version": "1.0.0",
   "scripts": {
@@ -20,6 +20,7 @@
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
     "@react-navigation/stack": "^7.6.1",
+    "@supabase/supabase-js": "^2.78.0",
     "expo": "~54.0.20",
     "expo-av": "~16.0.7",
     "expo-blur": "^15.0.7",

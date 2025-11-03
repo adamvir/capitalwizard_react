@@ -33,6 +33,7 @@ import {
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
+import { usePlayer } from '../hooks';
 
 type ShopScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Shop'>;
 type ShopScreenRouteProp = RouteProp<RootStackParamList, 'Shop'>;
@@ -140,11 +141,12 @@ const GAME_CONFIG = {
 
 export default function ShopScreen({ navigation, route }: ShopScreenProps) {
   const { coins, gems, onCoinsChange, onGemsChange } = route.params;
+  const { player, updatePlayerData } = usePlayer();
 
   // For this demo, we'll use coins as gold and gems as diamonds
   const gold = coins;
   const diamonds = gems;
-  const streakFreezes = 2; // Mock value
+  const streakFreezes = player?.streak_freezes || 0; // Széria Pontok from Supabase
 
   // ============================================
   // HANDLERS
@@ -170,12 +172,19 @@ export default function ShopScreen({ navigation, route }: ShopScreenProps) {
     Alert.alert('Sikeres!', `${amount} gyémánt vásárlása sikeres!`);
   };
 
-  const handleStreakFreezePurchase = () => {
+  const handleStreakFreezePurchase = async () => {
     if (gold < GAME_CONFIG.streakFreezeGoldCost) {
       Alert.alert('Hiba', 'Nincs elég aranyad!');
       return;
     }
+
+    // Levonás a coins-ból
     onCoinsChange(gold - GAME_CONFIG.streakFreezeGoldCost);
+
+    // Hozzáadás a streak_freezes-hez
+    const newStreakFreezes = (player?.streak_freezes || 0) + 1;
+    await updatePlayerData({ streak_freezes: newStreakFreezes });
+
     Alert.alert('Sikeres!', 'Széria pont vásárlása sikeres!');
   };
 
