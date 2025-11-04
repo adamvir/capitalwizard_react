@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS players (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     username TEXT,
     avatar_id INTEGER DEFAULT 1,
-    level INTEGER DEFAULT 1,
+    level INTEGER DEFAULT 0,
     xp INTEGER DEFAULT 0,
     coins INTEGER DEFAULT 0,
     diamonds INTEGER DEFAULT 0,

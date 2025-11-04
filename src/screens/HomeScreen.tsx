@@ -102,31 +102,52 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   // ============================================
   // REFRESH player and rented books data when screen comes into focus
+  // ✅ KOMBINÁLT FRISSÍTÉS: refresh + sync egyben, DIRECT Supabase query
   // ============================================
   useFocusEffect(
     useCallback(() => {
-      console.log('🔄 HomeScreen focused - refreshing player data and rented books...');
-      if (refreshPlayer) {
-        refreshPlayer();
-      }
-      if (refreshRentedBooks) {
-        refreshRentedBooks();
-      }
-    }, [refreshPlayer, refreshRentedBooks])
-  );
-
-  // ============================================
-  // SYNC LESSON PROGRESS - Get current lesson from Supabase rented_books table
-  // ✅ SUPABASE SOURCE OF TRUTH - Directly from rented_books.current_lesson_index
-  // ============================================
-  useFocusEffect(
-    useCallback(() => {
-      const syncLessonProgress = async () => {
+      const refreshAndSync = async () => {
         try {
-          console.log('📚 HomeScreen: Syncing lesson progress from Supabase...');
+          console.log('🔄 HomeScreen focused - refreshing and syncing...');
+
+          // 1. Refresh player
+          if (refreshPlayer) {
+            refreshPlayer();
+          }
+
+          // 2. Refresh rented books hook state
+          if (refreshRentedBooks) {
+            await refreshRentedBooks();
+            console.log('✅ Rented books hook refreshed');
+          }
+
+          // 3. ✅ DIRECT SUPABASE QUERY - Garantáltan friss adatok!
+          console.log('📚 HomeScreen: Getting FRESH lesson progress directly from Supabase...');
+          const { storage, STORAGE_KEYS } = require('../utils/storage');
+          const { supabase } = require('../config/supabase');
+
+          const playerId = await storage.getItem(STORAGE_KEYS.PLAYER_DATA);
+          if (!playerId) {
+            console.log('⚠️ No player ID found');
+            return;
+          }
+
+          // Query Supabase directly for FRESH data
+          const { data: freshBooks, error } = await supabase
+            .from('rented_books')
+            .select('*')
+            .eq('player_id', playerId)
+            .order('rented_at', { ascending: false });
+
+          console.log('📚 Fresh books from Supabase:', freshBooks);
+
+          if (error) {
+            console.error('❌ Error fetching fresh books:', error);
+            return;
+          }
 
           // ✅ ELLENŐRIZZÜK: Van-e kölcsönzött könyv?
-          if (!rentedBooks || rentedBooks.length === 0) {
+          if (!freshBooks || freshBooks.length === 0) {
             console.log('⚠️ No rented books found - resetting to defaults');
             setCurrentBookLessonIndex(0);
             setCurrentGameType('reading');
@@ -135,12 +156,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           }
 
           // ✅ Take the first rented book's progress (Supabase source of truth)
-          const firstBook = rentedBooks[0];
+          const firstBook = freshBooks[0];
           const lessonIndex = firstBook.current_lesson_index;
           const gameType = firstBook.current_game_type as 'reading' | 'matching' | 'quiz';
           const isFirstRound = firstBook.is_first_round;
 
-          console.log(`📚 Supabase lesson progress:`, {
+          console.log(`📚 Supabase lesson progress (FRESH):`, {
             bookTitle: firstBook.book_title,
             lessonIndex,
             gameType,
@@ -151,13 +172,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           setCurrentBookLessonIndex(lessonIndex);
           setCurrentGameType(gameType);
           setIsFirstRound(isFirstRound);
+          console.log('✅ ProgressionAnimation state updated with FRESH data!');
         } catch (error) {
-          console.error('Error syncing lesson progress:', error);
+          console.error('❌ Error in refreshAndSync:', error);
         }
       };
 
-      syncLessonProgress();
-    }, [rentedBooks])
+      refreshAndSync();
+    }, [refreshPlayer, refreshRentedBooks])
   );
 
   const loadGameState = async () => {
@@ -348,8 +370,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   // Utility function
   const getTotalXpForNextLevel = (level: number): number => {
-    // Simple XP calculation: level * 100
-    return level * 100;
+    // XP needed for next level: level 0 -> 100 XP, level 1 -> 200 XP, stb.
+    return (level + 1) * 100;
   };
 
   // Calculate current lesson number based on book progress

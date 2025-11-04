@@ -116,7 +116,7 @@ export async function addXP(
 
     const newXP = player.xp + xpAmount;
     const xpPerLevel = 100; // Állítsd be a saját logikádnak megfelelően
-    const newLevel = Math.floor(newXP / xpPerLevel) + 1;
+    const newLevel = Math.floor(newXP / xpPerLevel); // 0 XP = level 0, 100 XP = level 1, stb.
     const leveledUp = newLevel > player.level;
 
     const updatedPlayer = await updatePlayer(playerId, {
