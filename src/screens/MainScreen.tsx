@@ -121,6 +121,7 @@ interface MainScreenProps {
   onAvatarClick: () => void;
   onLessonsClick: () => void;
   onShopClick: () => void;
+  onFriendsClick: () => void;
   onArenaClick: () => void;
   onUniversityClick: () => void;
   onProfileClick: () => void;
@@ -161,6 +162,7 @@ export default function MainScreen({
   onAvatarClick,
   onLessonsClick,
   onShopClick,
+  onFriendsClick,
   onArenaClick,
   onUniversityClick,
   onProfileClick,
@@ -283,11 +285,17 @@ export default function MainScreen({
           onAvatarClick={onAvatarClick}
           currentStageInSection={currentStageInSection}
           playerAvatar={playerAvatar}
+          totalXp={totalXp}
+          totalXpForNextLevel={totalXpForNextLevel}
         />
 
         {/* Középső szekció - Játék világ (SideMenu + EventCards) */}
         <View style={styles.middleSection}>
-          <SideMenu onLessonsClick={onLessonsClick} onShopClick={onShopClick} />
+          <SideMenu
+            onLessonsClick={onLessonsClick}
+            onShopClick={onShopClick}
+            onFriendsClick={onFriendsClick}
+          />
           <EventCards onArenaClick={onArenaClick} subscriptionTier={subscriptionTier} />
         </View>
 

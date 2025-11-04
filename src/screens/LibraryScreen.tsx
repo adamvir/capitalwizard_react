@@ -405,15 +405,27 @@ export default function LibraryScreen({ navigation }: LibraryScreenProps) {
         >
           {/* Book title (vertical - spine text) */}
           <View style={styles.bookTitleContainer}>
-            <Text
-              style={[
-                styles.bookTitle,
-                { color: book.textColor },
-              ]}
-              numberOfLines={1}
+            <View
+              style={{
+                transform: [{ rotate: '-90deg' }],
+                width: randomHeight - 40,
+                maxHeight: book.width - 8,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              {book.title}
-            </Text>
+              <Text
+                style={[
+                  styles.bookTitle,
+                  {
+                    color: book.textColor,
+                  },
+                ]}
+                numberOfLines={3}
+              >
+                {book.title}
+              </Text>
+            </View>
           </View>
 
           {/* Book texture */}
@@ -1194,21 +1206,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 8,
     elevation: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bookTitleContainer: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 2,
+    overflow: 'hidden',
   },
   bookTitle: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '700',
-    transform: [{ rotate: '-90deg' }],
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
     textAlign: 'center',
-    width: 160,
   },
   bookTexture: {
     position: 'absolute',

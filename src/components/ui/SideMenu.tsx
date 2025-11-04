@@ -5,7 +5,7 @@
  *
  * Left-side navigation menu with 4 quick action buttons
  * - Bolt (Shop)
- * - Üzenetek (Messages) - disabled
+ * - Barátok (Friends)
  * - Leckék (Lessons)
  * - Speciális (Special) - disabled
  *
@@ -13,6 +13,7 @@
  * <SideMenu
  *   onLessonsClick={() => navigation.navigate('Lessons')}
  *   onShopClick={() => navigation.navigate('Shop')}
+ *   onFriendsClick={() => navigation.navigate('Friends')}
  * />
  *
  * FÜGGŐSÉGEK:
@@ -21,7 +22,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { ShoppingBag, MessageSquare, BookOpen, Sparkles } from 'lucide-react-native';
+import { ShoppingBag, Users, BookOpen, Sparkles } from 'lucide-react-native';
 
 // ============================================
 // CONSTANTS
@@ -50,6 +51,7 @@ const SIZES = {
 interface SideMenuProps {
   onLessonsClick?: () => void;
   onShopClick?: () => void;
+  onFriendsClick?: () => void;
 }
 
 interface MenuItem {
@@ -65,7 +67,8 @@ interface MenuItem {
 
 const getMenuItems = (
   onLessonsClick?: () => void,
-  onShopClick?: () => void
+  onShopClick?: () => void,
+  onFriendsClick?: () => void
 ): MenuItem[] => [
   {
     icon: ShoppingBag,
@@ -74,10 +77,10 @@ const getMenuItems = (
     onClick: onShopClick,
   },
   {
-    icon: MessageSquare,
-    label: 'Üzenetek',
-    backgroundColor: '#D97706', // amber-600
-    onClick: undefined, // Disabled
+    icon: Users,
+    label: 'Barátok',
+    backgroundColor: '#3B82F6', // blue-500
+    onClick: onFriendsClick,
   },
   {
     icon: BookOpen,
@@ -97,8 +100,8 @@ const getMenuItems = (
 // COMPONENT
 // ============================================
 
-export function SideMenu({ onLessonsClick, onShopClick }: SideMenuProps) {
-  const menuItems = getMenuItems(onLessonsClick, onShopClick);
+export function SideMenu({ onLessonsClick, onShopClick, onFriendsClick }: SideMenuProps) {
+  const menuItems = getMenuItems(onLessonsClick, onShopClick, onFriendsClick);
 
   // ============================================
   // EVENT HANDLERS

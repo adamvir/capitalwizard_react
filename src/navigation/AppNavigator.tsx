@@ -24,6 +24,7 @@ import StreakScreen from '../screens/StreakScreen';
 import AvatarSelectorScreen from '../screens/AvatarSelectorScreen';
 import DailyLimitScreen from '../screens/DailyLimitScreen';
 import LessonsScreen from '../screens/LessonsScreen';
+import FriendsScreen from '../screens/FriendsScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -97,6 +98,7 @@ export function AppNavigator() {
           cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS,
         }}
       />
+      <Stack.Screen name="Friends" component={FriendsScreen} />
     </Stack.Navigator>
   );
 }

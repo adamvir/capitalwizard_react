@@ -96,6 +96,8 @@ interface TopBarProps {
   onAvatarClick?: () => void;
   currentStageInSection?: number; // 1-based (1-6)
   playerAvatar?: string | null; // Avatar emoji from parent
+  totalXp?: number;
+  totalXpForNextLevel?: number;
 }
 
 type DifficultyType = 'easy' | 'medium' | 'hard';
@@ -113,6 +115,8 @@ export function TopBar({
   onAvatarClick,
   currentStageInSection = 1,
   playerAvatar: playerAvatarProp,
+  totalXp = 0,
+  totalXpForNextLevel = 0,
 }: TopBarProps) {
   // ============================================
   // GLOBAL STATE (CoinsContext)
@@ -132,6 +136,13 @@ export function TopBar({
 
   // Use prop avatar if provided, otherwise use loaded avatar
   const displayAvatar = playerAvatarProp !== undefined ? playerAvatarProp : currentAvatar;
+
+  // ============================================
+  // COMPUTED VALUES
+  // ============================================
+
+  // Calculate XP progress percentage
+  const xpProgress = totalXpForNextLevel > 0 ? (totalXp / totalXpForNextLevel) * 100 : 0;
 
   // ============================================
   // EFFECTS
@@ -284,7 +295,7 @@ export function TopBar({
                   end={{ x: 1, y: 0 }}
                   style={[
                     styles.progressBarFill,
-                    { width: playerLevel === 1 ? '0%' : '1%' },
+                    { width: `${Math.min(xpProgress, 100)}%` },
                   ]}
                 />
               </View>

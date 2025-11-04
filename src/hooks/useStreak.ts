@@ -2,7 +2,7 @@
 // STREAK HOOK - REACT HOOK A STREAK ADATOKHOZ
 // ============================================
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getStreak, updateStreak } from '../services/playerService';
 import { Database } from '../types/database';
 import { storage, STORAGE_KEYS } from '../utils/storage';
@@ -32,6 +32,9 @@ export function useStreak(): UseStreakReturn {
   const [streak, setStreak] = useState<Streak | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // ✅ VÉDŐ FLAG: Megakadályozza a többszöri initial load-ot
+  const hasInitialLoad = useRef<boolean>(false);
 
   // Játékos ID lekérése
   const getPlayerId = useCallback(async (): Promise<string | null> => {
@@ -66,8 +69,16 @@ export function useStreak(): UseStreakReturn {
     }
   }, [getPlayerId]);
 
-  // Első betöltés
+  // Első betöltés - csak egyszer, mount-kor
   useEffect(() => {
+    // ✅ VÉDELEM: Ha már fut az initial load, ne futtassuk újra
+    if (hasInitialLoad.current) {
+      console.log('⚠️ Streak initial load már lefutott, skip...');
+      return;
+    }
+
+    hasInitialLoad.current = true;
+    console.log('🚀 Initial streak load started...');
     loadStreak();
   }, [loadStreak]);
 
@@ -75,20 +86,28 @@ export function useStreak(): UseStreakReturn {
   // Visszaadja az új streak objektumot (hogy ellenőrizni lehessen a változást)
   const recordActivity = useCallback(async (): Promise<Streak | null> => {
     try {
+      console.log('🔥 recordActivity called - updating streak...');
       const playerId = await getPlayerId();
       if (!playerId) {
-        console.error('No player ID found');
+        console.error('❌ No player ID found for streak update');
         return null;
       }
 
+      console.log('📊 Calling updateStreak for player:', playerId);
       const updatedStreak = await updateStreak(playerId);
       if (updatedStreak) {
+        console.log('✅ Streak updated successfully:', {
+          current_streak: updatedStreak.current_streak,
+          last_activity_date: updatedStreak.last_activity_date,
+        });
         setStreak(updatedStreak);
         return updatedStreak;
+      } else {
+        console.error('❌ updateStreak returned null');
       }
       return null;
     } catch (err) {
-      console.error('Error recording activity:', err);
+      console.error('❌ Error recording activity:', err);
       setError('Nem sikerült rögzíteni az aktivitást');
       return null;
     }

@@ -18,6 +18,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { penzugyiAlapismeretkLessons } from '../data/penzugyiAlapismeretkLessons';
 import { COLORS, SPACING, SIZES } from '../utils/styleConstants';
 import { useRentedBooks } from '../hooks';
+import { getBookColors } from '../data/bookColors';
 
 // NAVIGATION: Navigáció típusa
 type NavigationProp = NativeStackNavigationProp<any>;
@@ -72,13 +73,73 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
   const [lessonProgress, setLessonProgress] = useState<LessonProgress>({});
 
   // ✅ Convert Supabase rented_books to local format
-  const availableBooks: AvailableBook[] = supabaseRentedBooks.map(book => ({
-    title: book.book_title,
-    colors: ['#D97706', '#B45309'], // Default colors
-    textColor: '#FFFFFF',
-    isRented: new Date(book.rented_until).getTime() > Date.now(),
-    rentedUntil: new Date(book.rented_until).getTime(),
-  }));
+  const availableBooks: AvailableBook[] = supabaseRentedBooks.map(book => {
+    const bookColors = getBookColors(book.book_title);
+    return {
+      title: book.book_title,
+      colors: bookColors.colors,
+      textColor: bookColors.textColor,
+      isRented: new Date(book.rented_until).getTime() > Date.now(),
+      rentedUntil: new Date(book.rented_until).getTime(),
+    };
+  });
+
+  // ✅ Sync AsyncStorage from Supabase lesson_progress
+  const syncLessonProgressFromSupabase = async () => {
+    try {
+      console.log('🔄 Syncing lesson progress from Supabase to AsyncStorage...');
+      const { storage, STORAGE_KEYS } = require('../utils/storage');
+      const { supabase } = require('../config/supabase');
+
+      const playerId = await storage.getItem(STORAGE_KEYS.PLAYER_DATA);
+      if (!playerId) {
+        console.log('⚠️ No player ID found, skipping sync');
+        return;
+      }
+
+      // Lekérjük az összes lesson_progress-t a Supabase-ből
+      const { data: lessons, error } = await supabase
+        .from('lesson_progress')
+        .select('*')
+        .eq('player_id', playerId)
+        .eq('completed', true);
+
+      if (error) {
+        console.error('❌ Error fetching lesson progress from Supabase:', error);
+        return;
+      }
+
+      console.log('📊 Supabase lessons fetched:', lessons?.length || 0);
+
+      // Átalakítjuk AsyncStorage formátumra
+      const progressMap: LessonProgress = {};
+
+      lessons?.forEach((lesson) => {
+        // lesson_id formátum: "Pénzügyi Alapismeretek-0-reading"
+        const parts = lesson.lesson_id.split('-');
+        if (parts.length >= 3) {
+          const bookTitle = parts.slice(0, -2).join('-'); // Ha a cím tartalmaz kötőjelet
+          const lessonIndex = parts[parts.length - 2];
+          const gameType = parts[parts.length - 1];
+
+          if (!progressMap[bookTitle]) {
+            progressMap[bookTitle] = {};
+          }
+
+          const lessonKey = `${lessonIndex}-${gameType}`;
+          progressMap[bookTitle][lessonKey] = true;
+        }
+      });
+
+      console.log('💾 Saving synced progress to AsyncStorage:', progressMap);
+
+      // Mentjük az AsyncStorage-ba
+      await AsyncStorage.setItem('lessonProgress', JSON.stringify(progressMap));
+      console.log('✅ Lesson progress synced successfully');
+    } catch (error) {
+      console.error('❌ Error syncing lesson progress:', error);
+    }
+  };
 
   // Load lesson progress from AsyncStorage
   const loadLessonProgress = async () => {
@@ -100,14 +161,23 @@ export default function LessonsScreen({ route }: LessonsScreenProps) {
   useFocusEffect(
     React.useCallback(() => {
       console.log('📚 LessonsScreen: Screen focused, reloading data...');
-      loadLessonProgress();
+      // ✅ Frissítjük az AsyncStorage-t a Supabase lesson_progress-ből
+      const syncAndLoad = async () => {
+        await syncLessonProgressFromSupabase();
+        await loadLessonProgress();
+      };
+      syncAndLoad();
     }, [])
   );
 
   // Also reload when rentedBooks change (e.g., when a new book is rented)
   useEffect(() => {
-    console.log('📚 LessonsScreen: Rented books changed, reloading progress...');
-    loadLessonProgress();
+    console.log('📚 LessonsScreen: Rented books changed, syncing and reloading progress...');
+    const syncAndLoad = async () => {
+      await syncLessonProgressFromSupabase();
+      await loadLessonProgress();
+    };
+    syncAndLoad();
   }, [supabaseRentedBooks]);
 
   // Debug selected book progress

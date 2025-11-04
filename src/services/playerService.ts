@@ -205,12 +205,16 @@ export async function getStreak(playerId: string): Promise<Streak | null> {
  */
 export async function updateStreak(playerId: string): Promise<Streak | null> {
   try {
+    console.log('📅 updateStreak called for player:', playerId);
     const existingStreak = await getStreak(playerId);
     const player = await getPlayer(playerId);
     const today = new Date().toISOString().split('T')[0];
+    console.log('📅 Today date:', today);
+    console.log('📅 Existing streak:', existingStreak);
 
     if (!existingStreak) {
       // Új streak létrehozása
+      console.log('🆕 Creating new streak...');
       const { data, error } = await supabase
         .from('streaks')
         .insert({
@@ -223,10 +227,11 @@ export async function updateStreak(playerId: string): Promise<Streak | null> {
         .single();
 
       if (error) {
-        console.error('Error creating streak:', error);
+        console.error('❌ Error creating streak:', error);
         return null;
       }
 
+      console.log('✅ New streak created:', data);
       return data;
     }
 
@@ -237,15 +242,20 @@ export async function updateStreak(playerId: string): Promise<Streak | null> {
       (todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
+    console.log('📅 Last activity date:', existingStreak.last_activity_date);
+    console.log('📅 Days difference:', diffDays);
+
     let newStreak = existingStreak.current_streak;
     let streakFreezesUsed = 0;
 
     if (diffDays === 0) {
       // Ma már volt aktivitás
+      console.log('⚠️ Already recorded activity today, returning existing streak');
       return existingStreak;
     } else if (diffDays === 1) {
       // Folytatódik a streak (tegnap volt)
       newStreak += 1;
+      console.log('✅ Streak continues! New streak:', newStreak);
     } else {
       // Több nap telt el (megszakadt?)
       const missedDays = diffDays - 1; // Hány nap maradt ki
@@ -264,6 +274,12 @@ export async function updateStreak(playerId: string): Promise<Streak | null> {
     }
 
     // Frissítsd a streak-et
+    console.log('💾 Updating streak in database...', {
+      current_streak: newStreak,
+      longest_streak: Math.max(newStreak, existingStreak.longest_streak),
+      last_activity_date: today,
+    });
+
     const { data, error } = await supabase
       .from('streaks')
       .update({
@@ -277,9 +293,11 @@ export async function updateStreak(playerId: string): Promise<Streak | null> {
       .single();
 
     if (error) {
-      console.error('Error updating streak:', error);
+      console.error('❌ Error updating streak:', error);
       return null;
     }
+
+    console.log('✅ Streak updated in database:', data);
 
     // Ha Széria Pont felhasználódott, frissítsd a player táblát
     if (streakFreezesUsed > 0) {

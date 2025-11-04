@@ -189,7 +189,7 @@ export function StreakCelebration({ newStreak, onContinue }: StreakCelebrationPr
       style={styles.container}
     >
       {/* Floating fire particles */}
-      <View style={styles.particlesContainer}>
+      <View style={styles.particlesContainer} pointerEvents="none">
         {[...Array(20)].map((_, i) => (
           <FloatingFireParticle key={i} index={i} />
         ))}
@@ -259,13 +259,19 @@ export function StreakCelebration({ newStreak, onContinue }: StreakCelebrationPr
         <AnimatedTouchable
           onPress={() => {
             console.log('🔘 Continue button pressed!');
-            onContinue();
+            console.log('🔘 Calling onContinue callback...');
+            try {
+              onContinue();
+              console.log('✅ onContinue callback executed successfully');
+            } catch (error) {
+              console.error('❌ Error in onContinue:', error);
+            }
           }}
           style={[
             styles.continueButtonWrapper,
             {
-              opacity: displayedNumber === newStreak ? 1 : 0,
-              pointerEvents: displayedNumber === newStreak ? 'auto' : 'none',
+              opacity: displayedNumber === newStreak ? 1 : 0.5,
+              pointerEvents: 'auto', // ✅ MINDIG kattintható legyen!
             },
           ]}
           entering={FadeInDown.delay(1700).duration(500)}
@@ -277,7 +283,9 @@ export function StreakCelebration({ newStreak, onContinue }: StreakCelebrationPr
             end={{ x: 1, y: 0 }}
             style={styles.continueButton}
           >
-            <Text style={styles.continueButtonText}>Tovább</Text>
+            <Text style={styles.continueButtonText}>
+              Tovább {displayedNumber !== newStreak && '(⏳)'}
+            </Text>
           </LinearGradient>
         </AnimatedTouchable>
 
@@ -379,6 +387,7 @@ const styles = StyleSheet.create({
   // Continue button
   continueButtonWrapper: {
     marginTop: SPACING.base,
+    zIndex: 100, // ✅ Biztosítjuk, hogy felül legyen
   },
   continueButton: {
     paddingHorizontal: 48,

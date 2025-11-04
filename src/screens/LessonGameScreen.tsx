@@ -10,7 +10,7 @@ import { QuizGame } from '../components/games/QuizGame';
 import { StreakCelebration } from '../components/animations/StreakCelebration';
 import { RootStackParamList } from '../navigation/types';
 import { penzugyiAlapismeretkLessons, Lesson as LessonData } from '../data/penzugyiAlapismeretkLessons';
-import { usePlayer, useStreak, useLessonProgress } from '../hooks';
+import { usePlayer, useStreak, useLessonProgress, useRentedBooks } from '../hooks';
 
 type LessonGameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'LessonGame'>;
 type LessonGameScreenRouteProp = RouteProp<RootStackParamList, 'LessonGame'>;
@@ -42,6 +42,7 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
   const { player, addPlayerXP, addCoins } = usePlayer();
   const { streak, recordActivity } = useStreak();
   const { saveProgress } = useLessonProgress();
+  const { updateProgress } = useRentedBooks();
 
   // Get params from navigation
   const {
@@ -143,31 +144,220 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
       await addCoins(earnedCoins);
       console.log(`✅ Added ${earnedCoins} coins`);
 
-      // 6. Update streak (ONLY when completing lessons!)
-      // This is the ONLY place where streak updates happen
-      const previousStreak = streak?.current_streak || 0;
-      const updatedStreak = await recordActivity();
-      console.log('✅ Streak updated');
+      // 6. Update streak - EGYSZERŰ, DIRECT MEGOLDÁS
+      console.log('🔥 === STREAK UPDATE START ===');
+      const { supabase } = require('../config/supabase');
+      const { storage, STORAGE_KEYS } = require('../utils/storage');
 
-      // Check if it's a new day and streak increased
-      const newStreak = updatedStreak?.current_streak || previousStreak;
+      const playerId = await storage.getItem(STORAGE_KEYS.PLAYER_DATA);
+      const today = new Date().toISOString().split('T')[0];
+
+      console.log('🔥 Player ID:', playerId);
+      console.log('🔥 Today:', today);
+
+      // TEST: Ellenőrizzük, hogy a Supabase kapcsolat működik
+      console.log('🔥 Testing Supabase connection...');
+      const { data: testData, error: testError } = await supabase
+        .from('players')
+        .select('id, username')
+        .eq('id', playerId)
+        .maybeSingle();
+
+      console.log('🔥 Test query - Player data:', testData);
+      console.log('🔥 Test query - Error:', testError);
+
+      if (testError) {
+        console.error('❌ SUPABASE CONNECTION FAILED:', testError);
+        Alert.alert('Hiba', 'Nem sikerült kapcsolódni az adatbázishoz: ' + testError.message);
+        return;
+      }
+
+      const previousStreak = streak?.current_streak || 0;
+      console.log('🔥 Previous streak from hook:', previousStreak);
+
+      // Lekérjük a jelenlegi streak-et
+      const { data: existingStreak, error: fetchError } = await supabase
+        .from('streaks')
+        .select('*')
+        .eq('player_id', playerId)
+        .maybeSingle();
+
+      console.log('🔥 Existing streak from DB:', existingStreak);
+      console.log('🔥 Fetch error:', fetchError);
+
+      if (fetchError) {
+        console.error('❌ STREAK FETCH FAILED:', fetchError);
+      }
+
+      let updatedStreak = null;
+      let newStreakValue = 1;
+
+      if (!existingStreak) {
+        // ✅ NINCS STREAK - Létrehozzuk
+        console.log('🔥 Creating new streak...');
+        const { data: created, error: createError } = await supabase
+          .from('streaks')
+          .insert({
+            player_id: playerId,
+            current_streak: 1,
+            longest_streak: 1,
+            last_activity_date: today,
+          })
+          .select()
+          .single();
+
+        console.log('🔥 Created streak:', created);
+        console.log('🔥 Create error:', createError);
+        updatedStreak = created;
+        newStreakValue = 1;
+      } else {
+        // ✅ VAN STREAK - Frissítjük
+        const lastDate = new Date(existingStreak.last_activity_date);
+        const todayDate = new Date(today);
+        const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        console.log('🔥 Last activity:', existingStreak.last_activity_date);
+        console.log('🔥 Days difference:', diffDays);
+        console.log('🔥 Current streak value:', existingStreak.current_streak);
+
+        // ✅ FIX: Ha current_streak = 0, akkor ez az első aktivitás!
+        if (existingStreak.current_streak === 0) {
+          console.log('🔥 First activity ever - initializing streak to 1');
+          newStreakValue = 1;
+
+          const { data: updated, error: updateError } = await supabase
+            .from('streaks')
+            .update({
+              current_streak: 1,
+              longest_streak: 1,
+              last_activity_date: today,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('player_id', playerId)
+            .select()
+            .single();
+
+          console.log('🔥 Initialized streak:', updated);
+          console.log('🔥 Update error:', updateError);
+          updatedStreak = updated;
+        } else if (diffDays === 0) {
+          console.log('🔥 Same day - no update');
+          updatedStreak = existingStreak;
+          newStreakValue = existingStreak.current_streak;
+        } else if (diffDays === 1) {
+          console.log('🔥 Next day - streak continues!');
+          newStreakValue = existingStreak.current_streak + 1;
+
+          const { data: updated, error: updateError } = await supabase
+            .from('streaks')
+            .update({
+              current_streak: newStreakValue,
+              longest_streak: Math.max(newStreakValue, existingStreak.longest_streak),
+              last_activity_date: today,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('player_id', playerId)
+            .select()
+            .single();
+
+          console.log('🔥 Updated streak:', updated);
+          console.log('🔥 Update error:', updateError);
+          updatedStreak = updated;
+        } else {
+          console.log('🔥 Gap detected - streak resets');
+          newStreakValue = 1;
+
+          const { data: updated, error: updateError } = await supabase
+            .from('streaks')
+            .update({
+              current_streak: 1,
+              longest_streak: Math.max(1, existingStreak.longest_streak),
+              last_activity_date: today,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('player_id', playerId)
+            .select()
+            .single();
+
+          console.log('🔥 Reset streak:', updated);
+          console.log('🔥 Update error:', updateError);
+          updatedStreak = updated;
+        }
+      }
+
+      console.log('🔥 Final streak value:', newStreakValue);
+      console.log('🔥 === STREAK UPDATE END ===');
+
+      // 6.5. Calculate NEXT lesson and update rented_books progress
+      // This ensures HomeScreen shows correct progress when returning
+      let nextLessonIndex = lessonIndex;
+      let nextGameType: 'reading' | 'matching' | 'quiz' = gameType;
+      let nextIsFirstRound = isFirstRound;
+
+      if (isFirstRound) {
+        if (gameType === 'reading') {
+          nextGameType = 'matching';
+        } else if (gameType === 'matching') {
+          nextGameType = 'quiz';
+        } else {
+          // Quiz done -> next page, start with Reading
+          const nextPage = lessonIndex + 1;
+          if (nextPage >= 48) {
+            // First round complete -> start second round
+            nextIsFirstRound = false;
+            nextLessonIndex = 0;
+            nextGameType = 'reading';
+          } else {
+            nextLessonIndex = nextPage;
+            nextGameType = 'reading';
+          }
+        }
+      } else {
+        // Second round - only reading
+        const nextPage = lessonIndex + 1;
+        if (nextPage >= 48) {
+          // Book complete - restart
+          nextLessonIndex = 0;
+          nextGameType = 'reading';
+          nextIsFirstRound = true;
+        } else {
+          nextLessonIndex = nextPage;
+        }
+      }
+
+      // Update rented_books with NEXT lesson
+      await updateProgress(bookTitle, nextLessonIndex, nextGameType, nextIsFirstRound);
+      console.log('✅ Rented books progress updated to NEXT lesson:', {
+        nextLessonIndex,
+        nextGameType,
+        nextIsFirstRound,
+      });
+
+      // Check if streak increased
       let streakBonus = 0;
       let streakMessage = '';
 
-      if (newStreak > previousStreak) {
-        // Streak increased! Give bonus rewards (ONLY if it's a NEW day)
-        streakBonus = 50 + (newStreak * 10); // 60, 70, 80...
+      console.log('🎊 === CELEBRATION CHECK ===');
+      console.log('🎊 Previous streak:', previousStreak);
+      console.log('🎊 New streak:', newStreakValue);
+      console.log('🎊 Should celebrate?', newStreakValue > previousStreak);
+
+      // ✅ Ha a streak nőtt, celebration!
+      if (newStreakValue > previousStreak) {
+        // Streak increased! Give bonus rewards
+        streakBonus = 50 + (newStreakValue * 10); // 60, 70, 80...
         await addCoins(streakBonus);
-        streakMessage = `\n\n🔥 ${newStreak} napos sorozat!\n+${streakBonus} Bónusz Érme`;
-        console.log(`🔥 Streak increased from ${previousStreak} to ${newStreak}! Bonus: ${streakBonus} coins`);
+        streakMessage = `\n\n🔥 ${newStreakValue} napos sorozat!\n+${streakBonus} Bónusz Érme`;
+        console.log(`🎊 CELEBRATION! Streak: ${previousStreak} → ${newStreakValue}, Bonus: ${streakBonus} coins`);
 
         // Show streak celebration animation!
-        setCelebrationStreak(newStreak);
+        setCelebrationStreak(newStreakValue);
         setShowStreakCelebration(true);
+        console.log('🎊 Celebration state set! Returning...');
         // Don't show alert yet - it will be shown after celebration
         return;
       } else {
-        console.log(`🔥 Streak stayed at ${newStreak} (same day, no bonus)`);
+        console.log(`🎊 No celebration - streak stayed at ${newStreakValue}`);
       }
 
       // 7. Show success message with all rewards (only if no streak celebration)

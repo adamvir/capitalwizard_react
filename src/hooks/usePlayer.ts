@@ -2,7 +2,7 @@
 // PLAYER HOOK - REACT HOOK A JÁTÉKOS ADATOKHOZ
 // ============================================
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getPlayer,
   updatePlayer,
@@ -46,6 +46,10 @@ export function usePlayer(): UsePlayerReturn {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ VÉDŐ FLAG: Megakadályozza a duplikált player létrehozást
+  const [isCreating, setIsCreating] = useState<boolean>(false);
+  const hasInitialLoad = useRef<boolean>(false);
+
   // Játékos ID lekérése vagy létrehozása
   const getOrCreatePlayerId = useCallback(async (): Promise<string | null> => {
     try {
@@ -53,30 +57,47 @@ export function usePlayer(): UsePlayerReturn {
       let playerId = await storage.getItem<string>(STORAGE_KEYS.PLAYER_DATA);
 
       if (!playerId) {
-        // Ha nincs, akkor hozzunk létre egy új játékost
-        const newPlayer = await createPlayer({
-          username: null,
-          avatar_id: 1,
-          level: 0,
-          xp: 0,
-          coins: 1000,
-          diamonds: 0,
-          subscription_type: 'free',
-          streak_freezes: 0,
-        });
+        // ✅ VÉDELEM: Ha már folyamatban van létrehozás, várjunk
+        if (isCreating) {
+          console.log('⚠️ Player létrehozás már folyamatban van, várunk...');
+          return null;
+        }
 
-        if (newPlayer) {
-          playerId = newPlayer.id;
-          await storage.setItem(STORAGE_KEYS.PLAYER_DATA, playerId);
+        // Jelöljük, hogy létrehozás folyamatban
+        setIsCreating(true);
+
+        try {
+          // Ha nincs, akkor hozzunk létre egy új játékost
+          console.log('🆕 Új player létrehozása...');
+          const newPlayer = await createPlayer({
+            username: null,
+            avatar_id: 1,
+            level: 0,
+            xp: 0,
+            coins: 1000,
+            diamonds: 0,
+            subscription_type: 'free',
+            streak_freezes: 0,
+          });
+
+          if (newPlayer) {
+            playerId = newPlayer.id;
+            await storage.setItem(STORAGE_KEYS.PLAYER_DATA, playerId);
+            console.log('✅ Player létrehozva:', playerId);
+          }
+        } finally {
+          // Mindenképpen reset-eljük a flag-et
+          setIsCreating(false);
         }
       }
 
       return playerId;
     } catch (err) {
       console.error('Error getting or creating player ID:', err);
+      setIsCreating(false);
       return null;
     }
-  }, []);
+  }, [isCreating]);
 
   // Játékos adatok betöltése
   // silent=true esetén nem mutat loading screent (háttérben frissít)
@@ -99,28 +120,41 @@ export function usePlayer(): UsePlayerReturn {
         setPlayer(playerData);
       } else {
         // Player nem létezik a Supabase-ben (törölve lett?)
+        // ✅ VÉDELEM: Ha már folyamatban van létrehozás, ne csináljunk semmit
+        if (isCreating) {
+          console.log('⚠️ Player létrehozás már folyamatban van, skip...');
+          return;
+        }
+
         // Töröld a lokális ID-t és hozz létre újat
         console.log('⚠️ Player nem található a Supabase-ben. Új player létrehozása...');
         await storage.removeItem(STORAGE_KEYS.PLAYER_DATA);
 
-        // Hozz létre új player-t
-        const newPlayer = await createPlayer({
-          username: null,
-          avatar_id: 1,
-          level: 0,
-          xp: 0,
-          coins: 1000,
-          diamonds: 0,
-          subscription_type: 'free',
-          streak_freezes: 0,
-        });
+        // Jelöljük, hogy létrehozás folyamatban
+        setIsCreating(true);
 
-        if (newPlayer) {
-          await storage.setItem(STORAGE_KEYS.PLAYER_DATA, newPlayer.id);
-          setPlayer(newPlayer);
-          console.log('✅ Új player létrehozva:', newPlayer.id);
-        } else {
-          setError('Nem sikerült létrehozni az új játékost');
+        try {
+          // Hozz létre új player-t
+          const newPlayer = await createPlayer({
+            username: null,
+            avatar_id: 1,
+            level: 0,
+            xp: 0,
+            coins: 1000,
+            diamonds: 0,
+            subscription_type: 'free',
+            streak_freezes: 0,
+          });
+
+          if (newPlayer) {
+            await storage.setItem(STORAGE_KEYS.PLAYER_DATA, newPlayer.id);
+            setPlayer(newPlayer);
+            console.log('✅ Új player létrehozva:', newPlayer.id);
+          } else {
+            setError('Nem sikerült létrehozni az új játékost');
+          }
+        } finally {
+          setIsCreating(false);
         }
       }
     } catch (err) {
@@ -132,10 +166,18 @@ export function usePlayer(): UsePlayerReturn {
         setLoading(false);
       }
     }
-  }, [getOrCreatePlayerId]);
+  }, [getOrCreatePlayerId, isCreating]);
 
-  // Első betöltés
+  // Első betöltés - csak egyszer, mount-kor
   useEffect(() => {
+    // ✅ VÉDELEM: Ha már fut az initial load, ne futtassuk újra
+    if (hasInitialLoad.current) {
+      console.log('⚠️ Initial load már lefutott, skip...');
+      return;
+    }
+
+    hasInitialLoad.current = true;
+    console.log('🚀 Initial player load started...');
     loadPlayer();
   }, [loadPlayer]);
 

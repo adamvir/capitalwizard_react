@@ -227,6 +227,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     });
   };
 
+  const handleFriendsClick = () => {
+    navigation.navigate('Friends');
+  };
+
   const handleArenaClick = () => {
     navigation.navigate('Arena', {
       coins,
@@ -432,6 +436,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         onAvatarClick={handleAvatarClick}
         onLessonsClick={handleLessonsClick}
         onShopClick={handleShopClick}
+        onFriendsClick={handleFriendsClick}
         onArenaClick={handleArenaClick}
         onUniversityClick={handleUniversityClick}
         onProfileClick={handleProfileClick}

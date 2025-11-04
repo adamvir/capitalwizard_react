@@ -31,4 +31,5 @@ export type RootStackParamList = {
   Streak: { currentStreak: number; coins: number; onCoinsChange: (coins: number) => void };
   AvatarSelector: { subscriptionTier?: 'free' | 'pro' | 'master' };
   DailyLimit: undefined;
+  Friends: undefined;
 };

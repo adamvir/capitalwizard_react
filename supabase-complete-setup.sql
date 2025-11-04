@@ -101,6 +101,58 @@ CREATE INDEX IF NOT EXISTS idx_rented_books_book_title ON rented_books(book_titl
 CREATE INDEX IF NOT EXISTS idx_rented_books_rented_until ON rented_books(rented_until);
 
 -- ============================================
+-- 6. FRIEND REQUESTS TÁBLA (Barátkérelmek)
+-- ============================================
+CREATE TABLE IF NOT EXISTS friend_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+
+    -- Kérelem küldője
+    sender_id UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+
+    -- Kérelem fogadója
+    receiver_id UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+
+    -- Állapot: 'pending', 'accepted', 'rejected'
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
+
+    -- Válasz időpontja (ha elfogadta/elutasította)
+    responded_at TIMESTAMPTZ,
+
+    -- Egyedi constraint: Egy játékos csak egyszer küldhet kérelmet egy másiknak
+    UNIQUE(sender_id, receiver_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_friend_requests_sender ON friend_requests(sender_id);
+CREATE INDEX IF NOT EXISTS idx_friend_requests_receiver ON friend_requests(receiver_id);
+CREATE INDEX IF NOT EXISTS idx_friend_requests_status ON friend_requests(status);
+
+-- ============================================
+-- 7. FRIENDS TÁBLA (Elfogadott barátok)
+-- ============================================
+CREATE TABLE IF NOT EXISTS friends (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+
+    -- Első játékos (az aki küldte a kérelmet)
+    player1_id UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+
+    -- Második játékos (az aki elfogadta a kérelmet)
+    player2_id UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+
+    -- Barátság kezdete
+    friends_since TIMESTAMPTZ DEFAULT NOW(),
+
+    -- Egyedi constraint: Egy kapcsolat csak egyszer szerepelhet
+    -- Biztosítjuk, hogy player1_id < player2_id (ABC sorrend)
+    CHECK (player1_id < player2_id),
+    UNIQUE(player1_id, player2_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_friends_player1 ON friends(player1_id);
+CREATE INDEX IF NOT EXISTS idx_friends_player2 ON friends(player2_id);
+
+-- ============================================
 -- ROW LEVEL SECURITY (RLS) - MINDEN TÁBLÁHOZ
 -- ============================================
 
@@ -155,6 +207,30 @@ CREATE POLICY "Users can view their own rented books" ON rented_books FOR SELECT
 CREATE POLICY "Users can insert their own rented books" ON rented_books FOR INSERT WITH CHECK (true);
 CREATE POLICY "Users can update their own rented books" ON rented_books FOR UPDATE USING (true) WITH CHECK (true);
 CREATE POLICY "Users can delete their own rented books" ON rented_books FOR DELETE USING (true);
+
+-- Friend Requests RLS
+ALTER TABLE friend_requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view their sent requests" ON friend_requests;
+DROP POLICY IF EXISTS "Users can view their received requests" ON friend_requests;
+DROP POLICY IF EXISTS "Users can send friend requests" ON friend_requests;
+DROP POLICY IF EXISTS "Users can respond to received requests" ON friend_requests;
+DROP POLICY IF EXISTS "Users can delete their sent requests" ON friend_requests;
+
+CREATE POLICY "Users can view their sent requests" ON friend_requests FOR SELECT USING (true);
+CREATE POLICY "Users can view their received requests" ON friend_requests FOR SELECT USING (true);
+CREATE POLICY "Users can send friend requests" ON friend_requests FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users can respond to received requests" ON friend_requests FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Users can delete their sent requests" ON friend_requests FOR DELETE USING (true);
+
+-- Friends RLS
+ALTER TABLE friends ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view their friends" ON friends;
+DROP POLICY IF EXISTS "Users can add friends" ON friends;
+DROP POLICY IF EXISTS "Users can remove friends" ON friends;
+
+CREATE POLICY "Users can view their friends" ON friends FOR SELECT USING (true);
+CREATE POLICY "Users can add friends" ON friends FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users can remove friends" ON friends FOR DELETE USING (true);
 
 -- ============================================
 -- TRIGGERS - AUTOMATIKUS UPDATED_AT FRISSÍTÉS
@@ -233,6 +309,65 @@ BEGIN
     DELETE FROM rented_books WHERE rented_until < NOW();
 END;
 $$ LANGUAGE plpgsql;
+
+-- Barátkérelem elfogadása
+CREATE OR REPLACE FUNCTION accept_friend_request(request_id UUID)
+RETURNS VOID AS $$
+DECLARE
+    sender UUID;
+    receiver UUID;
+    p1 UUID;
+    p2 UUID;
+BEGIN
+    -- Lekérjük a kérelem adatait
+    SELECT sender_id, receiver_id INTO sender, receiver
+    FROM friend_requests
+    WHERE id = request_id AND status = 'pending';
+
+    IF sender IS NULL THEN
+        RAISE EXCEPTION 'Friend request not found or already processed';
+    END IF;
+
+    -- Frissítjük a kérelmet
+    UPDATE friend_requests
+    SET status = 'accepted', responded_at = NOW()
+    WHERE id = request_id;
+
+    -- Biztosítjuk, hogy player1_id < player2_id
+    IF sender < receiver THEN
+        p1 := sender;
+        p2 := receiver;
+    ELSE
+        p1 := receiver;
+        p2 := sender;
+    END IF;
+
+    -- Létrehozzuk a friends rekordot
+    INSERT INTO friends (player1_id, player2_id, friends_since)
+    VALUES (p1, p2, NOW())
+    ON CONFLICT (player1_id, player2_id) DO NOTHING;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Barátkérelem elutasítása
+CREATE OR REPLACE FUNCTION reject_friend_request(request_id UUID)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE friend_requests
+    SET status = 'rejected', responded_at = NOW()
+    WHERE id = request_id AND status = 'pending';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Barátság törlése
+CREATE OR REPLACE FUNCTION remove_friend(friend_player_id UUID, current_player_id UUID)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM friends
+    WHERE (player1_id = friend_player_id AND player2_id = current_player_id)
+       OR (player1_id = current_player_id AND player2_id = friend_player_id);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================
 -- KÉSZ! 🎉

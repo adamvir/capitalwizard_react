@@ -38,6 +38,7 @@ import {
   Coins,
   Gem,
   TrendingUp,
+  AtSign,
 } from 'lucide-react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -179,6 +180,10 @@ export default function ProfileScreen({ navigation, route }: ProfileScreenProps)
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [editedProfile, setEditedProfile] = useState<UserProfile>(DEFAULT_PROFILE);
 
+  // Felhasználónév state (Supabase-ből)
+  const [username, setUsername] = useState<string>('');
+  const [editedUsername, setEditedUsername] = useState<string>('');
+
   // Refresh player data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -201,6 +206,17 @@ export default function ProfileScreen({ navigation, route }: ProfileScreenProps)
   }, []);
 
   // ============================================
+  // LOAD USERNAME FROM SUPABASE
+  // ============================================
+
+  useEffect(() => {
+    if (player?.username) {
+      setUsername(player.username);
+      setEditedUsername(player.username);
+    }
+  }, [player?.username]);
+
+  // ============================================
   // SAVE PROFILE WHEN CHANGED
   // ============================================
 
@@ -216,13 +232,27 @@ export default function ProfileScreen({ navigation, route }: ProfileScreenProps)
     navigation.goBack();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setProfile(editedProfile);
+
+    // ✅ Save username to Supabase if provided
+    if (editedUsername && updatePlayerData) {
+      try {
+        console.log('💾 Saving username to Supabase:', editedUsername);
+        await updatePlayerData({ username: editedUsername });
+        setUsername(editedUsername);
+        console.log('✅ Username saved to Supabase successfully');
+      } catch (error) {
+        console.error('❌ Error saving username to Supabase:', error);
+      }
+    }
+
     setIsEditing(false);
   };
 
   const handleCancel = () => {
     setEditedProfile(profile);
+    setEditedUsername(username);
     setIsEditing(false);
   };
 
@@ -476,6 +506,36 @@ export default function ProfileScreen({ navigation, route }: ProfileScreenProps)
                         ]}
                       >
                         {profile.name || 'Nem megadva'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Username (Supabase) */}
+                <View>
+                  <View style={styles.fieldLabel}>
+                    <AtSign size={SIZES.iconSM} color={COLORS.blue300} />
+                    <Text style={styles.fieldLabelText}>Felhasználónév</Text>
+                  </View>
+                  {isEditing ? (
+                    <TextInput
+                      value={editedUsername}
+                      onChangeText={(text) => setEditedUsername(text)}
+                      style={styles.input}
+                      placeholder="felhasznalonev123"
+                      placeholderTextColor={COLORS.slate500}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  ) : (
+                    <View style={styles.displayValue}>
+                      <Text
+                        style={[
+                          styles.displayValueText,
+                          !username && styles.placeholder,
+                        ]}
+                      >
+                        {username || 'Nem megadva'}
                       </Text>
                     </View>
                   )}
