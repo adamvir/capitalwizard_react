@@ -7,6 +7,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Flame, Star, Sparkles, Zap } from 'lucide-react-native';
+import { calculateXPForLevel } from '../../services/playerService';
 
 // ============================================
 // CONSTANTS
@@ -64,10 +65,30 @@ export function PlayerStatusBar({
   // COMPUTED VALUES
   // ============================================
 
-  const xpProgress = totalXpForNextLevel > 0 ? (totalXp / totalXpForNextLevel) * 100 : 0;
+  console.log('🎯 PlayerStatusBar RENDER with props:', { playerLevel, totalXp, totalXpForNextLevel });
+
+  // ✅ Calculate XP progress for CURRENT level (not total XP)
+  const currentLevelXP = calculateXPForLevel(playerLevel); // XP required to reach current level
+  const nextLevelXP = calculateXPForLevel(playerLevel + 1); // XP required to reach next level
+  const xpInCurrentLevel = totalXp - currentLevelXP; // XP earned WITHIN current level
+  const xpNeededForNextLevel = nextLevelXP - currentLevelXP; // XP needed to level up
+
+  const xpProgress = xpNeededForNextLevel > 0
+    ? Math.min((xpInCurrentLevel / xpNeededForNextLevel) * 100, 100)
+    : 0;
+
   const firstLetter = playerName ? playerName.charAt(0).toUpperCase() : '?';
 
   // Debug log
+  console.log('🔥 PlayerStatusBar XP:', {
+    playerLevel,
+    totalXp,
+    currentLevelXP,
+    nextLevelXP,
+    xpInCurrentLevel,
+    xpNeededForNextLevel,
+    '→ Progress %': xpProgress.toFixed(1),
+  });
   console.log('🔥 PlayerStatusBar received streak:', streak);
 
   // ============================================
@@ -159,7 +180,7 @@ export function PlayerStatusBar({
         {/* ============================================ */}
         {/* BOTTOM ROW: XP Progression */}
         {/* ============================================ */}
-        {totalXpForNextLevel > 0 && (
+        {xpNeededForNextLevel > 0 && (
           <View style={styles.xpSection}>
             {/* XP Label */}
             <View style={styles.xpLabelRow}>
@@ -170,7 +191,7 @@ export function PlayerStatusBar({
                 </Text>
               </View>
               <Text style={styles.xpTargetText}>
-                {totalXpForNextLevel.toLocaleString('hu-HU')} XP
+                {nextLevelXP.toLocaleString('hu-HU')} XP
               </Text>
             </View>
 

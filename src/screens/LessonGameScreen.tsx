@@ -44,6 +44,9 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
   const { saveProgress } = useLessonProgress();
   const { updateProgress } = useRentedBooks();
 
+  // CoinsContext for gems update
+  const { setGems } = require('../contexts/CoinsContext').useCoins();
+
   // Get params from navigation
   const {
     bookTitle = 'Pénzügyi Alapismeretek',
@@ -123,14 +126,38 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
       // 1. Generate unique lesson ID
       const lessonId = `${bookTitle}-${lessonIndex}-${gameType}`;
 
-      // 2. Calculate rewards based on game type
-      const rewards = {
-        reading: { xp: 30, coins: 50 },
-        matching: { xp: 50, coins: 100 },
-        quiz: { xp: 60, coins: 120 }
+      // 2. Check if lesson already completed (REPEATED COMPLETION CHECK)
+      const { supabase } = require('../config/supabase');
+      const { storage, STORAGE_KEYS } = require('../utils/storage');
+      const playerId = await storage.getItem(STORAGE_KEYS.PLAYER_DATA);
+
+      const { data: existingProgress } = await supabase
+        .from('lesson_progress')
+        .select('completed')
+        .eq('player_id', playerId)
+        .eq('lesson_id', lessonId)
+        .eq('completed', true)
+        .maybeSingle();
+
+      const isRepeated = existingProgress !== null;
+
+      // 3. Calculate rewards based on game type and completion status
+      // FIRST COMPLETION rewards (according to XP_ES_GYEMANT_RENDSZER.md)
+      const firstCompletionRewards = {
+        quiz: { xp: 50, coins: 50 },       // Easy
+        matching: { xp: 100, coins: 100 }, // Medium
+        reading: { xp: 150, coins: 150 }   // Hard
       };
 
-      const { xp: earnedXP, coins: earnedCoins } = rewards[gameType as keyof typeof rewards] || rewards.matching;
+      // REPEATED COMPLETION rewards
+      const repeatedRewards = { xp: 30, coins: 20 };
+
+      // Select rewards based on completion status
+      const { xp: earnedXP, coins: earnedCoins } = isRepeated
+        ? repeatedRewards
+        : (firstCompletionRewards[gameType as keyof typeof firstCompletionRewards] || firstCompletionRewards.matching);
+
+      console.log(`📚 Lesson ${isRepeated ? 'REPEATED' : 'FIRST'} completion: +${earnedXP} XP, +${earnedCoins} coins`);
 
       // 3. Save lesson progress to Supabase
       await saveProgress(lessonId, true, 100);
@@ -138,8 +165,6 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
 
       // 3.5. Complete lesson and check for diamond reward
       const { completeLesson } = require('../services/playerService');
-      const { storage, STORAGE_KEYS } = require('../utils/storage');
-      const playerId = await storage.getItem(STORAGE_KEYS.PLAYER_DATA);
 
       const lessonCompletionResult = await completeLesson(playerId);
       const diamondAwarded = lessonCompletionResult?.diamondAwarded || false;
@@ -147,6 +172,13 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
       const totalDiamonds = lessonCompletionResult?.diamonds || 0;
 
       console.log(`✅ Lesson completion tracked: ${totalLessonsCompleted} total lessons, Diamond awarded: ${diamondAwarded}`);
+
+      // ✅ Always update gems in CoinsContext with fresh value from Supabase
+      setGems(totalDiamonds);
+      if (diamondAwarded) {
+        console.log(`💎 Diamond awarded! New total: ${totalDiamonds} gems`);
+      }
+      console.log(`💎 Gems synced to CoinsContext: ${totalDiamonds}`);
 
       // 4. Add XP and check for level up
       const { leveledUp } = await addPlayerXP(earnedXP);
@@ -158,7 +190,7 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
 
       // 6. Update streak - EGYSZERŰ, DIRECT MEGOLDÁS
       console.log('🔥 === STREAK UPDATE START ===');
-      const { supabase } = require('../config/supabase');
+      // supabase already imported on line 127
 
       const today = new Date().toISOString().split('T')[0];
 
@@ -373,7 +405,7 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
       // 7. Show success message with all rewards (only if no streak celebration)
       const baseRewards = `+${earnedXP} XP\n+${earnedCoins} Érme`;
       const diamondMessage = diamondAwarded
-        ? `\n\n💎 Gyémánt jutalom!\n6 lecke teljesítve!\n(Össz gyémánt: ${totalDiamonds})`
+        ? `\n\n💎 +5 Gyémánt jutalom!\n6 lecke milestone teljesítve!\n(Össz gyémánt: ${totalDiamonds})`
         : '';
       const rewardMessage = leveledUp
         ? `Szintlépés! 🎉\nElérted a ${player?.level}. szintet!\n\n${baseRewards}${diamondMessage}${streakMessage}`

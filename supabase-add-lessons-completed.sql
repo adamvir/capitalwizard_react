@@ -35,8 +35,9 @@ BEGIN
     current_lessons := current_lessons + 1;
 
     -- Check if milestone reached (every 6 lessons)
+    -- Award 5 diamonds per milestone (diamondsPerMilestone = 5)
     IF current_lessons % 6 = 0 THEN
-        current_diamonds := current_diamonds + 1;
+        current_diamonds := current_diamonds + 5;
         awarded := TRUE;
     END IF;
 

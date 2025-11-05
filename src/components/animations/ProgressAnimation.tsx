@@ -87,6 +87,15 @@ export function ProgressAnimation({
       (currentGameType === 'reading' ? 1 : currentGameType === 'matching' ? 2 : 3)
     : TOTAL_LESSONS + currentBookLessonIndex + 1;
 
+  // Debug log
+  console.log('🎯 ProgressAnimation: Rendering with:', {
+    currentBookLessonIndex,
+    currentGameType,
+    isFirstRound,
+    '→ Calculated lessonNumber': lessonNumber,
+  });
+
+
   // ============================================
   // RENDER - NO BOOK
   // ============================================

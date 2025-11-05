@@ -291,6 +291,7 @@ export default function MainScreen({
           playerAvatar={playerAvatar}
           totalXp={totalXp}
           totalXpForNextLevel={totalXpForNextLevel}
+          currentGameType={currentGameType}
         />
 
         {/* Középső szekció - Játék világ (SideMenu + EventCards) */}

@@ -82,9 +82,63 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [isFirstRound, setIsFirstRound] = useState(DEFAULT_STATE.isFirstRound);
   const [playerAvatar, setPlayerAvatar] = useState<string | null>(null);
 
-  // Load game state on mount
+  // Load game state on mount AND load fresh book progress from Supabase
   useEffect(() => {
     loadGameState();
+
+    // ✅ ALSO load book progress from Supabase on mount (not just on focus)
+    const loadInitialBookProgress = async () => {
+      try {
+        console.log('📚 HomeScreen MOUNT: Loading initial book progress from Supabase...');
+        const { storage, STORAGE_KEYS } = require('../utils/storage');
+        const { supabase } = require('../config/supabase');
+
+        const playerId = await storage.getItem(STORAGE_KEYS.PLAYER_DATA);
+        if (!playerId) {
+          console.log('⚠️ No player ID found');
+          return;
+        }
+
+        const { data: freshBooks, error } = await supabase
+          .from('rented_books')
+          .select('*')
+          .eq('player_id', playerId)
+          .order('rented_at', { ascending: false });
+
+        if (error) {
+          console.error('❌ Error fetching fresh books on mount:', error);
+          return;
+        }
+
+        if (!freshBooks || freshBooks.length === 0) {
+          console.log('⚠️ No rented books found on mount - using defaults');
+          setCurrentBookLessonIndex(0);
+          setCurrentGameType('reading');
+          setIsFirstRound(true);
+          return;
+        }
+
+        const firstBook = freshBooks[0];
+        const lessonIndex = firstBook.current_lesson_index;
+        const gameType = firstBook.current_game_type as 'reading' | 'matching' | 'quiz';
+        const isFirstRound = firstBook.is_first_round;
+
+        console.log(`📚 MOUNT: Loaded book progress:`, {
+          bookTitle: firstBook.book_title,
+          lessonIndex,
+          gameType,
+          isFirstRound,
+        });
+
+        setCurrentBookLessonIndex(lessonIndex);
+        setCurrentGameType(gameType);
+        setIsFirstRound(isFirstRound);
+      } catch (error) {
+        console.error('❌ Error loading initial book progress:', error);
+      }
+    };
+
+    loadInitialBookProgress();
   }, []);
 
   // Load avatar when screen comes into focus
@@ -192,15 +246,16 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
         // NOTE: Player data (level, xp, name, subscription) now comes from Supabase
         // Streak data also from Supabase (streaks table)
-        // Only load local game state (progress, lessons, etc.)
+        // ✅ BOOK PROGRESS (currentBookLessonIndex, currentGameType, isFirstRound) now comes from Supabase (rented_books table)
+        // Only load local UI state
         setProgressPosition(state.progressPosition || DEFAULT_STATE.progressPosition);
         setCurrentLesson(state.currentLesson || DEFAULT_STATE.currentLesson);
         setCurrentStageInSection(state.currentStageInSection || DEFAULT_STATE.currentStageInSection);
-        setCurrentBookLessonIndex(state.currentBookLessonIndex || DEFAULT_STATE.currentBookLessonIndex);
-        setCurrentGameType(state.currentGameType || DEFAULT_STATE.currentGameType);
-        setIsFirstRound(state.isFirstRound !== undefined ? state.isFirstRound : DEFAULT_STATE.isFirstRound);
 
-        console.log('✅ Loaded local game state (progress, lessons)');
+        // ❌ DON'T load book progress from AsyncStorage - it's in Supabase!
+        // setCurrentBookLessonIndex, setCurrentGameType, setIsFirstRound are loaded from Supabase in useFocusEffect
+
+        console.log('✅ Loaded local game state (UI only - book progress from Supabase)');
       }
     } catch (error) {
       console.error('Error loading game state:', error);
@@ -211,13 +266,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     try {
       const state = {
         // NOTE: Player data (level, xp, etc.) and streak now in Supabase
-        // Only save local game state (lesson progress)
+        // ✅ BOOK PROGRESS (currentBookLessonIndex, currentGameType, isFirstRound) now in Supabase (rented_books table)
+        // Only save local UI state
         progressPosition,
         currentLesson,
         currentStageInSection,
-        currentBookLessonIndex,
-        currentGameType,
-        isFirstRound,
+        // ❌ DON'T save book progress to AsyncStorage - it's in Supabase!
       };
       await AsyncStorage.setItem('game_state', JSON.stringify(state));
     } catch (error) {
@@ -225,11 +279,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }
   };
 
-  // Save state whenever it changes (only local game state, not Supabase data)
+  // Save state whenever it changes (only local UI state, not Supabase data)
   useEffect(() => {
     saveGameState();
-  }, [progressPosition, currentLesson, currentStageInSection,
-      currentBookLessonIndex, currentGameType, isFirstRound]);
+  }, [progressPosition, currentLesson, currentStageInSection]);
+  // ❌ Removed: currentBookLessonIndex, currentGameType, isFirstRound - they're in Supabase!
 
   // Navigation handlers
   const handleAvatarClick = () => {
@@ -296,48 +350,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   };
 
   const handleLessonComplete = () => {
-    console.log('✅ Lesson completed!', {
-      currentBookLessonIndex,
-      currentGameType,
-      isFirstRound
-    });
+    console.log('✅ Lesson completed callback (DEPRECATED - progress now in Supabase)');
 
-    // NOTE: Streak tracking is handled in LessonGameScreen (via Supabase)
-    // This function only handles lesson progress navigation
-
-    // Update progress based on current game type (following the LECKE_RENDSZER_MUKODES.md logic)
-    if (isFirstRound) {
-      if (currentGameType === 'reading') {
-        // Reading done -> next is Matching
-        setCurrentGameType('matching');
-      } else if (currentGameType === 'matching') {
-        // Matching done -> next is Quiz
-        setCurrentGameType('quiz');
-      } else {
-        // Quiz done -> next page, start with Reading
-        const nextPage = currentBookLessonIndex + 1;
-        if (nextPage >= 48) {
-          // First round complete -> start second round
-          setIsFirstRound(false);
-          setCurrentBookLessonIndex(0);
-          setCurrentGameType('reading');
-        } else {
-          setCurrentBookLessonIndex(nextPage);
-          setCurrentGameType('reading');
-        }
-      }
-    } else {
-      // Second round - only reading
-      const nextPage = currentBookLessonIndex + 1;
-      if (nextPage >= 48) {
-        // Book complete - restart
-        setCurrentBookLessonIndex(0);
-        setCurrentGameType('reading');
-        setIsFirstRound(true);
-      } else {
-        setCurrentBookLessonIndex(nextPage);
-      }
-    }
+    // ✅ NO-OP: Progress is now handled entirely by Supabase (rented_books table)
+    // The LessonGameScreen updates Supabase, and useFocusEffect loads fresh data when returning to HomeScreen
+    // DO NOT update local state here - it would override the Supabase data!
   };
 
   const handleProgressClick = () => {
@@ -370,10 +387,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     console.log('Jump to lesson:', lesson);
   };
 
-  // Utility function
+  // Utility function - Uses exponential formula from playerService
   const getTotalXpForNextLevel = (level: number): number => {
-    // XP needed for next level: level 0 -> 100 XP, level 1 -> 200 XP, stb.
-    return (level + 1) * 100;
+    const { calculateXPForLevel } = require('../services/playerService');
+    return calculateXPForLevel(level + 1);
   };
 
   // Calculate current lesson number based on book progress

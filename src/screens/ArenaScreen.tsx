@@ -62,6 +62,8 @@ import Slider from '@react-native-community/slider';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
+import { usePlayer, useRentedBooks } from '../hooks';
+import { useFocusEffect } from '@react-navigation/native';
 
 // Import questions data (you'll need to create these RN-compatible files)
 // For now, we'll use placeholder data
@@ -272,6 +274,13 @@ const ArenaScreen: React.FC<ArenaScreenProps> = ({ navigation, route }) => {
   const subscriptionTier = route.params?.subscriptionTier || 'free';
 
   // ============================================
+  // SUPABASE HOOKS
+  // ============================================
+
+  const { addPlayerXP } = usePlayer();
+  const { rentedBooks: supabaseRentedBooks, refreshRentedBooks } = useRentedBooks();
+
+  // ============================================
   // STATE
   // ============================================
 
@@ -289,6 +298,7 @@ const ArenaScreen: React.FC<ArenaScreenProps> = ({ navigation, route }) => {
   const [showRoundResult, setShowRoundResult] = useState(false);
   const [rentedBooks, setRentedBooks] = useState<RentedBook[]>([]);
   const [selectedBooks, setSelectedBooks] = useState<string[]>([]);
+  const [bookCountForXP, setBookCountForXP] = useState(1); // Store book count for XP calculation
   const [timeLeft, setTimeLeft] = useState(10);
   const [questionStartTime, setQuestionStartTime] = useState<number>(0);
   const [playerResponseTime, setPlayerResponseTime] = useState<number>(0);
@@ -308,7 +318,21 @@ const ArenaScreen: React.FC<ArenaScreenProps> = ({ navigation, route }) => {
 
   const onClose = () => navigation.goBack();
   const onLimitReached = undefined;
-  const onXpGain = undefined;
+
+  // Arena XP gain (50 × selectedBooks count)
+  const onXpGain = async (xpAmount: number) => {
+    console.log(`🏆 Arena győzelem! +${xpAmount} XP (${bookCountForXP} könyv × 50)`);
+    const result = await addPlayerXP(xpAmount);
+    if (result?.leveledUp) {
+      console.log(`🎉 LEVEL UP! New level: ${result.player.level}`);
+      Alert.alert(
+        'Szintlépés! 🎉',
+        `Gratulálunk! Elérted a ${result.player.level}. szintet!`,
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   const onNavigateToLibrary = () => navigation.navigate('Library');
   const onStageAdvance = undefined;
   const onStreakUpdate = undefined;
@@ -317,10 +341,26 @@ const ArenaScreen: React.FC<ArenaScreenProps> = ({ navigation, route }) => {
   // EFFECTS
   // ============================================
 
+  // Load config on mount
   useEffect(() => {
-    loadRentedBooks();
     loadConfig();
   }, []);
+
+  // Update rented books whenever Supabase data changes or config loads
+  useEffect(() => {
+    console.log('📚 ArenaScreen: Supabase rented books changed, updating...');
+    loadRentedBooks();
+  }, [supabaseRentedBooks, config.maxBooksForArena]);
+
+  // Refresh rented books when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('📚 ArenaScreen: Screen focused, refreshing rented books...');
+      if (refreshRentedBooks) {
+        refreshRentedBooks();
+      }
+    }, [refreshRentedBooks])
+  );
 
   useEffect(() => {
     if (gameState !== 'playing' || showRoundResult) return;
@@ -348,20 +388,28 @@ const ArenaScreen: React.FC<ArenaScreenProps> = ({ navigation, route }) => {
     setConfig(cfg);
   };
 
-  const loadRentedBooks = async () => {
+  const loadRentedBooks = () => {
     try {
-      const saved = await AsyncStorage.getItem('rentedBooks');
-      if (saved) {
-        const parsed: RentedBook[] = JSON.parse(saved);
-        const active = parsed.filter((book) => book.rentedUntil > Date.now());
-        setRentedBooks(active);
-        
-        // Auto-select all rented books
-        const rentedTitles = active.map((b) => b.title);
-        setSelectedBooks(rentedTitles);
-      }
+      console.log('📚 ArenaScreen: Loading rented books from Supabase...');
+
+      // Convert Supabase rented_books to local RentedBook format
+      const active: RentedBook[] = supabaseRentedBooks.map(book => ({
+        title: book.book_title,
+        rentedUntil: new Date(book.rented_until).getTime(),
+        daysRented: Math.ceil((new Date(book.rented_until).getTime() - new Date(book.rented_at).getTime()) / (1000 * 60 * 60 * 24)),
+        color: '#D97706',
+        textColor: '#FFFFFF',
+      }));
+
+      console.log(`📚 ArenaScreen: Found ${active.length} active rented books`);
+      setRentedBooks(active);
+
+      // Auto-select all rented books (but respect maxBooksForArena limit)
+      const rentedTitles = active.map((b) => b.title).slice(0, config.maxBooksForArena);
+      setSelectedBooks(rentedTitles);
+      console.log(`📚 ArenaScreen: Auto-selected ${rentedTitles.length} books:`, rentedTitles);
     } catch (error) {
-      console.error('Error loading rented books:', error);
+      console.error('❌ Error loading rented books:', error);
     }
   };
 
@@ -444,6 +492,10 @@ const ArenaScreen: React.FC<ArenaScreenProps> = ({ navigation, route }) => {
     }
 
     await incrementGamesPlayed();
+
+    // Save book count for XP calculation (to avoid closure issues)
+    setBookCountForXP(selectedBooks.length);
+    console.log(`🎮 Game starting with ${selectedBooks.length} books selected`);
 
     // Generate 10 random questions
     // Select 10 random questions from all available questions
@@ -534,8 +586,9 @@ const ArenaScreen: React.FC<ArenaScreenProps> = ({ navigation, route }) => {
         // Calculate XP
         if (finalPlayerScore > finalOpponentScore && onXpGain) {
           const baseXp = config.arenaWinXP;
-          const bookMultiplier = selectedBooks.length;
+          const bookMultiplier = bookCountForXP; // Use saved book count (closure-safe)
           const totalXp = baseXp * bookMultiplier;
+          console.log(`🏆 Arena WIN! XP calculation: ${baseXp} (base) × ${bookMultiplier} (books) = ${totalXp} XP`);
           onXpGain(totalXp);
         }
         

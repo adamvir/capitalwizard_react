@@ -60,19 +60,6 @@ const SIZES = {
   fontSM: 12,
 };
 
-// Lecke nehézségi szintek
-const LESSON_DIFFICULTIES: Record<number, 'Könnyű' | 'Közepes' | 'Nehéz'> = {
-  7: 'Közepes',
-  8: 'Nehéz',
-  9: 'Könnyű',
-  10: 'Nehéz',
-  11: 'Nehéz',
-  12: 'Nehéz',
-  13: 'Nehéz',
-  14: 'Nehéz',
-  15: 'Nehéz',
-};
-
 // Szakasz node-ok pozíciói és típusai
 const STAGE_NODES = [
   { x: 10, y: 35, type: 'square' },
@@ -98,6 +85,7 @@ interface TopBarProps {
   playerAvatar?: string | null; // Avatar emoji from parent
   totalXp?: number;
   totalXpForNextLevel?: number;
+  currentGameType?: 'reading' | 'matching' | 'quiz'; // ✨ Új prop a dinamikus nehézséghez
 }
 
 type DifficultyType = 'easy' | 'medium' | 'hard';
@@ -117,6 +105,7 @@ export function TopBar({
   playerAvatar: playerAvatarProp,
   totalXp = 0,
   totalXpForNextLevel = 0,
+  currentGameType = 'matching', // ✨ Default: matching (medium)
 }: TopBarProps) {
   // ============================================
   // GLOBAL STATE (CoinsContext)
@@ -141,8 +130,9 @@ export function TopBar({
   // COMPUTED VALUES
   // ============================================
 
-  // Calculate XP progress percentage
-  const xpProgress = totalXpForNextLevel > 0 ? (totalXp / totalXpForNextLevel) * 100 : 0;
+  // ✅ Calculate progress towards level 100 (Master rank)
+  // If player is level 1 → 1%, level 2 → 2%, ..., level 100 → 100%
+  const xpProgress = Math.min(playerLevel, 100);
 
   // ============================================
   // EFFECTS
@@ -181,16 +171,16 @@ export function TopBar({
   // HELPER FUNCTIONS
   // ============================================
 
+  // ✨ Dynamic difficulty based on current game type
   const getNextLessonDifficulty = (): DifficultyType => {
-    const difficulty = LESSON_DIFFICULTIES[currentLesson] || 'Közepes';
-
-    switch (difficulty) {
-      case 'Könnyű':
-        return 'easy';
-      case 'Nehéz':
-        return 'hard';
+    switch (currentGameType) {
+      case 'quiz':
+        return 'easy';    // Quiz = Könnyű = Zöld
+      case 'reading':
+        return 'hard';    // Reading = Nehéz = Piros
+      case 'matching':
       default:
-        return 'medium';
+        return 'medium';  // Matching = Közepes = Kék
     }
   };
 

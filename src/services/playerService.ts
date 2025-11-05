@@ -103,8 +103,57 @@ export async function updatePlayer(
   }
 }
 
+// ============================================
+// XP & LEVEL CALCULATION (Exponential Formula)
+// According to XP_ES_GYEMANT_RENDSZER.md
+// ============================================
+
+/**
+ * Calculate total XP required to reach a specific level
+ * Formula: XP(level) = baseXP × (1 + growthRate)^(level-1)
+ *
+ * @param level Target level (1-100)
+ * @returns Total XP required from level 0 to reach this level
+ */
+export function calculateXPForLevel(level: number): number {
+  const baseXP = 1000; // baseXpPerLevel
+  const growthRate = 0.10; // 10% growth per level (xpGrowthPercentage)
+  const maxLevel = 100;
+
+  if (level <= 0) return 0;
+  if (level > maxLevel) return Infinity;
+
+  let totalXP = 0;
+  for (let i = 1; i <= level; i++) {
+    totalXP += baseXP * Math.pow(1 + growthRate, i - 1);
+  }
+
+  return Math.floor(totalXP);
+}
+
+/**
+ * Calculate player level from total XP
+ *
+ * @param totalXP Player's total XP
+ * @returns Current level (0-100)
+ */
+export function calculateLevelFromXP(totalXP: number): number {
+  if (totalXP < 0) return 0;
+
+  let level = 0;
+  const maxLevel = 100;
+
+  // Find the highest level where XP threshold is met
+  while (level < maxLevel && calculateXPForLevel(level + 1) <= totalXP) {
+    level++;
+  }
+
+  return level;
+}
+
 /**
  * XP hozzáadása játékoshoz (szint ellenőrzéssel)
+ * Uses exponential level calculation
  */
 export async function addXP(
   playerId: string,
@@ -115,8 +164,7 @@ export async function addXP(
     if (!player) return null;
 
     const newXP = player.xp + xpAmount;
-    const xpPerLevel = 100; // Állítsd be a saját logikádnak megfelelően
-    const newLevel = Math.floor(newXP / xpPerLevel); // 0 XP = level 0, 100 XP = level 1, stb.
+    const newLevel = calculateLevelFromXP(newXP);
     const leveledUp = newLevel > player.level;
 
     const updatedPlayer = await updatePlayer(playerId, {
@@ -125,6 +173,8 @@ export async function addXP(
     });
 
     if (!updatedPlayer) return null;
+
+    console.log(`✅ XP added: ${xpAmount} → Total: ${newXP} XP, Level: ${newLevel}${leveledUp ? ' (LEVEL UP!)' : ''}`);
 
     return { player: updatedPlayer, leveledUp };
   } catch (error) {
