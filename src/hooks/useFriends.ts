@@ -15,8 +15,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../config/supabase';
+import { storage, STORAGE_KEYS } from '../utils/storage';
 
 // ============================================
 // TYPES
@@ -68,7 +68,7 @@ export function useFriends() {
 
   const getCurrentPlayerId = async (): Promise<string | null> => {
     try {
-      const playerId = await AsyncStorage.getItem('player_id');
+      const playerId = await storage.getItem<string>(STORAGE_KEYS.PLAYER_DATA);
       return playerId;
     } catch (error) {
       console.error('Error getting player_id:', error);
@@ -432,6 +432,7 @@ export function useFriends() {
     friends,
     incomingRequests,
     outgoingRequests,
+    pendingRequestsCount: incomingRequests.length, // Új: értesítési badge számhoz
     loading,
     error,
 

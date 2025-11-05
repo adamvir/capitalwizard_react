@@ -131,6 +131,9 @@ interface MainScreenProps {
   onProgressClick: () => void;
   onJumpToLesson: (lesson: number) => void;
 
+  // Friend requests badge
+  pendingFriendRequestsCount?: number;
+
   // Utils
   getTotalXpForNextLevel: (level: number) => number;
 
@@ -171,6 +174,7 @@ export default function MainScreen({
   onStreakClick,
   onProgressClick,
   onJumpToLesson,
+  pendingFriendRequestsCount = 0,
   getTotalXpForNextLevel,
   hasVideoBackground = false,
   videoUrl,
@@ -295,6 +299,7 @@ export default function MainScreen({
             onLessonsClick={onLessonsClick}
             onShopClick={onShopClick}
             onFriendsClick={onFriendsClick}
+            pendingFriendRequestsCount={pendingFriendRequestsCount}
           />
           <EventCards onArenaClick={onArenaClick} subscriptionTier={subscriptionTier} />
         </View>

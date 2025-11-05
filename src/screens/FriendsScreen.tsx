@@ -39,6 +39,7 @@ import {
   Mail,
   MailCheck,
   Crown,
+  MessageCircle,
 } from 'lucide-react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -315,6 +316,19 @@ export default function FriendsScreen({ navigation }: FriendsScreenProps) {
 
           {/* Actions */}
           <View style={styles.cardActions}>
+            {/* Chat Button */}
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('Chat', {
+                  friendId: friendData.id,
+                  friendName: friendData.username || 'Játékos',
+                })
+              }
+              style={[styles.actionButton, { backgroundColor: COLORS.blue600 }]}
+            >
+              <MessageCircle size={SIZES.iconBase} color={COLORS.white} />
+            </TouchableOpacity>
+
             {/* Challenge Button */}
             <TouchableOpacity
               onPress={() =>

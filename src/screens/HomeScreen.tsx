@@ -13,6 +13,7 @@ import { COLORS } from '../utils/styleConstants';
 import { RootStackParamList } from '../navigation/types';
 import { useCoins } from '../contexts/CoinsContext';
 import { usePlayer, useStreak, useRentedBooks } from '../hooks';
+import { useFriends } from '../hooks/useFriends';
 import { penzugyiAlapismeretkLessons } from '../data/penzugyiAlapismeretkLessons';
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
@@ -51,6 +52,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { player, loading: playerLoading, refreshPlayer } = usePlayer();
   const { streak } = useStreak();
   const { rentedBooks, loading: rentedBooksLoading, refreshRentedBooks } = useRentedBooks();
+  const { pendingRequestsCount } = useFriends(); // Barát kérelmek száma
 
   // Global state (CoinsContext) - Sync with Supabase
   const { coins, gems, setCoins, setGems, setCoinsLocal, setGemsLocal } = useCoins();
@@ -455,6 +457,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         isFirstRound={isFirstRound}
         playerAvatar={playerAvatar}
         hasRentedBook={hasRentedBook}
+        pendingFriendRequestsCount={pendingRequestsCount}
         onAvatarClick={handleAvatarClick}
         onLessonsClick={handleLessonsClick}
         onShopClick={handleShopClick}

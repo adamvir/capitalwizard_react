@@ -32,4 +32,5 @@ export type RootStackParamList = {
   AvatarSelector: { subscriptionTier?: 'free' | 'pro' | 'master' };
   DailyLimit: undefined;
   Friends: undefined;
+  Chat: { friendId: string; friendName: string };
 };

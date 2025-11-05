@@ -174,6 +174,68 @@ export async function updateDiamonds(
 }
 
 // ============================================
+// LECKE BEFEJEZÉS ÉS GYÉMÁNT JUTALOM
+// ============================================
+
+/**
+ * Lecke befejezése és gyémánt jutalom kiosztása
+ * Minden 6. lecke után 1 gyémántot kap a játékos
+ *
+ * @returns {
+ *   lessonsCompleted: total lessons completed,
+ *   diamonds: current diamond count,
+ *   diamondAwarded: true if diamond was awarded this time,
+ *   progressPosition: position in current 6-lesson cycle (0-5)
+ * }
+ */
+export async function completeLesson(
+  playerId: string
+): Promise<{
+  lessonsCompleted: number;
+  diamonds: number;
+  diamondAwarded: boolean;
+  progressPosition: number;
+} | null> {
+  try {
+    console.log('📚 Completing lesson for player:', playerId);
+
+    // Call Supabase RPC function
+    const { data, error } = await supabase.rpc('complete_lesson', {
+      player_uuid: playerId,
+    });
+
+    if (error) {
+      console.error('❌ Error completing lesson:', error);
+      return null;
+    }
+
+    const result = data[0];
+    const progressPosition = (result.new_lessons_completed - 1) % 6;
+
+    console.log('✅ Lesson completed:', {
+      lessonsCompleted: result.new_lessons_completed,
+      diamonds: result.new_diamonds,
+      diamondAwarded: result.diamond_awarded,
+      progressPosition,
+    });
+
+    if (result.diamond_awarded) {
+      console.log('💎 DIAMOND AWARDED! New total:', result.new_diamonds);
+    }
+
+    return {
+      lessonsCompleted: result.new_lessons_completed,
+      diamonds: result.new_diamonds,
+      diamondAwarded: result.diamond_awarded,
+      progressPosition,
+    };
+  } catch (error) {
+    console.error('Exception completing lesson:', error);
+    return null;
+  }
+}
+
+// ============================================
 // STREAK MŰVELETEK
 // ============================================
 

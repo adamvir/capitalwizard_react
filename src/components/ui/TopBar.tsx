@@ -343,6 +343,7 @@ export function TopBar({
             {STAGE_NODES.map((node, index) => {
               const isActive = index < progressPosition;
               const isCurrent = index === progressPosition;
+              const isGemNode = node.type === 'gem';
 
               return (
                 <View key={index}>
@@ -356,7 +357,8 @@ export function TopBar({
                   )}
 
                   {/* Node display */}
-                  {node.type === 'gem' ? (
+                  {isGemNode ? (
+                    // Always show gem at the end
                     <GemNode x={node.x} y={node.y} />
                   ) : isCurrent ? (
                     <CurrentNode x={node.x} y={node.y} />
@@ -395,7 +397,7 @@ export function TopBar({
 // SUB-COMPONENTS (Nodes)
 // ============================================
 
-// Gem node (endpoint)
+// Gem node (endpoint) - Always visible at the end of the line
 function GemNode({ x, y }: { x: number; y: number }) {
   return (
     <LinearGradient
@@ -405,6 +407,7 @@ function GemNode({ x, y }: { x: number; y: number }) {
       style={[
         styles.gemNode,
         {
+          position: 'absolute',
           left: x - 2,
           top: y - 2,
         },
@@ -700,7 +703,6 @@ const styles = StyleSheet.create({
 
   // Nodes
   gemNode: {
-    position: 'absolute',
     width: 20,
     height: 20,
     borderRadius: SIZES.radiusFull,
@@ -713,6 +715,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
+  },
+  gemNodeGlow: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderRadius: SIZES.radiusFull,
+    backgroundColor: '#9333EA',
+    opacity: 0.4,
+    // Shadow (iOS) - creates pulsing glow effect
+    shadowColor: '#C084FC',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 12,
   },
   currentNode: {
     position: 'absolute',

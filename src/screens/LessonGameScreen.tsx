@@ -136,6 +136,18 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
       await saveProgress(lessonId, true, 100);
       console.log('✅ Lesson progress saved to Supabase');
 
+      // 3.5. Complete lesson and check for diamond reward
+      const { completeLesson } = require('../services/playerService');
+      const { storage, STORAGE_KEYS } = require('../utils/storage');
+      const playerId = await storage.getItem(STORAGE_KEYS.PLAYER_DATA);
+
+      const lessonCompletionResult = await completeLesson(playerId);
+      const diamondAwarded = lessonCompletionResult?.diamondAwarded || false;
+      const totalLessonsCompleted = lessonCompletionResult?.lessonsCompleted || 0;
+      const totalDiamonds = lessonCompletionResult?.diamonds || 0;
+
+      console.log(`✅ Lesson completion tracked: ${totalLessonsCompleted} total lessons, Diamond awarded: ${diamondAwarded}`);
+
       // 4. Add XP and check for level up
       const { leveledUp } = await addPlayerXP(earnedXP);
       console.log(`✅ Added ${earnedXP} XP`);
@@ -147,9 +159,7 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
       // 6. Update streak - EGYSZERŰ, DIRECT MEGOLDÁS
       console.log('🔥 === STREAK UPDATE START ===');
       const { supabase } = require('../config/supabase');
-      const { storage, STORAGE_KEYS } = require('../utils/storage');
 
-      const playerId = await storage.getItem(STORAGE_KEYS.PLAYER_DATA);
       const today = new Date().toISOString().split('T')[0];
 
       console.log('🔥 Player ID:', playerId);
@@ -362,9 +372,12 @@ export default function LessonGameScreen({ navigation, route }: LessonGameScreen
 
       // 7. Show success message with all rewards (only if no streak celebration)
       const baseRewards = `+${earnedXP} XP\n+${earnedCoins} Érme`;
+      const diamondMessage = diamondAwarded
+        ? `\n\n💎 Gyémánt jutalom!\n6 lecke teljesítve!\n(Össz gyémánt: ${totalDiamonds})`
+        : '';
       const rewardMessage = leveledUp
-        ? `Szintlépés! 🎉\nElérted a ${player?.level}. szintet!\n\n${baseRewards}${streakMessage}`
-        : `${baseRewards}${streakMessage}`;
+        ? `Szintlépés! 🎉\nElérted a ${player?.level}. szintet!\n\n${baseRewards}${diamondMessage}${streakMessage}`
+        : `${baseRewards}${diamondMessage}${streakMessage}`;
 
       Alert.alert('Lecke Befejezve! ✅', rewardMessage, [
         {

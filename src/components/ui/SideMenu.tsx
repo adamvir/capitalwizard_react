@@ -52,6 +52,7 @@ interface SideMenuProps {
   onLessonsClick?: () => void;
   onShopClick?: () => void;
   onFriendsClick?: () => void;
+  pendingFriendRequestsCount?: number; // Új: értesítési badge
 }
 
 interface MenuItem {
@@ -100,7 +101,12 @@ const getMenuItems = (
 // COMPONENT
 // ============================================
 
-export function SideMenu({ onLessonsClick, onShopClick, onFriendsClick }: SideMenuProps) {
+export function SideMenu({
+  onLessonsClick,
+  onShopClick,
+  onFriendsClick,
+  pendingFriendRequestsCount = 0
+}: SideMenuProps) {
   const menuItems = getMenuItems(onLessonsClick, onShopClick, onFriendsClick);
 
   // ============================================
@@ -122,6 +128,8 @@ export function SideMenu({ onLessonsClick, onShopClick, onFriendsClick }: SideMe
       {menuItems.map((item, index) => {
         const IconComponent = item.icon;
         const isDisabled = !item.onClick;
+        const isFriendsButton = index === 1; // Barátok gomb (Users icon)
+        const showBadge = isFriendsButton && pendingFriendRequestsCount > 0;
 
         return (
           <TouchableOpacity
@@ -139,6 +147,15 @@ export function SideMenu({ onLessonsClick, onShopClick, onFriendsClick }: SideMe
               ]}
             >
               <IconComponent size={SIZES.iconSize} color={COLORS.white} />
+
+              {/* Notification Badge - iOS style */}
+              {showBadge && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {pendingFriendRequestsCount > 9 ? '9+' : pendingFriendRequestsCount}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Label */}
@@ -199,5 +216,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+  },
+  // iOS-style notification badge
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#FF3B30', // iOS red
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    // Shadow for iOS
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    // Shadow for Android
+    elevation: 4,
+  },
+  badgeText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 14,
   },
 });

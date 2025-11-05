@@ -25,6 +25,7 @@ import AvatarSelectorScreen from '../screens/AvatarSelectorScreen';
 import DailyLimitScreen from '../screens/DailyLimitScreen';
 import LessonsScreen from '../screens/LessonsScreen';
 import FriendsScreen from '../screens/FriendsScreen';
+import ChatScreen from '../screens/ChatScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -99,6 +100,13 @@ export function AppNavigator() {
         }}
       />
       <Stack.Screen name="Friends" component={FriendsScreen} />
+      <Stack.Screen
+        name="Chat"
+        component={ChatScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack.Navigator>
   );
 }
