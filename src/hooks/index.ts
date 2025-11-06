@@ -2,6 +2,7 @@
 // HOOKS EXPORTS
 // ============================================
 
+export { useAuth } from './useAuth';
 export { usePlayer } from './usePlayer';
 export { useStreak } from './useStreak';
 export { useLessonProgress } from './useLessonProgress';

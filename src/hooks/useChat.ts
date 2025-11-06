@@ -164,20 +164,45 @@ export function useChat(friendId?: string): UseChatReturn {
         return false;
       }
 
-      const { error: sendError } = await supabase.from('messages').insert({
+      // ✅ OPTIMISTIC UI UPDATE - Add message immediately to state
+      const tempMessage: Message = {
+        id: `temp-${Date.now()}`, // Temporary ID
         sender_id: playerId,
         receiver_id: receiverId,
         message: message.trim(),
+        created_at: new Date().toISOString(),
         read: false,
-      });
+      };
+
+      // Add to state immediately
+      setMessages((prev) => [...prev, tempMessage]);
+
+      // Send to Supabase
+      const { data, error: sendError } = await supabase
+        .from('messages')
+        .insert({
+          sender_id: playerId,
+          receiver_id: receiverId,
+          message: message.trim(),
+          read: false,
+        })
+        .select()
+        .single();
 
       if (sendError) {
         console.error('Error sending message:', sendError);
+        // ❌ Remove temp message on error
+        setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
         return false;
       }
 
-      // Refresh messages after sending
-      await fetchMessages();
+      // ✅ Replace temp message with real message from database
+      if (data) {
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === tempMessage.id ? (data as Message) : msg))
+        );
+      }
+
       return true;
     } catch (err) {
       console.error('Exception sending message:', err);
@@ -270,23 +295,70 @@ export function useChat(friendId?: string): UseChatReturn {
         await supabase.removeChannel(channelRef.current);
       }
 
-      // Create new subscription
+      // ✅ Create new subscription - Listen to ALL messages in this conversation
       const channel = supabase
-        .channel(`messages:${playerId}:${friendId}`)
+        .channel(`messages:${playerId}:${friendId}`, {
+          config: {
+            broadcast: { self: true },
+            presence: { key: playerId },
+          },
+        })
+        // ✅ Listen to ALL new messages (we'll filter in callback)
         .on(
           'postgres_changes',
           {
             event: 'INSERT',
             schema: 'public',
             table: 'messages',
-            filter: `sender_id=eq.${friendId}`,
           },
           (payload) => {
-            console.log('New message received:', payload.new);
-            setMessages((prev) => [...prev, payload.new as Message]);
-            fetchUnreadCount();
+            const newMessage = payload.new as Message;
+            console.log('🔥 Real-time INSERT received:', {
+              id: newMessage.id,
+              sender_id: newMessage.sender_id,
+              receiver_id: newMessage.receiver_id,
+              message: newMessage.message,
+            });
+
+            // ✅ Only process messages in THIS conversation
+            const isRelevant =
+              (newMessage.sender_id === playerId && newMessage.receiver_id === friendId) ||
+              (newMessage.sender_id === friendId && newMessage.receiver_id === playerId);
+
+            if (!isRelevant) {
+              console.log('❌ Message not relevant for this conversation, ignoring');
+              return;
+            }
+
+            console.log('✅ Message is relevant, adding to state');
+
+            setMessages((prev) => {
+              // Check if message already exists
+              if (prev.some((msg) => msg.id === newMessage.id)) {
+                console.log('⚠️ Message already exists, skipping');
+                return prev;
+              }
+
+              // If this is our own message, replace temp message
+              if (newMessage.sender_id === playerId) {
+                const tempIndex = prev.findIndex((msg) => msg.id.startsWith('temp-'));
+                if (tempIndex >= 0) {
+                  console.log('🔄 Replacing temp message with real one');
+                  return prev.map((msg, idx) => (idx === tempIndex ? newMessage : msg));
+                }
+              }
+
+              console.log('➕ Adding new message to state');
+              return [...prev, newMessage];
+            });
+
+            // Refresh unread count if message is from friend
+            if (newMessage.sender_id === friendId) {
+              fetchUnreadCount();
+            }
           }
         )
+        // ✅ Listen to message updates (e.g., read status)
         .on(
           'postgres_changes',
           {
@@ -295,7 +367,7 @@ export function useChat(friendId?: string): UseChatReturn {
             table: 'messages',
           },
           (payload) => {
-            console.log('Message updated:', payload.new);
+            console.log('🔄 Real-time UPDATE received:', payload.new);
             setMessages((prev) =>
               prev.map((msg) =>
                 msg.id === payload.new.id ? (payload.new as Message) : msg
@@ -304,7 +376,20 @@ export function useChat(friendId?: string): UseChatReturn {
             fetchUnreadCount();
           }
         )
-        .subscribe();
+        .subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Successfully subscribed to real-time messages!');
+          }
+          if (status === 'CHANNEL_ERROR') {
+            console.error('❌ Channel error:', err);
+          }
+          if (status === 'TIMED_OUT') {
+            console.error('⏱️ Subscription timed out');
+          }
+          if (status === 'CLOSED') {
+            console.log('🔌 Subscription closed');
+          }
+        });
 
       channelRef.current = channel;
     };

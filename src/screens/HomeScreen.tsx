@@ -118,16 +118,20 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           return;
         }
 
-        const firstBook = freshBooks[0];
-        const lessonIndex = firstBook.current_lesson_index;
-        const gameType = firstBook.current_game_type as 'reading' | 'matching' | 'quiz';
-        const isFirstRound = firstBook.is_first_round;
+        // ✅ ALWAYS use "Pénzügyi Alapismeretek" book for progress display
+        // If not found, fall back to first book
+        const primaryBook = freshBooks.find(book => book.book_title === 'Pénzügyi Alapismeretek') || freshBooks[0];
 
-        console.log(`📚 MOUNT: Loaded book progress:`, {
-          bookTitle: firstBook.book_title,
+        const lessonIndex = primaryBook.current_lesson_index;
+        const gameType = primaryBook.current_game_type as 'reading' | 'matching' | 'quiz';
+        const isFirstRound = primaryBook.is_first_round;
+
+        console.log(`📚 MOUNT: Loaded book progress (PRIMARY BOOK):`, {
+          bookTitle: primaryBook.book_title,
           lessonIndex,
           gameType,
           isFirstRound,
+          totalBooks: freshBooks.length,
         });
 
         setCurrentBookLessonIndex(lessonIndex);
@@ -211,17 +215,20 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             return;
           }
 
-          // ✅ Take the first rented book's progress (Supabase source of truth)
-          const firstBook = freshBooks[0];
-          const lessonIndex = firstBook.current_lesson_index;
-          const gameType = firstBook.current_game_type as 'reading' | 'matching' | 'quiz';
-          const isFirstRound = firstBook.is_first_round;
+          // ✅ ALWAYS use "Pénzügyi Alapismeretek" book for progress display
+          // If not found, fall back to first book
+          const primaryBook = freshBooks.find(book => book.book_title === 'Pénzügyi Alapismeretek') || freshBooks[0];
 
-          console.log(`📚 Supabase lesson progress (FRESH):`, {
-            bookTitle: firstBook.book_title,
+          const lessonIndex = primaryBook.current_lesson_index;
+          const gameType = primaryBook.current_game_type as 'reading' | 'matching' | 'quiz';
+          const isFirstRound = primaryBook.is_first_round;
+
+          console.log(`📚 Supabase lesson progress (FRESH - PRIMARY BOOK):`, {
+            bookTitle: primaryBook.book_title,
             lessonIndex,
             gameType,
             isFirstRound,
+            totalBooks: freshBooks.length,
           });
 
           // Update local state
